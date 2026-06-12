@@ -1,1 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CICSA Comedor — Panel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --tinta: #1c2826;
+    --crema: #f6f3ec;
+    --hoja: #2f6b4f;
+    --hoja-claro: #e3efe7;
+    --chile: #c4452f;
+    --maiz: #d99a2b;
+    --linea: #d9d3c5;
+    --gris: #6b6358;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--crema);
+    color: var(--tinta);
+    line-height: 1.5;
+  }
+  header {
+    background: var(--tinta);
+    color: var(--crema);
+    padding: 18px 24px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  header h1 { font-size: 1.25rem; font-weight: 650; letter-spacing: -0.01em; }
+  header .sub { font-size: 0.8rem; color: #9db0a6; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px; }
+
+  .gate { max-width: 380px; margin: 80px auto; padding: 28px; background: #fff; border: 1px solid var(--linea); border-radius: 12px; }
+  .gate h2 { font-size: 1.05rem; margin-bottom: 6px; }
+  .gate p { font-size: 0.85rem; color: var(--gris); margin-bottom: 18px; }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--linea); margin-bottom: 24px; flex-wrap: wrap; }
+  .tab {
+    padding: 10px 16px; background: none; border: none; cursor: pointer;
+    font-size: 0.9rem; color: var(--gris); border-bottom: 2px solid transparent;
+    font-family: inherit;
+  }
+  .tab.activo { color: var(--hoja); border-bottom-color: var(--hoja); font-weight: 600; }
+  .panel { display: none; }
+  .panel.activo { display: block; }
+
+  .card { background: #fff; border: 1px solid var(--linea); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .card h3 { font-size: 0.95rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card h3 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--maiz); }
+
+  label { display: block; font-size: 0.78rem; color: var(--gris); margin: 10px 0 4px; font-weight: 600; }
+  input, select {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--linea); border-radius: 8px;
+    font-size: 0.9rem; font-family: inherit; background: var(--crema);
+  }
+  input:focus, select:focus { outline: 2px solid var(--hoja-claro); border-color: var(--hoja); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  button.accion {
+    margin-top: 16px; padding: 10px 18px; background: var(--hoja); color: #fff;
+    border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  button.accion:hover { background: #25553f; }
+  button.accion.sec { background: #fff; color: var(--hoja); border: 1px solid var(--hoja); }
+  button.accion.peligro { background: var(--chile); }
+  button.mini { padding: 5px 10px; font-size: 0.78rem; margin: 0; border-radius: 6px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--linea); }
+  th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gris); }
+  .badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .badge.on { background: var(--hoja-claro); color: var(--hoja); }
+  .badge.off { background: #efe6e4; color: var(--chile); }
+
+  .bar { height: 8px; background: var(--hoja-claro); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .bar span { display: block; height: 100%; background: var(--hoja); }
+
+  .aviso { padding: 11px 14px; border-radius: 8px; font-size: 0.85rem; margin-top: 14px; display: none; }
+  .aviso.ok { background: var(--hoja-claro); color: var(--hoja); display: block; }
+  .aviso.err { background: #efe6e4; color: var(--chile); display: block; }
+  .vacio { color: var(--gris); font-size: 0.85rem; padding: 16px 0; }
+  .row-fin { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .row-fin > div { flex: 1; min-width: 130px; }
+</style>
+</head>
+<body>
+
+<!-- Puerta de acceso -->
+<div id="gate" class="gate">
+  <h2>Panel del Comedor</h2>
+  <p>Ingresa la clave de administración para continuar.</p>
+  <input type="password" id="adminKey" placeholder="Clave de administración" />
+  <button class="accion" style="width:100%" onclick="entrar()">Entrar</button>
+  <div id="gateErr" class="aviso"></div>
+</div>
+
+<!-- Aplicación -->
+<div id="app" style="display:none">
+  <header>
+    <div>
+      <h1>🍽️ CICSA Comedor</h1>
+      <div class="sub">Corte de pedidos diario: 8:00 PM · Lázaro Cárdenas, Mich.</div>
+    </div>
+    <button class="tab" onclick="salir()" style="color:#9db0a6">Salir</button>
+  </header>
+
+  <div class="wrap">
+    <div class="tabs">
+      <button class="tab activo" data-p="menu" onclick="tab('menu')">Menú</button>
+      <button class="tab" data-p="pedidos" onclick="tab('pedidos')">Pedidos</button>
+      <button class="tab" data-p="empleados" onclick="tab('empleados')">Empleados</button>
+      <button class="tab" data-p="cocina" onclick="tab('cocina')">Cocina</button>
+      <button class="tab" data-p="reportes" onclick="tab('reportes')">Reportes</button>
+    </div>
+
+    <!-- MENÚ -->
+    <section id="p-menu" class="panel activo">
+      <div class="card">
+        <h3><span class="dot"></span> Publicar menú</h3>
+        <label>Fecha del menú</label>
+        <input type="date" id="m-fecha" />
+        <div class="grid3">
+          <div><label>Opción A (fija)</label><input id="m-fija_a" placeholder="Ej. Pechuga a la plancha"></div>
+          <div><label>Opción B (fija)</label><input id="m-fija_b" placeholder="Ej. Ensalada César"></div>
+          <div><label>Opción C (fija)</label><input id="m-fija_c" placeholder="Ej. Bajo en calorías"></div>
+        </div>
+        <div class="grid3">
+          <div><label>Variable 1</label><input id="m-var_1" placeholder="Platillo del día"></div>
+          <div><label>Variable 2</label><input id="m-var_2" placeholder="Platillo del día"></div>
+          <div><label>Variable 3</label><input id="m-var_3" placeholder="Platillo del día"></div>
+        </div>
+        <button class="accion" onclick="guardarMenu()">Guardar menú</button>
+        <button class="accion sec" onclick="cargarMenu()">Cargar existente</button>
+        <button class="accion" style="background:var(--maiz)" onclick="enviarMasivo()">Enviar menú a todos</button>
+        <div id="menuAviso" class="aviso"></div>
+      </div>
+    </section>
+
+    <!-- PEDIDOS -->
+    <section id="p-pedidos" class="panel">
+      <div class="card">
+        <h3><span class="dot"></span> Pedidos del día</h3>
+        <div class="row-fin">
+          <div><label>Fecha</label><input type="date" id="pe-fecha"></div>
+          <button class="accion" onclick="verPedidos()">Ver pedidos</button>
+        </div>
+        <div id="pedidosBox" style="margin-top:16px"></div>
+      </div>
+    </section>
+
+    <!-- EMPLEADOS -->
+    <section id="p-empleados" class="panel">
+      <div class="card">
+        <h3><span class="dot"></span> Registrar empleado</h3>
+        <div class="grid3">
+          <div><label>Nombre</label><input id="e-nombre" placeholder="Nombre completo"></div>
+          <div><label>No. empleado</label><input id="e-num" placeholder="EMP001"></div>
+          <div><label>Teléfono (WhatsApp)</label><input id="e-tel" placeholder="5215512345678"></div>
+        </div>
+        <button class="accion" onclick="guardarEmpleado()">Guardar empleado</button>
+        <div id="empAviso" class="aviso"></div>
+      </div>
+      <div class="card">
+        <h3><span class="dot"></span> Plantilla</h3>
+        <div id="empBox"><div class="vacio">Cargando…</div></div>
+      </div>
+    </section>
+
+    <!-- REPORTES -->
+    <section id="p-reportes" class="panel">
+      <div class="card">
+        <h3><span class="dot"></span> Reporte operativo — Cocina y etiquetas</h3>
+        <p style="font-size:.82rem;color:var(--gris);margin-bottom:6px">
+          Hoja 1: porciones por platillo. Hoja 2: etiquetas por comensal para la impresora térmica.
+        </p>
+        <div class="row-fin">
+          <div><label>Fecha de entrega</label><input type="date" id="r-fecha"></div>
+          <button class="accion" onclick="excelCocina()">Descargar Excel Cocina</button>
+        </div>
+        <div id="repCocinaAviso" class="aviso"></div>
+      </div>
+
+      <div class="card">
+        <h3><span class="dot"></span> Reporte administrativo — Facturación</h3>
+        <p style="font-size:.82rem;color:var(--gris);margin-bottom:6px">
+          Hoja 1: servicios por día con subtotales (fórmulas vivas). Hoja 2: detalle de auditoría por empleado.
+        </p>
+        <div class="row-fin">
+          <div><label>Desde</label><input type="date" id="r-ini"></div>
+          <div><label>Hasta</label><input type="date" id="r-fin"></div>
+          <div><label>Costo unitario ($)</label><input type="number" id="r-costo" placeholder="85.00" step="0.01" min="0"></div>
+          <button class="accion" onclick="excelFacturacion()">Descargar Excel Facturación</button>
+        </div>
+        <div id="repFactAviso" class="aviso"></div>
+      </div>
+    </section>
+
+    <!-- COCINA -->
+    <section id="p-cocina" class="panel">
+      <div class="card">
+        <h3><span class="dot"></span> Resumen para cocina</h3>
+        <div class="row-fin">
+          <div><label>Fecha</label><input type="date" id="co-fecha"></div>
+          <button class="accion" onclick="verCocina()">Calcular porciones</button>
+        </div>
+        <div id="cocinaBox" style="margin-top:16px"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  // ⚙️ CONFIGURA ESTO: la URL pública de tu backend en Railway
+  const API_BASE = 'https://glovis-cicsa-app-production.up.railway.app';
+
+  let ADMIN_KEY = '';
+
+  function entrar() {
+    const k = document.getElementById('adminKey').value.trim();
+    if (!k) return;
+    ADMIN_KEY = k;
+    // Prueba la clave con una petición simple
+    api('/api/empleados').then(() => {
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      const hoy = new Date().toISOString().slice(0,10);
+      ['m-fecha','pe-fecha','co-fecha','r-fecha','r-ini','r-fin'].forEach(id => document.getElementById(id).value = hoy);
+      cargarEmpleados();
+    }).catch(() => {
+      const e = document.getElementById('gateErr');
+      e.className = 'aviso err'; e.textContent = 'Clave incorrecta o servidor no disponible.';
+    });
+  }
+
+  function salir() { ADMIN_KEY=''; location.reload(); }
+
+  function tab(p) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('activo', t.dataset.p === p));
+    document.querySelectorAll('.panel').forEach(s => s.classList.toggle('activo', s.id === 'p-'+p));
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(API_BASE + path, {
+      ...opts,
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY, ...(opts.headers||{}) }
+    });
+    if (!res.ok) throw new Error((await res.json().catch(()=>({}))).error || res.status);
+    return res.json();
+  }
+
+  function aviso(id, msg, ok=true) {
+    const e = document.getElementById(id);
+    e.className = 'aviso ' + (ok ? 'ok' : 'err');
+    e.textContent = msg;
+    setTimeout(() => { e.className = 'aviso'; }, 4000);
+  }
+
+  // ── Menú ──
+  async function guardarMenu() {
+    const body = {
+      fecha: document.getElementById('m-fecha').value,
+      fija_a: val('m-fija_a'), fija_b: val('m-fija_b'), fija_c: val('m-fija_c'),
+      var_1: val('m-var_1'), var_2: val('m-var_2'), var_3: val('m-var_3')
+    };
+    try {
+      await api('/api/menu', { method:'POST', body: JSON.stringify(body) });
+      aviso('menuAviso', 'Menú guardado para ' + body.fecha);
+    } catch(e) { aviso('menuAviso', 'Error: ' + e.message, false); }
+  }
+
+  async function cargarMenu() {
+    const f = document.getElementById('m-fecha').value;
+    try {
+      const { menu } = await api('/api/menu/' + f);
+      if (!menu) return aviso('menuAviso', 'No hay menú para esa fecha', false);
+      ['fija_a','fija_b','fija_c','var_1','var_2','var_3'].forEach(k => document.getElementById('m-'+k).value = menu[k] || '');
+      aviso('menuAviso', 'Menú cargado');
+    } catch(e) { aviso('menuAviso', 'Error: ' + e.message, false); }
+  }
+
+  async function enviarMasivo() {
+    if (!confirm('¿Enviar el menú de mañana a todos los empleados activos?')) return;
+    try {
+      const r = await api('/api/enviar-menu', { method:'POST', body:'{}' });
+      aviso('menuAviso', `Enviados: ${r.enviados} · Fallidos: ${r.fallidos}`);
+    } catch(e) { aviso('menuAviso', 'Error: ' + e.message, false); }
+  }
+
+  // ── Pedidos ──
+  async function verPedidos() {
+    const f = document.getElementById('pe-fecha').value;
+    const box = document.getElementById('pedidosBox');
+    try {
+      const r = await api('/api/pedidos/' + f);
+      if (!r.count) return box.innerHTML = '<div class="vacio">Sin pedidos para esta fecha.</div>';
+      let h = `<table><tr><th>Empleado</th><th>No.</th><th>Platillo</th></tr>`;
+      for (const p of r.pedidos) {
+        h += `<tr><td>${p.empleados?.nombre||'—'}</td><td>${p.empleados?.numero_empleado||'—'}</td><td>${p.opcion_texto}</td></tr>`;
+      }
+      h += `</table><p style="margin-top:10px;font-size:.85rem;color:var(--gris)">Total: ${r.count} pedidos</p>`;
+      box.innerHTML = h;
+    } catch(e) { box.innerHTML = `<div class="aviso err">Error: ${e.message}</div>`; }
+  }
+
+  // ── Empleados ──
+  async function guardarEmpleado() {
+    const body = { nombre: val('e-nombre'), numero_empleado: val('e-num'), telefono: val('e-tel') };
+    if (!body.nombre || !body.numero_empleado || !body.telefono) return aviso('empAviso','Completa los 3 campos', false);
+    try {
+      await api('/api/empleados', { method:'POST', body: JSON.stringify(body) });
+      aviso('empAviso', 'Empleado guardado');
+      ['e-nombre','e-num','e-tel'].forEach(id => document.getElementById(id).value='');
+      cargarEmpleados();
+    } catch(e) { aviso('empAviso', 'Error: ' + e.message, false); }
+  }
+
+  async function cargarEmpleados() {
+    const box = document.getElementById('empBox');
+    try {
+      const { empleados } = await api('/api/empleados');
+      if (!empleados.length) return box.innerHTML = '<div class="vacio">Aún no hay empleados registrados.</div>';
+      let h = `<table><tr><th>Nombre</th><th>No.</th><th>Teléfono</th><th>Estado</th><th></th></tr>`;
+      for (const e of empleados) {
+        h += `<tr>
+          <td>${e.nombre}</td><td>${e.numero_empleado}</td><td>${e.telefono}</td>
+          <td><span class="badge ${e.activo?'on':'off'}">${e.activo?'Activo':'Inactivo'}</span></td>
+          <td><button class="accion mini ${e.activo?'peligro':'sec'}" onclick="toggleEmp('${e.telefono}',${!e.activo})">${e.activo?'Desactivar':'Activar'}</button></td>
+        </tr>`;
+      }
+      box.innerHTML = h + '</table>';
+    } catch(e) { box.innerHTML = `<div class="aviso err">Error: ${e.message}</div>`; }
+  }
+
+  async function toggleEmp(tel, activo) {
+    try { await api(`/api/empleados/${tel}/activo`, { method:'PUT', body: JSON.stringify({activo}) }); cargarEmpleados(); }
+    catch(e) { alert('Error: ' + e.message); }
+  }
+
+  // ── Cocina ──
+  async function verCocina() {
+    const f = document.getElementById('co-fecha').value;
+    const box = document.getElementById('cocinaBox');
+    try {
+      const r = await api('/api/resumen-cocina/' + f);
+      if (!r.total) return box.innerHTML = '<div class="vacio">Sin pedidos para calcular.</div>';
+      let h = `<table><tr><th>Platillo</th><th>Porciones</th><th style="width:35%">Distribución</th></tr>`;
+      for (const x of r.resumen.sort((a,b)=>b.porciones-a.porciones)) {
+        h += `<tr><td>${x.platillo}</td><td><strong>${x.porciones}</strong></td>
+          <td>${x.porcentaje}%<div class="bar"><span style="width:${x.porcentaje}%"></span></div></td></tr>`;
+      }
+      h += `</table><p style="margin-top:10px;font-size:.85rem;color:var(--gris)">Total a preparar: ${r.total} porciones</p>`;
+      box.innerHTML = h;
+    } catch(e) { box.innerHTML = `<div class="aviso err">Error: ${e.message}</div>`; }
+  }
+
+  // ── Reportes Excel (SheetJS) ──────────────────────────────────
+
+  // Construye el workbook de Cocina a partir de datos ya consultados.
+  // Función pura: facilita probarla fuera del navegador.
+  function buildWorkbookCocina(fecha, resumen, pedidos) {
+    const wb = XLSX.utils.book_new();
+
+    // Hoja 1 — Resumen_Cocina
+    const filas1 = [['Platillo', 'Porciones_Total', 'Porcentaje']];
+    const orden = [...resumen.resumen].sort((a, b) => b.porciones - a.porciones);
+    for (const x of orden) filas1.push([x.platillo, x.porciones, x.porcentaje / 100]);
+    const totalRow = filas1.length + 1; // fila Excel del total (1-indexada)
+    filas1.push(['TOTAL', null, null]);
+    const ws1 = XLSX.utils.aoa_to_sheet(filas1);
+    // Total con fórmula viva (=SUM), no valor calculado
+    ws1['B' + totalRow] = { t: 'n', f: `SUM(B2:B${totalRow - 1})` };
+    ws1['C' + totalRow] = { t: 'n', f: `SUM(C2:C${totalRow - 1})`, z: '0.0%' };
+    for (let i = 2; i < totalRow; i++) if (ws1['C' + i]) ws1['C' + i].z = '0.0%';
+    ws1['!cols'] = [{ wch: 38 }, { wch: 16 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Resumen_Cocina');
+
+    // Hoja 2 — Etiquetas (para impresora térmica)
+    const filas2 = [['No_Empleado', 'Nombre_Comensal', 'Platillo_Seleccionado', 'Fecha_Entrega']];
+    for (const p of pedidos) {
+      filas2.push([
+        p.empleados?.numero_empleado || '',
+        p.empleados?.nombre || '',
+        p.opcion_texto,
+        fecha
+      ]);
+    }
+    const ws2 = XLSX.utils.aoa_to_sheet(filas2);
+    ws2['!cols'] = [{ wch: 14 }, { wch: 30 }, { wch: 38 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Etiquetas');
+
+    return wb;
+  }
+
+  // Construye el workbook de Facturación a partir de pedidos de un rango.
+  function buildWorkbookFacturacion(ini, fin, costoUnitario, pedidos) {
+    const wb = XLSX.utils.book_new();
+
+    // Agrupar servicios por día
+    const porDia = {};
+    for (const p of pedidos) porDia[p.fecha_menu] = (porDia[p.fecha_menu] || 0) + 1;
+    const fechas = Object.keys(porDia).sort();
+
+    // Hoja 1 — Resumen_Facturacion (Subtotal y Total con fórmulas vivas)
+    const filas1 = [['Fecha', 'Total_Servicios_Dia', 'Costo_Unitario ($)', 'Subtotal ($)']];
+    fechas.forEach(f => filas1.push([f, porDia[f], costoUnitario, null]));
+    const totalRow = filas1.length + 1;
+    filas1.push(['TOTAL', null, null, null]);
+    const ws1 = XLSX.utils.aoa_to_sheet(filas1);
+    for (let i = 0; i < fechas.length; i++) {
+      const r = i + 2;
+      ws1['D' + r] = { t: 'n', f: `B${r}*C${r}`, z: '$#,##0.00' };
+      if (ws1['C' + r]) ws1['C' + r].z = '$#,##0.00';
+    }
+    ws1['B' + totalRow] = { t: 'n', f: `SUM(B2:B${totalRow - 1})` };
+    ws1['D' + totalRow] = { t: 'n', f: `SUM(D2:D${totalRow - 1})`, z: '$#,##0.00' };
+    ws1['!cols'] = [{ wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 16 }];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Resumen_Facturacion');
+
+    // Hoja 2 — Auditoria_Detalle (comprobante para el cliente corporativo)
+    const filas2 = [['No_Empleado', 'Nombre', 'Telefono', 'Fecha_Pedido', 'Platillo_Consumido']];
+    for (const p of pedidos) {
+      filas2.push([
+        p.empleados?.numero_empleado || '',
+        p.empleados?.nombre || '',
+        p.empleados?.telefono || p.empleado_telefono || '',
+        p.fecha_menu,
+        p.opcion_texto
+      ]);
+    }
+    const ws2 = XLSX.utils.aoa_to_sheet(filas2);
+    ws2['!cols'] = [{ wch: 14 }, { wch: 30 }, { wch: 16 }, { wch: 14 }, { wch: 38 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Auditoria_Detalle');
+
+    return wb;
+  }
+
+  async function excelCocina() {
+    const f = val('r-fecha');
+    if (!f) return aviso('repCocinaAviso', 'Selecciona la fecha', false);
+    try {
+      const [resumen, ped] = await Promise.all([
+        api('/api/resumen-cocina/' + f),
+        api('/api/pedidos/' + f)
+      ]);
+      if (!ped.count) return aviso('repCocinaAviso', 'Sin pedidos para esa fecha', false);
+      const wb = buildWorkbookCocina(f, resumen, ped.pedidos);
+      XLSX.writeFile(wb, `CICSA_Cocina_${f}.xlsx`);
+      aviso('repCocinaAviso', `Reporte generado: ${ped.count} pedidos`);
+    } catch (e) { aviso('repCocinaAviso', 'Error: ' + e.message, false); }
+  }
+
+  async function excelFacturacion() {
+    const ini = val('r-ini'), fin = val('r-fin');
+    const costo = parseFloat(val('r-costo'));
+    if (!ini || !fin) return aviso('repFactAviso', 'Selecciona el rango de fechas', false);
+    if (!(costo > 0)) return aviso('repFactAviso', 'Ingresa el costo unitario', false);
+    try {
+      const r = await api(`/api/pedidos?ini=${ini}&fin=${fin}`);
+      if (!r.count) return aviso('repFactAviso', 'Sin pedidos en ese rango', false);
+      const wb = buildWorkbookFacturacion(ini, fin, costo, r.pedidos);
+      XLSX.writeFile(wb, `CICSA_Facturacion_${ini}_a_${fin}.xlsx`);
+      aviso('repFactAviso', `Reporte generado: ${r.count} servicios`);
+    } catch (e) { aviso('repFactAviso', 'Error: ' + e.message, false); }
+  }
+
+  function val(id){ return document.getElementById(id).value.trim(); }
+
+  // Permitir Enter en la puerta
+  document.getElementById('adminKey').addEventListener('keydown', e => { if(e.key==='Enter') entrar(); });
+</script>
+</body>
+</html>
 
