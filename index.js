@@ -9,6 +9,12 @@ const PORT = process.env.PORT || 3000;
 
 // CORS — permite que el panel admin (GitHub Pages) consuma la API
 app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://fjguajardo67-star.github.io');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-admin-key');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
   const allowed = [
     'https://fjguajardo67-star.github.io',
     'http://localhost:3000',
