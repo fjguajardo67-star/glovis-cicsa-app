@@ -37,6 +37,17 @@ app.get('/debug', async (req, res) => {
     key_preview: key ? key.slice(0,20) : 'vacía'
   });
 });
+app.get('/test-supabase', async (req, res) => {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+    const { data, error } = await sb.from('empleados').select('count');
+    if (error) return res.json({ ok: false, error: error.message, code: error.code });
+    res.json({ ok: true, data });
+  } catch(e) {
+    res.json({ ok: false, error: e.message });
+  }
+});
 
 // Webhook de WhatsApp (Meta)
 app.use('/webhook', webhookRouter);
