@@ -26,6 +26,17 @@ app.disable('x-powered-by');
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cicsa-comedor', ts: new Date().toISOString() });
 });
+// Diagnóstico temporal Supabase
+app.get('/debug', async (req, res) => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_KEY;
+  res.json({
+    url_set: !!url,
+    key_set: !!key,
+    url_preview: url ? url.slice(0,30) : 'vacía',
+    key_preview: key ? key.slice(0,20) : 'vacía'
+  });
+});
 
 // Webhook de WhatsApp (Meta)
 app.use('/webhook', webhookRouter);
