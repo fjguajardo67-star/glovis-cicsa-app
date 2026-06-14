@@ -29,7 +29,7 @@ app.get('/health', (req, res) => {
 // Diagnóstico temporal Supabase
 app.get('/debug', async (req, res) => {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_KEY;
+  const key = process.env.SUPABASE_ANON_KEY;
   res.json({
     url_set: !!url,
     key_set: !!key,
