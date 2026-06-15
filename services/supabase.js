@@ -42,10 +42,10 @@ export async function upsertEmpleado(emp) {
   const { data, error } = await supabase
     .from('empleados')
     .upsert({
-      telefono: emp.telefono,
-      nombre: emp.nombre,
+      telefono:        emp.telefono,
+      nombre:          emp.nombre,
       numero_empleado: emp.numero_empleado,
-      activo: emp.activo ?? true
+      activo:          emp.activo ?? true
     }, { onConflict: 'telefono' })
     .select()
     .single();
@@ -80,13 +80,13 @@ export async function upsertMenu(menu) {
   const { data, error } = await supabase
     .from('menus')
     .upsert({
-      fecha: menu.fecha,
+      fecha:  menu.fecha,
       fija_a: menu.fija_a,
       fija_b: menu.fija_b,
       fija_c: menu.fija_c,
-      var_1: menu.var_1,
-      var_2: menu.var_2,
-      var_3: menu.var_3
+      var_1:  menu.var_1,
+      var_2:  menu.var_2,
+      var_3:  menu.var_3
     }, { onConflict: 'fecha' })
     .select()
     .single();
@@ -100,10 +100,12 @@ export async function upsertPedido(pedido) {
   const { data, error } = await supabase
     .from('pedidos')
     .upsert({
-      fecha_menu: pedido.fecha_menu,
+      fecha_menu:        pedido.fecha_menu,
       empleado_telefono: pedido.empleado_telefono,
-      opcion_id: pedido.opcion_id,
-      opcion_texto: pedido.opcion_texto
+      opcion_id:         pedido.opcion_id,
+      opcion_texto:      pedido.opcion_texto,
+      zona:              pedido.zona,
+      turno:             pedido.turno
     }, { onConflict: 'fecha_menu,empleado_telefono' })
     .select()
     .single();
@@ -116,6 +118,8 @@ export async function getPedidosPorFecha(fecha) {
     .from('pedidos')
     .select('*, empleados(nombre, numero_empleado)')
     .eq('fecha_menu', fecha)
+    .order('turno')        // agrupa Turno A antes que Turno B
+    .order('zona')
     .order('creado_en');
   if (error) throw error;
   return data;
@@ -127,7 +131,9 @@ export async function getPedidosRango(fechaIni, fechaFin) {
     .select('*, empleados(nombre, numero_empleado, telefono)')
     .gte('fecha_menu', fechaIni)
     .lte('fecha_menu', fechaFin)
-    .order('fecha_menu');
+    .order('fecha_menu')
+    .order('turno')
+    .order('zona');
   if (error) throw error;
   return data;
 }
