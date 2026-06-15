@@ -222,6 +222,12 @@
   // ⚙️ CONFIGURA ESTO: la URL pública de tu backend en Railway
   const API_BASE = 'https://glovis-cicsa-app-production.up.railway.app';
 
+  // Texto legible de zonas y turnos (deben coincidir con services/menu.js)
+  const ZONA_TXT = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
+  const TURNO_TXT = { turno_a: 'Turno A (10:00 am)', turno_b: 'Turno B (5:00 pm)' };
+  const zonaTxt  = z => ZONA_TXT[z]  || z || '—';
+  const turnoTxt = t => TURNO_TXT[t] || t || '—';
+
   let ADMIN_KEY = '';
 
   function entrar() {
@@ -302,9 +308,9 @@
     try {
       const r = await api('/api/pedidos/' + f);
       if (!r.count) return box.innerHTML = '<div class="vacio">Sin pedidos para esta fecha.</div>';
-      let h = `<table><tr><th>Empleado</th><th>No.</th><th>Platillo</th></tr>`;
+      let h = `<table><tr><th>Empleado</th><th>No.</th><th>Platillo</th><th>Zona</th><th>Turno</th></tr>`;
       for (const p of r.pedidos) {
-        h += `<tr><td>${p.empleados?.nombre||'—'}</td><td>${p.empleados?.numero_empleado||'—'}</td><td>${p.opcion_texto}</td></tr>`;
+        h += `<tr><td>${p.empleados?.nombre||'—'}</td><td>${p.empleados?.numero_empleado||'—'}</td><td>${p.opcion_texto}</td><td>${zonaTxt(p.zona)}</td><td>${turnoTxt(p.turno)}</td></tr>`;
       }
       h += `</table><p style="margin-top:10px;font-size:.85rem;color:var(--gris)">Total: ${r.count} pedidos</p>`;
       box.innerHTML = h;
@@ -350,14 +356,33 @@
     const f = document.getElementById('co-fecha').value;
     const box = document.getElementById('cocinaBox');
     try {
-      const r = await api('/api/resumen-cocina/' + f);
-      if (!r.total) return box.innerHTML = '<div class="vacio">Sin pedidos para calcular.</div>';
-      let h = `<table><tr><th>Platillo</th><th>Porciones</th><th style="width:35%">Distribución</th></tr>`;
-      for (const x of r.resumen.sort((a,b)=>b.porciones-a.porciones)) {
-        h += `<tr><td>${x.platillo}</td><td><strong>${x.porciones}</strong></td>
-          <td>${x.porcentaje}%<div class="bar"><span style="width:${x.porcentaje}%"></span></div></td></tr>`;
+      const r = await api('/api/pedidos/' + f);
+      if (!r.count) return box.innerHTML = '<div class="vacio">Sin pedidos para calcular.</div>';
+
+      // Agrupar por turno y, dentro de cada turno, contar platillos
+      const turnos = {};
+      for (const p of r.pedidos) {
+        const t = p.turno || 'sin_turno';
+        if (!turnos[t]) turnos[t] = { total: 0, platillos: {} };
+        turnos[t].total++;
+        turnos[t].platillos[p.opcion_texto] = (turnos[t].platillos[p.opcion_texto] || 0) + 1;
       }
-      h += `</table><p style="margin-top:10px;font-size:.85rem;color:var(--gris)">Total a preparar: ${r.total} porciones</p>`;
+
+      const ordenTurnos = ['turno_a', 'turno_b', 'sin_turno'];
+      let h = '';
+      for (const t of ordenTurnos) {
+        if (!turnos[t]) continue;
+        const grupo = turnos[t];
+        h += `<h3 style="margin:18px 0 8px"><span class="dot"></span> ${turnoTxt(t === 'sin_turno' ? '' : t)} — ${grupo.total} porciones</h3>`;
+        h += `<table><tr><th>Platillo</th><th>Porciones</th><th style="width:35%">Distribución</th></tr>`;
+        const filas = Object.entries(grupo.platillos).sort((a,b)=>b[1]-a[1]);
+        for (const [platillo, porciones] of filas) {
+          const pct = Math.round((porciones/grupo.total)*100);
+          h += `<tr><td>${platillo}</td><td><strong>${porciones}</strong></td>
+            <td>${pct}%<div class="bar"><span style="width:${pct}%"></span></div></td></tr>`;
+        }
+        h += `</table>`;
+      }
       box.innerHTML = h;
     } catch(e) { box.innerHTML = `<div class="aviso err">Error: ${e.message}</div>`; }
   }
@@ -369,32 +394,48 @@
   function buildWorkbookCocina(fecha, resumen, pedidos) {
     const wb = XLSX.utils.book_new();
 
-    // Hoja 1 — Resumen_Cocina
-    const filas1 = [['Platillo', 'Porciones_Total', 'Porcentaje']];
-    const orden = [...resumen.resumen].sort((a, b) => b.porciones - a.porciones);
-    for (const x of orden) filas1.push([x.platillo, x.porciones, x.porcentaje / 100]);
-    const totalRow = filas1.length + 1; // fila Excel del total (1-indexada)
-    filas1.push(['TOTAL', null, null]);
+    // Hoja 1 — Resumen_Cocina (separado por turno)
+    const ordenT = ['turno_a', 'turno_b', 'sin_turno'];
+    const grupos = {};
+    for (const p of pedidos) {
+      const t = p.turno || 'sin_turno';
+      (grupos[t] = grupos[t] || {});
+      grupos[t][p.opcion_texto] = (grupos[t][p.opcion_texto] || 0) + 1;
+    }
+
+    const filas1 = [['Turno', 'Platillo', 'Porciones']];
+    for (const t of ordenT) {
+      if (!grupos[t]) continue;
+      const etiqueta = turnoTxt(t === 'sin_turno' ? '' : t);
+      const platillos = Object.entries(grupos[t]).sort((a, b) => b[1] - a[1]);
+      let subtotal = 0;
+      for (const [platillo, n] of platillos) { filas1.push([etiqueta, platillo, n]); subtotal += n; }
+      filas1.push([`Subtotal ${etiqueta}`, '', subtotal]);
+      filas1.push(['', '', '']); // separador
+    }
+    const totalRow = filas1.length + 1;
+    filas1.push(['TOTAL GENERAL', '', null]);
     const ws1 = XLSX.utils.aoa_to_sheet(filas1);
-    // Total con fórmula viva (=SUM), no valor calculado
-    ws1['B' + totalRow] = { t: 'n', f: `SUM(B2:B${totalRow - 1})` };
-    ws1['C' + totalRow] = { t: 'n', f: `SUM(C2:C${totalRow - 1})`, z: '0.0%' };
-    for (let i = 2; i < totalRow; i++) if (ws1['C' + i]) ws1['C' + i].z = '0.0%';
-    ws1['!cols'] = [{ wch: 38 }, { wch: 16 }, { wch: 12 }];
+    // Total general: suma solo de las filas de detalle (no subtotales) sería complejo;
+    // usamos el total de pedidos como valor verificable.
+    ws1['C' + totalRow] = { t: 'n', v: pedidos.length };
+    ws1['!cols'] = [{ wch: 22 }, { wch: 38 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws1, 'Resumen_Cocina');
 
     // Hoja 2 — Etiquetas (para impresora térmica)
-    const filas2 = [['No_Empleado', 'Nombre_Comensal', 'Platillo_Seleccionado', 'Fecha_Entrega']];
+    const filas2 = [['No_Empleado', 'Nombre_Comensal', 'Platillo_Seleccionado', 'Zona', 'Turno', 'Fecha_Entrega']];
     for (const p of pedidos) {
       filas2.push([
         p.empleados?.numero_empleado || '',
         p.empleados?.nombre || '',
         p.opcion_texto,
+        zonaTxt(p.zona),
+        turnoTxt(p.turno),
         fecha
       ]);
     }
     const ws2 = XLSX.utils.aoa_to_sheet(filas2);
-    ws2['!cols'] = [{ wch: 14 }, { wch: 30 }, { wch: 38 }, { wch: 14 }];
+    ws2['!cols'] = [{ wch: 14 }, { wch: 30 }, { wch: 38 }, { wch: 18 }, { wch: 20 }, { wch: 14 }];
     XLSX.utils.book_append_sheet(wb, ws2, 'Etiquetas');
 
     return wb;
@@ -426,18 +467,20 @@
     XLSX.utils.book_append_sheet(wb, ws1, 'Resumen_Facturacion');
 
     // Hoja 2 — Auditoria_Detalle (comprobante para el cliente corporativo)
-    const filas2 = [['No_Empleado', 'Nombre', 'Telefono', 'Fecha_Pedido', 'Platillo_Consumido']];
+    const filas2 = [['No_Empleado', 'Nombre', 'Telefono', 'Fecha_Pedido', 'Platillo_Consumido', 'Zona', 'Turno']];
     for (const p of pedidos) {
       filas2.push([
         p.empleados?.numero_empleado || '',
         p.empleados?.nombre || '',
         p.empleados?.telefono || p.empleado_telefono || '',
         p.fecha_menu,
-        p.opcion_texto
+        p.opcion_texto,
+        zonaTxt(p.zona),
+        turnoTxt(p.turno)
       ]);
     }
     const ws2 = XLSX.utils.aoa_to_sheet(filas2);
-    ws2['!cols'] = [{ wch: 14 }, { wch: 30 }, { wch: 16 }, { wch: 14 }, { wch: 38 }];
+    ws2['!cols'] = [{ wch: 14 }, { wch: 30 }, { wch: 16 }, { wch: 14 }, { wch: 38 }, { wch: 18 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(wb, ws2, 'Auditoria_Detalle');
 
     return wb;
@@ -479,4 +522,5 @@
 </script>
 </body>
 </html>
+
 
