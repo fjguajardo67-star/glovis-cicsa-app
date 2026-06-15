@@ -9,14 +9,14 @@ export const adminRouter = express.Router();
 // Protección simple por clave de administrador
 adminRouter.use((req, res, next) => {
   const key = req.headers['x-admin-key'];
-console.log('[AUTH]', JSON.stringify({key, adminKey: process.env.ADMIN_KEY, match: key === process.env.ADMIN_KEY}));
 
   if (!process.env.ADMIN_KEY) {
     return res.status(500).json({ error: 'ADMIN_KEY no configurada en el servidor' });
   }
-    // if (key !== process.env.ADMIN_KEY) {
-  //   return res.status(401).json({ error: 'No autorizado' });
-  // }
+
+  if (key !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
 
   next();
 });
