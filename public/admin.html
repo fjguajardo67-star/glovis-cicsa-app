@@ -371,27 +371,31 @@
         <div id="menuAviso" class="aviso"></div>
       </div>
 
-      <!-- Card: Importar semana desde CSV -->
+
+      <!-- Card: Programar menú por periodo -->
       <div class="card" style="margin-top:0">
         <div class="card-header">
           <div class="card-icon">📅</div>
-          <h3>Importar menú semanal desde CSV</h3>
+          <h3>Programar menú semanal</h3>
         </div>
-        <p style="font-size:.85rem;color:var(--gris-text);margin-bottom:14px">
-          Sube un archivo CSV con los menús de toda la semana y se cargan de una sola vez.
-        </p>
-        <div style="background:var(--azul-light);border:1px dashed var(--azul-line);border-radius:8px;padding:14px 16px;margin-bottom:14px;font-size:.8rem;color:var(--gris-text)">
-          <strong style="color:var(--tinta)">Encabezados requeridos en la primera fila:</strong><br>
-          <code style="font-size:.78rem">fecha, fija_a, fija_b, fija_c, var_1, var_2, var_3</code><br>
-          <span style="margin-top:4px;display:block">Fecha en formato <strong>YYYY-MM-DD</strong> · Una fila por día</span>
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px">
+          <div>
+            <label>Fecha de inicio</label>
+            <input type="date" id="per-inicio" style="max-width:180px">
+          </div>
+          <div>
+            <label>Periodo</label>
+            <select id="per-dias" style="max-width:140px">
+              <option value="5">5 días (semana)</option>
+              <option value="7">7 días</option>
+              <option value="10">10 días</option>
+              <option value="14">14 días (dos semanas)</option>
+            </select>
+          </div>
+          <button class="accion sec" style="margin-top:0" onclick="generarTablaPeriodo()">Generar tabla</button>
         </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-          <input type="file" id="csv-input" accept=".csv" style="width:auto;flex:1;min-width:200px">
-          <button class="accion" style="margin-top:0" onclick="importarCSV()">Importar semana</button>
-          <button class="accion sec" style="margin-top:0" onclick="descargarPlantillaCSV()">Descargar plantilla</button>
-        </div>
-        <div id="csvAviso" class="aviso"></div>
-        <div id="csvResultado" style="margin-top:12px"></div>
+        <div id="tablaMenuBox"></div>
+        <div id="periodoAviso" class="aviso"></div>
       </div>
     </section>
 
@@ -781,56 +785,77 @@
   function val(id){ return document.getElementById(id).value.trim(); }
 
 
-  // ── Importar menú semanal desde CSV ──
-  function descargarPlantillaCSV() {
-    const lunes = new Date();
-    const dia = lunes.getDay();
-    const diff = dia === 0 ? 1 : (8 - dia);
-    lunes.setDate(lunes.getDate() + diff);
-    const filas = ['fecha,fija_a,fija_b,fija_c,var_1,var_2,var_3'];
-    const nombres = ['Lunes','Martes','Miercoles','Jueves','Viernes'];
-    for (let i = 0; i < 5; i++) {
-      const d = new Date(lunes);
-      d.setDate(lunes.getDate() + i);
+
+  // ── Programar menú por periodo ──
+  function generarTablaPeriodo() {
+    const inicio = document.getElementById('per-inicio').value;
+    const dias = parseInt(document.getElementById('per-dias').value);
+    const box = document.getElementById('tablaMenuBox');
+    const av = document.getElementById('periodoAviso');
+    av.className = 'aviso'; av.textContent = '';
+
+    if (!inicio) { av.className = 'aviso err'; av.textContent = 'Selecciona la fecha de inicio.'; return; }
+
+    const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+    let html = '<div style="overflow-x:auto"><table style="min-width:700px">';
+    html += '<thead><tr>';
+    html += '<th style="min-width:110px">Fecha</th>';
+    html += '<th>Opción A</th><th>Opción B</th><th>Opción C</th>';
+    html += '<th>Variable 1</th><th>Variable 2</th><th>Variable 3</th>';
+    html += '</tr></thead><tbody>';
+
+    for (let i = 0; i < dias; i++) {
+      const d = new Date(inicio + 'T12:00:00');
+      d.setDate(d.getDate() + i);
       const fecha = d.toISOString().split('T')[0];
-      filas.push(fecha + ',Opcion A,Opcion B,Opcion C,Variable 1,Variable 2,Variable 3');
+      const label = DIAS_ES[d.getDay()] + ' ' + d.getDate() + ' ' + MESES_ES[d.getMonth()];
+      const esFinde = d.getDay() === 0 || d.getDay() === 6;
+      const bgRow = esFinde ? 'background:var(--gris-bg)' : '';
+      html += `<tr style="${bgRow}" data-fecha="${fecha}">`;
+      html += `<td style="font-size:.8rem;font-weight:700;white-space:nowrap;color:${esFinde ? 'var(--gris-text)' : 'var(--tinta)'}">${label}</td>`;
+      ['fija_a','fija_b','fija_c','var_1','var_2','var_3'].forEach(campo => {
+        html += `<td><input class="menu-cell" data-campo="${campo}" placeholder="—" style="padding:6px 8px;font-size:.82rem;border-radius:6px;width:100%;min-width:90px"></td>`;
+      });
+      html += '</tr>';
     }
-    const blob = new Blob([filas.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'plantilla_menu_semanal.csv'; a.click();
-    URL.revokeObjectURL(url);
+
+    html += '</tbody></table></div>';
+    html += '<button class="accion verde" style="margin-top:16px;width:100%" onclick="guardarPeriodo()">Guardar ' + dias + ' días de menú</button>';
+    box.innerHTML = html;
   }
 
-  async function importarCSV() {
-    const file = document.getElementById('csv-input').files[0];
-    const av = document.getElementById('csvAviso');
-    const res = document.getElementById('csvResultado');
-    av.className = 'aviso'; av.textContent = ''; res.innerHTML = '';
+  async function guardarPeriodo() {
+    const av = document.getElementById('periodoAviso');
+    av.className = 'aviso'; av.textContent = '';
 
-    if (!file) { av.className = 'aviso err'; av.textContent = 'Selecciona un archivo CSV primero.'; return; }
-
-    const texto = await file.text();
-    const lineas = texto.trim().split('\n').map(l => l.trim()).filter(Boolean);
-    if (lineas.length < 2) { av.className = 'aviso err'; av.textContent = 'El archivo esta vacio o solo tiene encabezados.'; return; }
-
-    const headers = lineas[0].split(',').map(h => h.trim().toLowerCase());
-    const campos = ['fecha','fija_a','fija_b','fija_c','var_1','var_2','var_3'];
-    const faltantes = campos.filter(c => !headers.includes(c));
-    if (faltantes.length > 0) { av.className = 'aviso err'; av.textContent = 'Faltan columnas: ' + faltantes.join(', '); return; }
+    const filas = document.querySelectorAll('#tablaMenuBox tbody tr');
+    if (!filas.length) { av.className = 'aviso err'; av.textContent = 'Genera la tabla primero.'; return; }
 
     const menus = [];
-    for (let i = 1; i < lineas.length; i++) {
-      const vals = lineas[i].split(',').map(v => v.trim());
-      const row = {};
-      headers.forEach((h, idx) => row[h] = vals[idx] || '');
-      if (!row.fecha || !row.fija_a || !row.fija_b || !row.fija_c || !row.var_1 || !row.var_2 || !row.var_3) {
-        av.className = 'aviso err'; av.textContent = 'Fila ' + (i+1) + ' incompleta — revisa que todas las columnas tengan valor.'; return;
+    for (const fila of filas) {
+      const fecha = fila.dataset.fecha;
+      const campos = {};
+      fila.querySelectorAll('.menu-cell').forEach(inp => {
+        campos[inp.dataset.campo] = inp.value.trim();
+      });
+      // Solo incluir filas que tengan al menos un campo lleno
+      const tieneAlgo = Object.values(campos).some(v => v !== '');
+      if (tieneAlgo) {
+        const faltantes = ['fija_a','fija_b','fija_c','var_1','var_2','var_3'].filter(c => !campos[c]);
+        if (faltantes.length > 0) {
+          av.className = 'aviso err';
+          av.textContent = 'La fila ' + fecha + ' esta incompleta — completa todas las opciones o dejala en blanco.';
+          return;
+        }
+        menus.push({ fecha, ...campos });
       }
-      menus.push(row);
     }
 
-    av.className = 'aviso ok'; av.textContent = 'Subiendo ' + menus.length + ' menus...';
+    if (!menus.length) { av.className = 'aviso err'; av.textContent = 'No hay filas con datos para guardar.'; return; }
+
+    av.className = 'aviso ok'; av.textContent = 'Guardando ' + menus.length + ' dias de menu...';
     let ok = 0, errores = [];
     for (const m of menus) {
       try { await api('/api/menu', { method: 'POST', body: JSON.stringify(m) }); ok++; }
@@ -838,12 +863,12 @@
     }
 
     if (errores.length === 0) {
-      av.className = 'aviso ok'; av.textContent = ok + ' menus importados correctamente.';
+      av.className = 'aviso ok';
+      av.textContent = ok + ' dias guardados correctamente.';
     } else {
-      av.className = 'aviso err'; av.textContent = ok + ' importados, ' + errores.length + ' con error:';
-      res.innerHTML = errores.map(e => '<div style="font-size:.8rem;color:var(--rojo);margin-top:4px">' + e + '</div>').join('');
+      av.className = 'aviso err';
+      av.textContent = ok + ' guardados, ' + errores.length + ' con error: ' + errores.join(' | ');
     }
-    document.getElementById('csv-input').value = '';
   }
 
   // Permitir Enter en la puerta
