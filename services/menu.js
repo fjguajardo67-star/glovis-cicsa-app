@@ -16,6 +16,20 @@ export const OPCION_LABELS = {
 
 export const OPCIONES_VALIDAS = Object.keys(OPCION_LABELS);
 
+// Zonas de entrega
+export const ZONAS = {
+  zona_vdc:    'Glovis VDC',
+  zona_refris: 'Glovis REFRIS'
+};
+export const ZONAS_VALIDAS = Object.keys(ZONAS);
+
+// Turnos
+export const TURNOS = {
+  turno_a: 'Turno A — 10:00 am',
+  turno_b: 'Turno B — 5:00 pm'
+};
+export const TURNOS_VALIDOS = Object.keys(TURNOS);
+
 // Fecha de hoy en la zona del comedor (YYYY-MM-DD)
 export function hoy() {
   return DateTime.now().setZone(ZONA).toISODate();
@@ -36,7 +50,7 @@ export function horaCorteTexto() {
   return '8:00 PM';
 }
 
-// Construye el payload del List Message de WhatsApp con el menú dado
+// PASO 1 — Menú del día
 export function construirListMessage(telefono, nombre, menu) {
   return {
     messaging_product: 'whatsapp',
@@ -75,6 +89,62 @@ export function construirListMessage(telefono, nombre, menu) {
   };
 }
 
+// PASO 2 — Selección de zona
+export function construirListZona(telefono, opcionTexto) {
+  return {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: telefono,
+    type: 'interactive',
+    interactive: {
+      type: 'list',
+      header: { type: 'text', text: '📍 Zona de entrega' },
+      body: {
+        text: `Seleccionaste: *${opcionTexto}*\n\n¿En qué zona recibirás tu pedido?`
+      },
+      footer: { text: 'Servicio de alimentación CICSA' },
+      action: {
+        button: 'Seleccionar zona',
+        sections: [{
+          title: 'ZONAS DISPONIBLES',
+          rows: [
+            { id: 'zona_vdc',    title: 'Glovis VDC',    description: 'Zona 1' },
+            { id: 'zona_refris', title: 'Glovis REFRIS',  description: 'Zona 2' }
+          ]
+        }]
+      }
+    }
+  };
+}
+
+// PASO 3 — Selección de turno
+export function construirListTurno(telefono, opcionTexto, zonaTexto) {
+  return {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: telefono,
+    type: 'interactive',
+    interactive: {
+      type: 'list',
+      header: { type: 'text', text: '🕐 Turno de entrega' },
+      body: {
+        text: `Platillo: *${opcionTexto}*\nZona: *${zonaTexto}*\n\n¿En qué turno recibirás tu pedido?`
+      },
+      footer: { text: 'Servicio de alimentación CICSA' },
+      action: {
+        button: 'Seleccionar turno',
+        sections: [{
+          title: 'TURNOS DISPONIBLES',
+          rows: [
+            { id: 'turno_a', title: 'Turno A', description: 'Entrega: 10:00 am' },
+            { id: 'turno_b', title: 'Turno B', description: 'Entrega: 5:00 pm'  }
+          ]
+        }]
+      }
+    }
+  };
+}
+
 // WhatsApp limita description a 72 caracteres
 function recorta(texto) {
   const t = (texto || '').toString();
@@ -84,4 +154,12 @@ function recorta(texto) {
 // Dado un menu y un opcion_id, devuelve el texto del platillo
 export function textoDeOpcion(menu, opcionId) {
   return menu[opcionId] || OPCION_LABELS[opcionId] || opcionId;
+}
+
+export function textoDeZona(zonaId) {
+  return ZONAS[zonaId] || zonaId;
+}
+
+export function textoDeTurno(turnoId) {
+  return TURNOS[turnoId] || turnoId;
 }
