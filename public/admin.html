@@ -370,6 +370,29 @@
         </div>
         <div id="menuAviso" class="aviso"></div>
       </div>
+
+      <!-- Card: Importar semana desde CSV -->
+      <div class="card" style="margin-top:0">
+        <div class="card-header">
+          <div class="card-icon">📅</div>
+          <h3>Importar menú semanal desde CSV</h3>
+        </div>
+        <p style="font-size:.85rem;color:var(--gris-text);margin-bottom:14px">
+          Sube un archivo CSV con los menús de toda la semana y se cargan de una sola vez.
+        </p>
+        <div style="background:var(--azul-light);border:1px dashed var(--azul-line);border-radius:8px;padding:14px 16px;margin-bottom:14px;font-size:.8rem;color:var(--gris-text)">
+          <strong style="color:var(--tinta)">Encabezados requeridos en la primera fila:</strong><br>
+          <code style="font-size:.78rem">fecha, fija_a, fija_b, fija_c, var_1, var_2, var_3</code><br>
+          <span style="margin-top:4px;display:block">Fecha en formato <strong>YYYY-MM-DD</strong> · Una fila por día</span>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <input type="file" id="csv-input" accept=".csv" style="width:auto;flex:1;min-width:200px">
+          <button class="accion" style="margin-top:0" onclick="importarCSV()">Importar semana</button>
+          <button class="accion sec" style="margin-top:0" onclick="descargarPlantillaCSV()">Descargar plantilla</button>
+        </div>
+        <div id="csvAviso" class="aviso"></div>
+        <div id="csvResultado" style="margin-top:12px"></div>
+      </div>
     </section>
 
     <!-- PEDIDOS -->
@@ -756,6 +779,72 @@
   }
 
   function val(id){ return document.getElementById(id).value.trim(); }
+
+
+  // ── Importar menú semanal desde CSV ──
+  function descargarPlantillaCSV() {
+    const lunes = new Date();
+    const dia = lunes.getDay();
+    const diff = dia === 0 ? 1 : (8 - dia);
+    lunes.setDate(lunes.getDate() + diff);
+    const filas = ['fecha,fija_a,fija_b,fija_c,var_1,var_2,var_3'];
+    const nombres = ['Lunes','Martes','Miercoles','Jueves','Viernes'];
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(lunes);
+      d.setDate(lunes.getDate() + i);
+      const fecha = d.toISOString().split('T')[0];
+      filas.push(fecha + ',Opcion A,Opcion B,Opcion C,Variable 1,Variable 2,Variable 3');
+    }
+    const blob = new Blob([filas.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'plantilla_menu_semanal.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importarCSV() {
+    const file = document.getElementById('csv-input').files[0];
+    const av = document.getElementById('csvAviso');
+    const res = document.getElementById('csvResultado');
+    av.className = 'aviso'; av.textContent = ''; res.innerHTML = '';
+
+    if (!file) { av.className = 'aviso err'; av.textContent = 'Selecciona un archivo CSV primero.'; return; }
+
+    const texto = await file.text();
+    const lineas = texto.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    if (lineas.length < 2) { av.className = 'aviso err'; av.textContent = 'El archivo esta vacio o solo tiene encabezados.'; return; }
+
+    const headers = lineas[0].split(',').map(h => h.trim().toLowerCase());
+    const campos = ['fecha','fija_a','fija_b','fija_c','var_1','var_2','var_3'];
+    const faltantes = campos.filter(c => !headers.includes(c));
+    if (faltantes.length > 0) { av.className = 'aviso err'; av.textContent = 'Faltan columnas: ' + faltantes.join(', '); return; }
+
+    const menus = [];
+    for (let i = 1; i < lineas.length; i++) {
+      const vals = lineas[i].split(',').map(v => v.trim());
+      const row = {};
+      headers.forEach((h, idx) => row[h] = vals[idx] || '');
+      if (!row.fecha || !row.fija_a || !row.fija_b || !row.fija_c || !row.var_1 || !row.var_2 || !row.var_3) {
+        av.className = 'aviso err'; av.textContent = 'Fila ' + (i+1) + ' incompleta — revisa que todas las columnas tengan valor.'; return;
+      }
+      menus.push(row);
+    }
+
+    av.className = 'aviso ok'; av.textContent = 'Subiendo ' + menus.length + ' menus...';
+    let ok = 0, errores = [];
+    for (const m of menus) {
+      try { await api('/api/menu', { method: 'POST', body: JSON.stringify(m) }); ok++; }
+      catch(e) { errores.push(m.fecha + ': ' + e.message); }
+    }
+
+    if (errores.length === 0) {
+      av.className = 'aviso ok'; av.textContent = ok + ' menus importados correctamente.';
+    } else {
+      av.className = 'aviso err'; av.textContent = ok + ' importados, ' + errores.length + ' con error:';
+      res.innerHTML = errores.map(e => '<div style="font-size:.8rem;color:var(--rojo);margin-top:4px">' + e + '</div>').join('');
+    }
+    document.getElementById('csv-input').value = '';
+  }
 
   // Permitir Enter en la puerta
   document.getElementById('adminKey').addEventListener('keydown', e => { if(e.key==='Enter') entrar(); });
