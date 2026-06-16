@@ -129,10 +129,16 @@ adminRouter.post('/enviar-menu', async (req, res) => {
     if (!menu) return res.status(400).json({ error: `No hay menú publicado para ${fecha}` });
 
     const empleados = await db.listEmpleadosActivos();
+
+    // Excluir a quienes ya tienen pedido registrado para mañana
+    const pedidos = await db.getPedidosPorFecha(fecha);
+    const yaPidieron = new Set(pedidos.map(p => p.empleado_telefono));
+    const pendientes = empleados.filter(emp => !yaPidieron.has(emp.telefono));
+
     let enviados = 0, fallidos = 0;
     const errores = [];
 
-    for (const emp of empleados) {
+    for (const emp of pendientes) {
       try {
         const payload = construirListMessage(emp.telefono, emp.nombre, menu);
         await wa.enviarListMessage(payload);
@@ -143,7 +149,15 @@ adminRouter.post('/enviar-menu', async (req, res) => {
       }
     }
 
-    res.json({ ok: true, fecha, enviados, fallidos, errores });
+    res.json({
+      ok: true,
+      fecha,
+      enviados,
+      fallidos,
+      omitidos: yaPidieron.size,
+      total_activos: empleados.length,
+      errores
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
