@@ -54,6 +54,15 @@ adminRouter.put('/empleados/:telefono/activo', async (req, res) => {
   }
 });
 
+adminRouter.delete('/empleados/:telefono', async (req, res) => {
+  try {
+    await db.deleteEmpleado(req.params.telefono);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Menús ───────────────────────────────────────────────────────
 
 adminRouter.get('/menu/:fecha', async (req, res) => {
