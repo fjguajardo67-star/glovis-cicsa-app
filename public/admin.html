@@ -790,7 +790,7 @@
 
 
   // ── Programar menú por periodo ──
-  function generarTablaPeriodo() {
+  async function generarTablaPeriodo() {
     const inicio = document.getElementById('per-inicio').value;
     const dias = parseInt(document.getElementById('per-dias').value);
     const box = document.getElementById('tablaMenuBox');
@@ -802,6 +802,25 @@
     const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
     const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
+    // Construir lista de fechas del periodo
+    const fechas = [];
+    for (let i = 0; i < dias; i++) {
+      const d = new Date(inicio + 'T12:00:00');
+      d.setDate(d.getDate() + i);
+      fechas.push(d.toISOString().split('T')[0]);
+    }
+
+    // Precargar menús ya guardados en Supabase para esas fechas
+    av.className = 'aviso'; av.textContent = 'Cargando menús existentes…';
+    const existentes = {};
+    await Promise.all(fechas.map(async (f) => {
+      try {
+        const m = await api('/api/menu/' + f);
+        if (m && m.fecha) existentes[f] = m;
+      } catch(e) { /* sin menú para esa fecha, queda vacío */ }
+    }));
+    av.textContent = '';
+
     let html = '<div style="overflow-x:auto"><table style="min-width:700px">';
     html += '<thead><tr>';
     html += '<th style="min-width:110px">Fecha</th>';
@@ -809,23 +828,31 @@
     html += '<th>Variable 1</th><th>Variable 2</th><th>Variable 3</th>';
     html += '</tr></thead><tbody>';
 
+    let diasConMenu = 0;
     for (let i = 0; i < dias; i++) {
       const d = new Date(inicio + 'T12:00:00');
       d.setDate(d.getDate() + i);
       const fecha = d.toISOString().split('T')[0];
       const label = DIAS_ES[d.getDay()] + ' ' + d.getDate() + ' ' + MESES_ES[d.getMonth()];
       const esFinde = d.getDay() === 0 || d.getDay() === 6;
-      const bgRow = esFinde ? 'background:var(--gris-bg)' : '';
+      const datos = existentes[fecha];
+      if (datos) diasConMenu++;
+      const bgRow = datos ? 'background:#f0f7f0' : (esFinde ? 'background:var(--gris-bg)' : '');
       html += `<tr style="${bgRow}" data-fecha="${fecha}">`;
-      html += `<td style="font-size:.8rem;font-weight:700;white-space:nowrap;color:${esFinde ? 'var(--gris-text)' : 'var(--tinta)'}">${label}</td>`;
+      const checkMark = datos ? ' <span style="color:var(--verde);font-size:.7rem">●</span>' : '';
+      html += `<td style="font-size:.8rem;font-weight:700;white-space:nowrap;color:${esFinde && !datos ? 'var(--gris-text)' : 'var(--tinta)'}">${label}${checkMark}</td>`;
       ['fija_a','fija_b','fija_c','var_1','var_2','var_3'].forEach(campo => {
-        html += `<td><input class="menu-cell" data-campo="${campo}" placeholder="—" style="padding:6px 8px;font-size:.82rem;border-radius:6px;width:100%;min-width:90px"></td>`;
+        const val = datos ? (datos[campo] || '').replace(/"/g, '&quot;') : '';
+        html += `<td><input class="menu-cell" data-campo="${campo}" value="${val}" placeholder="—" style="padding:6px 8px;font-size:.82rem;border-radius:6px;width:100%;min-width:90px"></td>`;
       });
       html += '</tr>';
     }
 
     html += '</tbody></table></div>';
-    html += '<button class="accion verde" style="margin-top:16px;width:100%" onclick="guardarPeriodo()">Guardar ' + dias + ' días de menú</button>';
+    if (diasConMenu > 0) {
+      html += '<p style="font-size:.78rem;color:var(--gris-text);margin-top:10px"><span style="color:var(--verde)">●</span> Los días marcados ya tienen menú guardado (precargado). Puedes editarlos y volver a guardar.</p>';
+    }
+    html += '<button class="accion verde" style="margin-top:12px;width:100%" onclick="guardarPeriodo()">Guardar ' + dias + ' días de menú</button>';
     box.innerHTML = html;
   }
 
