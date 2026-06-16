@@ -136,7 +136,7 @@
 
   /* ── Layout ── */
   .wrap { max-width: 980px; margin: 0 auto; padding: 28px 24px; }
-  #app > .wrap { padding-top: 86px; }
+
 
   /* ── Tabs ── */
   .tabs {
@@ -147,10 +147,6 @@
     padding: 4px;
     margin-bottom: 24px;
     flex-wrap: wrap;
-    position: sticky;
-    top: 58px;
-    z-index: 90;
-    box-shadow: 0 2px 8px rgba(0,48,135,.06);
   }
   .tab {
     padding: 8px 18px; background: none; border: none; cursor: pointer;
@@ -340,7 +336,7 @@
     </div>
   </header>
 
-  <div class="wrap">
+  <div class="wrap" style="padding-top:86px">
     <div class="tabs">
       <button class="tab activo" data-p="menu"      onclick="tab('menu')">Menú</button>
       <button class="tab"        data-p="pedidos"   onclick="tab('pedidos')">Pedidos</button>
