@@ -137,7 +137,6 @@
   /* ── Layout ── */
   .wrap { max-width: 980px; margin: 0 auto; padding: 28px 24px; }
 
-
   /* ── Tabs ── */
   .tabs {
     display: flex; gap: 2px;
@@ -372,7 +371,6 @@
         <div id="menuAviso" class="aviso"></div>
       </div>
 
-
       <!-- Card: Programar menú por periodo -->
       <div class="card" style="margin-top:0">
         <div class="card-header">
@@ -604,12 +602,13 @@
     try {
       const { empleados } = await api('/api/empleados');
       if (!empleados.length) return box.innerHTML = '<div class="vacio">Aún no hay empleados registrados.</div>';
-      let h = `<table><tr><th>Nombre</th><th>No.</th><th>Teléfono</th><th>Estado</th><th></th></tr>`;
+      let h = `<table><tr><th>Nombre</th><th>No.</th><th>Teléfono</th><th>Estado</th><th></th><th></th></tr>`;
       for (const e of empleados) {
         h += `<tr>
           <td>${e.nombre}</td><td>${e.numero_empleado}</td><td>${e.telefono}</td>
           <td><span class="badge ${e.activo?'on':'off'}">${e.activo?'Activo':'Inactivo'}</span></td>
           <td><button class="accion mini ${e.activo?'peligro':'sec'}" onclick="toggleEmp('${e.telefono}',${!e.activo})">${e.activo?'Desactivar':'Activar'}</button></td>
+          <td><button class="accion mini" style="background:#fff;border:1px solid var(--rojo);color:var(--rojo)" onclick="eliminarEmp('${e.telefono}','${(e.nombre||'').replace(/'/g,'')}')">Eliminar</button></td>
         </tr>`;
       }
       box.innerHTML = h + '</table>';
@@ -618,6 +617,12 @@
 
   async function toggleEmp(tel, activo) {
     try { await api(`/api/empleados/${tel}/activo`, { method:'PUT', body: JSON.stringify({activo}) }); cargarEmpleados(); }
+    catch(e) { alert('Error: ' + e.message); }
+  }
+
+  async function eliminarEmp(tel, nombre) {
+    if (!confirm('¿Eliminar a ' + (nombre||'este empleado') + ' permanentemente?\n\nEsta acción no se puede deshacer. Si solo quieres pausarlo, usa Desactivar.')) return;
+    try { await api('/api/empleados/' + tel, { method:'DELETE' }); cargarEmpleados(); }
     catch(e) { alert('Error: ' + e.message); }
   }
 
@@ -788,8 +793,19 @@
   function val(id){ return document.getElementById(id).value.trim(); }
 
 
+  // ── Programar menú semanal ──
+  function desbloquearFila(btn) {
+    const tr = btn.closest('tr');
+    tr.dataset.bloqueado = 'false';
+    tr.style.background = '#fff9e6';
+    btn.remove();
+    tr.querySelectorAll('.menu-cell').forEach(inp => {
+      inp.removeAttribute('readonly');
+      inp.style.background = '';
+      inp.style.cursor = '';
+    });
+  }
 
-  // ── Programar menú por periodo ──
   async function generarTablaPeriodo() {
     const inicio = document.getElementById('per-inicio').value;
     const dias = parseInt(document.getElementById('per-dias').value);
@@ -799,10 +815,9 @@
 
     if (!inicio) { av.className = 'aviso err'; av.textContent = 'Selecciona la fecha de inicio.'; return; }
 
-    const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const DIAS_ES = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
     const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-    // Construir lista de fechas del periodo
     const fechas = [];
     for (let i = 0; i < dias; i++) {
       const d = new Date(inicio + 'T12:00:00');
@@ -810,51 +825,60 @@
       fechas.push(d.toISOString().split('T')[0]);
     }
 
-    // Precargar menús ya guardados en Supabase para esas fechas
-    av.className = 'aviso'; av.textContent = 'Cargando menús existentes…';
+    av.className = 'aviso'; av.textContent = 'Cargando menus existentes...';
     const existentes = {};
     await Promise.all(fechas.map(async (f) => {
       try {
         const resp = await api('/api/menu/' + f);
-        const m = resp.menu || resp;
-        if (m && m.fecha) existentes[f] = m;
-      } catch(e) { /* sin menú para esa fecha, queda vacío */ }
+        const m = resp && resp.menu ? resp.menu : null;
+        if (m && m.fija_a) existentes[f] = m;
+      } catch(e) {}
     }));
     av.textContent = '';
 
-    let html = '<div style="overflow-x:auto"><table style="min-width:700px">';
-    html += '<thead><tr>';
-    html += '<th style="min-width:110px">Fecha</th>';
-    html += '<th>Opción A</th><th>Opción B</th><th>Opción C</th>';
-    html += '<th>Variable 1</th><th>Variable 2</th><th>Variable 3</th>';
-    html += '</tr></thead><tbody>';
+    let htmlTabla = '<div style="overflow-x:auto"><table style="min-width:700px">';
+    htmlTabla += '<thead><tr><th style="min-width:120px">Fecha</th>';
+    htmlTabla += '<th>Opcion A</th><th>Opcion B</th><th>Opcion C</th>';
+    htmlTabla += '<th>Variable 1</th><th>Variable 2</th><th>Variable 3</th></tr></thead><tbody>';
 
     let diasConMenu = 0;
     for (let i = 0; i < dias; i++) {
       const d = new Date(inicio + 'T12:00:00');
       d.setDate(d.getDate() + i);
       const fecha = d.toISOString().split('T')[0];
-      const label = DIAS_ES[d.getDay()] + ' ' + d.getDate() + ' ' + MESES_ES[d.getMonth()];
+      const diaNom = DIAS_ES[d.getDay()];
+      const label = diaNom + ' ' + d.getDate() + ' ' + MESES_ES[d.getMonth()];
       const esFinde = d.getDay() === 0 || d.getDay() === 6;
-      const datos = existentes[fecha];
+      const datos = existentes[fecha] || null;
       if (datos) diasConMenu++;
       const bgRow = datos ? 'background:#f0f7f0' : (esFinde ? 'background:var(--gris-bg)' : '');
-      html += `<tr style="${bgRow}" data-fecha="${fecha}">`;
-      const checkMark = datos ? ' <span style="color:var(--verde);font-size:.7rem">●</span>' : '';
-      html += `<td style="font-size:.8rem;font-weight:700;white-space:nowrap;color:${esFinde && !datos ? 'var(--gris-text)' : 'var(--tinta)'}">${label}${checkMark}</td>`;
+      const colorFecha = esFinde && !datos ? 'var(--gris-text)' : 'var(--tinta)';
+
+      htmlTabla += '<tr style="' + bgRow + '" data-fecha="' + fecha + '" data-bloqueado="' + (datos ? 'true' : 'false') + '">';
+      htmlTabla += '<td style="font-size:.8rem;font-weight:700;white-space:nowrap;color:' + colorFecha + '">' + label;
+      if (datos) {
+        htmlTabla += ' <span style="color:var(--verde);font-size:.7rem">&#9679;</span>';
+        htmlTabla += ' <button onclick="desbloquearFila(this)" style="background:none;border:1px solid #003087;color:#003087;border-radius:4px;font-size:.65rem;padding:1px 5px;cursor:pointer;margin-left:2px">Editar</button>';
+      }
+      htmlTabla += '</td>';
+
       ['fija_a','fija_b','fija_c','var_1','var_2','var_3'].forEach(campo => {
-        const val = datos ? (datos[campo] || '').replace(/"/g, '&quot;') : '';
-        html += `<td><input class="menu-cell" data-campo="${campo}" value="${val}" placeholder="—" style="padding:6px 8px;font-size:.82rem;border-radius:6px;width:100%;min-width:90px"></td>`;
+        const val = datos ? (datos[campo] || '') : '';
+        if (datos) {
+          htmlTabla += '<td><input class="menu-cell" data-campo="' + campo + '" value="' + val.replace(/"/g,'&quot;') + '" placeholder="&#8212;" readonly style="padding:6px 8px;font-size:.82rem;border-radius:6px;width:100%;min-width:90px;background:#e8f5e9;cursor:default"></td>';
+        } else {
+          htmlTabla += '<td><input class="menu-cell" data-campo="' + campo + '" value="' + val + '" placeholder="&#8212;" style="padding:6px 8px;font-size:.82rem;border-radius:6px;width:100%;min-width:90px"></td>';
+        }
       });
-      html += '</tr>';
+      htmlTabla += '</tr>';
     }
 
-    html += '</tbody></table></div>';
+    htmlTabla += '</tbody></table></div>';
     if (diasConMenu > 0) {
-      html += '<p style="font-size:.78rem;color:var(--gris-text);margin-top:10px"><span style="color:var(--verde)">●</span> Los días marcados ya tienen menú guardado (precargado). Puedes editarlos y volver a guardar.</p>';
+      htmlTabla += '<p style="font-size:.78rem;color:var(--gris-text);margin-top:10px"><span style="color:var(--verde)">&#9679;</span> Dias ya programados (precargados). Toca <strong>Editar</strong> para modificar.</p>';
     }
-    html += '<button class="accion verde" style="margin-top:12px;width:100%" onclick="guardarPeriodo()">Guardar ' + dias + ' días de menú</button>';
-    box.innerHTML = html;
+    htmlTabla += '<button class="accion verde" style="margin-top:12px;width:100%" onclick="guardarPeriodo()">Guardar ' + dias + ' dias de menu</button>';
+    box.innerHTML = htmlTabla;
   }
 
   async function guardarPeriodo() {
@@ -866,27 +890,27 @@
 
     const menus = [];
     for (const fila of filas) {
+      if (fila.dataset.bloqueado === 'true') continue; // saltar filas no editadas
       const fecha = fila.dataset.fecha;
       const campos = {};
       fila.querySelectorAll('.menu-cell').forEach(inp => {
         campos[inp.dataset.campo] = inp.value.trim();
       });
-      // Solo incluir filas que tengan al menos un campo lleno
       const tieneAlgo = Object.values(campos).some(v => v !== '');
       if (tieneAlgo) {
         const faltantes = ['fija_a','fija_b','fija_c','var_1','var_2','var_3'].filter(c => !campos[c]);
         if (faltantes.length > 0) {
           av.className = 'aviso err';
-          av.textContent = 'La fila ' + fecha + ' esta incompleta — completa todas las opciones o dejala en blanco.';
+          av.textContent = 'La fila ' + fecha + ' esta incompleta.';
           return;
         }
         menus.push({ fecha, ...campos });
       }
     }
 
-    if (!menus.length) { av.className = 'aviso err'; av.textContent = 'No hay filas con datos para guardar.'; return; }
+    if (!menus.length) { av.className = 'aviso ok'; av.textContent = 'No hay cambios nuevos para guardar.'; return; }
 
-    av.className = 'aviso ok'; av.textContent = 'Guardando ' + menus.length + ' dias de menu...';
+    av.className = 'aviso ok'; av.textContent = 'Guardando ' + menus.length + ' dia(s)...';
     let ok = 0, errores = [];
     for (const m of menus) {
       try { await api('/api/menu', { method: 'POST', body: JSON.stringify(m) }); ok++; }
@@ -894,8 +918,9 @@
     }
 
     if (errores.length === 0) {
-      av.className = 'aviso ok';
-      av.textContent = ok + ' dias guardados correctamente.';
+      av.className = 'aviso ok'; av.textContent = ok + ' dia(s) guardados correctamente.';
+      // Recargar tabla para reflejar cambios
+      setTimeout(() => generarTablaPeriodo(), 800);
     } else {
       av.className = 'aviso err';
       av.textContent = ok + ' guardados, ' + errores.length + ' con error: ' + errores.join(' | ');
