@@ -64,6 +64,14 @@ export async function setEmpleadoActivo(telefono, activo) {
   return data;
 }
 
+export async function deleteEmpleado(telefono) {
+  const { error } = await supabase
+    .from('empleados')
+    .delete()
+    .eq('telefono', telefono);
+  if (error) throw error;
+}
+
 // ── Menús ───────────────────────────────────────────────────────
 
 export async function getMenu(fecha) {
