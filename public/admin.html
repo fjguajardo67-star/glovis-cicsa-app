@@ -336,7 +336,7 @@
     </div>
   </header>
 
-  <div class="tabs-container" style="background:var(--gris-bg);padding:16px 24px 0;max-width:980px;margin:0 auto">
+  <div class="wrap" style="padding-top:24px">
     <div class="tabs">
       <button class="tab activo" data-p="menu"      onclick="tab('menu')">Menú</button>
       <button class="tab"        data-p="pedidos"   onclick="tab('pedidos')">Pedidos</button>
@@ -344,8 +344,6 @@
       <button class="tab"        data-p="cocina"    onclick="tab('cocina')">Cocina</button>
       <button class="tab"        data-p="reportes"  onclick="tab('reportes')">Reportes</button>
     </div>
-  </div>
-  <div class="wrap" style="padding-top:16px">
 
     <!-- MENÚ -->
     <section id="p-menu" class="panel activo">
@@ -381,22 +379,22 @@
           <div class="card-icon">📅</div>
           <h3>Programar menú semanal</h3>
         </div>
-        <div class="grid3" style="margin-bottom:18px">
-          <div>
+        <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:18px">
+          <div style="flex:0 0 160px">
             <label>Fecha de inicio</label>
-            <input type="date" id="per-inicio">
+            <input type="date" id="per-inicio" style="width:160px">
           </div>
-          <div>
+          <div style="flex:0 0 200px">
             <label>Periodo</label>
-            <select id="per-dias">
-              <option value="5">5 días (semana laboral)</option>
+            <select id="per-dias" style="width:200px">
+              <option value="5">5 días (semana)</option>
               <option value="7">7 días</option>
               <option value="10">10 días</option>
               <option value="14">14 días (dos semanas)</option>
             </select>
           </div>
-          <div style="display:flex;align-items:flex-end">
-            <button class="accion sec" style="margin-top:0;width:100%" onclick="generarTablaPeriodo()">Generar tabla</button>
+          <div>
+            <button class="accion sec" style="margin-top:0" onclick="generarTablaPeriodo()">Generar tabla</button>
           </div>
         </div>
         <div id="tablaMenuBox"></div>
