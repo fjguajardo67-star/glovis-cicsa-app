@@ -815,7 +815,8 @@
     const existentes = {};
     await Promise.all(fechas.map(async (f) => {
       try {
-        const m = await api('/api/menu/' + f);
+        const resp = await api('/api/menu/' + f);
+        const m = resp.menu || resp;
         if (m && m.fecha) existentes[f] = m;
       } catch(e) { /* sin menú para esa fecha, queda vacío */ }
     }));
