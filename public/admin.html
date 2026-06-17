@@ -338,6 +338,7 @@
   <div class="wrap" style="padding-top:24px">
     <div class="tabs">
       <button class="tab activo" data-p="menu"      onclick="tab('menu')">Menú</button>
+      <button class="tab"        data-p="dashboard" onclick="tab('dashboard')">Dashboard</button>
       <button class="tab"        data-p="pedidos"   onclick="tab('pedidos')">Pedidos</button>
       <button class="tab"        data-p="empleados" onclick="tab('empleados')">Empleados</button>
       <button class="tab"        data-p="cocina"    onclick="tab('cocina')">Cocina</button>
@@ -397,6 +398,29 @@
         </div>
         <div id="tablaMenuBox"></div>
         <div id="periodoAviso" class="aviso"></div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section id="p-dashboard" class="panel">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📊</div>
+          <h3>Control de envíos y pedidos</h3>
+        </div>
+        <p style="font-size:.85rem;color:var(--gris-text);margin-bottom:14px">
+          Estado de cada empleado para la fecha seleccionada: si recibió el menú y qué eligió.
+        </p>
+        <div class="row-fin">
+          <div><label>Fecha del menú</label><input type="date" id="db-fecha" style="max-width:180px"></div>
+          <button class="accion" onclick="verDashboard()">Consultar</button>
+        </div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.8rem;color:var(--gris-text)">
+          <span>✅ Ya pidió</span>
+          <span>🟡 Recibió, sin pedir aún</span>
+          <span>🔴 No recibió / falló</span>
+        </div>
+        <div id="dashboardBox" style="margin-top:18px"></div>
       </div>
     </section>
 
@@ -520,6 +544,14 @@
   function tab(p) {
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('activo', t.dataset.p === p));
     document.querySelectorAll('.panel').forEach(s => s.classList.toggle('activo', s.id === 'p-'+p));
+    // Al abrir el Dashboard, precargar la fecha de mañana
+    if (p === 'dashboard') {
+      const f = document.getElementById('db-fecha');
+      if (f && !f.value) {
+        const m = new Date(); m.setDate(m.getDate() + 1);
+        f.value = m.toISOString().split('T')[0];
+      }
+    }
   }
 
   async function api(path, opts = {}) {
@@ -570,6 +602,53 @@
   }
 
   // ── Pedidos ──
+  // ── Dashboard de control ──
+  async function verDashboard() {
+    const fecha = document.getElementById('db-fecha').value;
+    const box = document.getElementById('dashboardBox');
+    if (!fecha) { box.innerHTML = '<p class="aviso err">Selecciona una fecha.</p>'; return; }
+    box.innerHTML = '<p style="color:var(--gris-text)">Cargando...</p>';
+    try {
+      const data = await api('/api/dashboard/' + fecha);
+      const filas = data.filas || [];
+      if (!filas.length) { box.innerHTML = '<p style="color:var(--gris-text)">No hay empleados activos.</p>'; return; }
+
+      let pidieron = 0, pendientes = 0, fallidos = 0;
+      filas.forEach(f => {
+        if (f.estado === 'pidio') pidieron++;
+        else if (f.estado === 'pendiente') pendientes++;
+        else fallidos++;
+      });
+
+      let h = '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px">';
+      h += '<div style="flex:1;min-width:120px;background:#f0f7f0;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--verde)">' + pidieron + '</div><div style="font-size:.75rem;color:var(--gris-text)">Ya pidieron</div></div>';
+      h += '<div style="flex:1;min-width:120px;background:#fff9e6;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:#b8860b">' + pendientes + '</div><div style="font-size:.75rem;color:var(--gris-text)">Recibieron, sin pedir</div></div>';
+      h += '<div style="flex:1;min-width:120px;background:#fdecec;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--rojo)">' + fallidos + '</div><div style="font-size:.75rem;color:var(--gris-text)">No recibieron</div></div>';
+      h += '</div>';
+
+      h += '<div style="overflow-x:auto"><table style="min-width:600px"><tr><th>Estado</th><th>Nombre</th><th>No.</th><th>Telefono</th><th>Opcion elegida</th><th>Zona</th><th>Turno</th></tr>';
+      filas.forEach(f => {
+        let icono, bg;
+        if (f.estado === 'pidio') { icono = '✅'; bg = '#f0f7f0'; }
+        else if (f.estado === 'pendiente') { icono = '\ud83d\udfe1'; bg = '#fff9e6'; }
+        else { icono = '\ud83d\udd34'; bg = '#fdecec'; }
+        h += '<tr style="background:' + bg + '">';
+        h += '<td style="text-align:center;font-size:1.1rem">' + icono + '</td>';
+        h += '<td>' + (f.nombre||'') + '</td>';
+        h += '<td>' + (f.numero_empleado||'') + '</td>';
+        h += '<td style="font-size:.8rem">' + (f.telefono||'') + '</td>';
+        h += '<td>' + (f.opcion || '<span style="color:#aaa">—</span>') + '</td>';
+        h += '<td style="font-size:.8rem">' + (f.zona || '<span style="color:#aaa">—</span>') + '</td>';
+        h += '<td style="font-size:.8rem">' + (f.turno || '<span style="color:#aaa">—</span>') + '</td>';
+        h += '</tr>';
+      });
+      h += '</table></div>';
+      box.innerHTML = h;
+    } catch(e) {
+      box.innerHTML = '<p class="aviso err">Error: ' + e.message + '</p>';
+    }
+  }
+
   async function verPedidos() {
     const f = document.getElementById('pe-fecha').value;
     const box = document.getElementById('pedidosBox');
