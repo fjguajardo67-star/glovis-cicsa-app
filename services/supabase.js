@@ -72,6 +72,44 @@ export async function deleteEmpleado(telefono) {
   if (error) throw error;
 }
 
+// ── Envíos (registro de quién recibió el menú) ──────────────────
+
+export async function registrarEnvio(envio) {
+  // upsert por (fecha_menu, telefono): un reenvío actualiza el registro
+  const { data, error } = await supabase
+    .from('envios')
+    .upsert({
+      fecha_menu: envio.fecha_menu,
+      telefono: envio.telefono,
+      nombre: envio.nombre,
+      estado: envio.estado,
+      message_id: envio.message_id || null,
+      error: envio.error || null,
+      actualizado_en: new Date().toISOString()
+    }, { onConflict: 'fecha_menu,telefono' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getEnviosPorFecha(fecha) {
+  const { data, error } = await supabase
+    .from('envios')
+    .select('*')
+    .eq('fecha_menu', fecha);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function actualizarEstadoEnvioPorMsgId(messageId, estado) {
+  const { error } = await supabase
+    .from('envios')
+    .update({ estado, actualizado_en: new Date().toISOString() })
+    .eq('message_id', messageId);
+  if (error) throw error;
+}
+
 // ── Menús ───────────────────────────────────────────────────────
 
 export async function getMenu(fecha) {
