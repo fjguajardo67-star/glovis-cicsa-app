@@ -150,7 +150,7 @@ async function registrarPedido(telefono, empleado, sesion, turnoId) {
 
   await db.upsertPedido({
     fecha_menu:        fecha,
-    empleado_telefono: telefono,
+    empleado_telefono: empleado.telefono,  // usar el tel registrado (formato canónico)
     opcion_id:         sesion.opcion_id,
     opcion_texto:      sesion.opcion_texto,
     zona:              sesion.zona_id,
