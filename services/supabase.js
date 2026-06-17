@@ -1,5 +1,6 @@
 // services/supabase.js — Conexión y queries a la base de datos
 import { createClient } from '@supabase/supabase-js';
+import { variantesTelefono, formatoCanonico } from './telefono.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -9,10 +10,12 @@ const supabase = createClient(
 // ── Empleados ───────────────────────────────────────────────────
 
 export async function getEmpleado(telefono) {
+  // Buscar por cualquier variante del número (con/sin "1" mexicano, con/sin 52)
+  const variantes = variantesTelefono(telefono);
   const { data, error } = await supabase
     .from('empleados')
     .select('*')
-    .eq('telefono', telefono)
+    .in('telefono', variantes)
     .eq('activo', true)
     .maybeSingle();
   if (error) throw error;
@@ -42,7 +45,7 @@ export async function upsertEmpleado(emp) {
   const { data, error } = await supabase
     .from('empleados')
     .upsert({
-      telefono:        emp.telefono,
+      telefono:        formatoCanonico(emp.telefono),  // siempre 521 + 10 dígitos
       nombre:          emp.nombre,
       numero_empleado: emp.numero_empleado,
       activo:          emp.activo ?? true
