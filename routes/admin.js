@@ -3,6 +3,7 @@ import express from 'express';
 import * as db from '../services/supabase.js';
 import * as wa from '../services/whatsapp.js';
 import { construirListMessage, hoy, manana, OPCION_LABELS } from '../services/menu.js';
+import { diezDigitos } from '../services/telefono.js';
 
 export const adminRouter = express.Router();
 
@@ -141,8 +142,8 @@ adminRouter.post('/enviar-menu', async (req, res) => {
 
     // Excluir a quienes ya tienen pedido registrado para mañana
     const pedidos = await db.getPedidosPorFecha(fecha);
-    const yaPidieron = new Set(pedidos.map(p => p.empleado_telefono));
-    const pendientes = empleados.filter(emp => !yaPidieron.has(emp.telefono));
+    const yaPidieron = new Set(pedidos.map(p => diezDigitos(p.empleado_telefono)));
+    const pendientes = empleados.filter(emp => !yaPidieron.has(diezDigitos(emp.telefono)));
 
     let enviados = 0, fallidos = 0;
     const errores = [];
@@ -150,11 +151,27 @@ adminRouter.post('/enviar-menu', async (req, res) => {
     for (const emp of pendientes) {
       try {
         const payload = construirListMessage(emp.telefono, emp.nombre, menu);
-        await wa.enviarListMessage(payload);
+        const resp = await wa.enviarListMessage(payload);
+        // Intentar extraer el message_id (wamid) de la respuesta de WhatsApp
+        const msgId = resp?.messages?.[0]?.id || null;
         enviados++;
+        await db.registrarEnvio({
+          fecha_menu: fecha,
+          telefono: emp.telefono,
+          nombre: emp.nombre,
+          estado: 'enviado',
+          message_id: msgId
+        });
       } catch (err) {
         fallidos++;
         errores.push({ telefono: emp.telefono, error: err.message });
+        await db.registrarEnvio({
+          fecha_menu: fecha,
+          telefono: emp.telefono,
+          nombre: emp.nombre,
+          estado: 'fallido',
+          error: err.message
+        }).catch(()=>{});
       }
     }
 
@@ -167,6 +184,54 @@ adminRouter.post('/enviar-menu', async (req, res) => {
       total_activos: empleados.length,
       errores
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Dashboard de envíos: estado por empleado para una fecha ──────
+
+adminRouter.get('/dashboard/:fecha', async (req, res) => {
+  try {
+    const fecha = req.params.fecha;
+    const [empleados, envios, pedidos] = await Promise.all([
+      db.listEmpleados(),
+      db.getEnviosPorFecha(fecha),
+      db.getPedidosPorFecha(fecha)
+    ]);
+
+    const envioPorTel = {};
+    envios.forEach(e => { envioPorTel[diezDigitos(e.telefono)] = e; });
+    const pedidoPorTel = {};
+    pedidos.forEach(p => { pedidoPorTel[diezDigitos(p.empleado_telefono)] = p; });
+
+    // Construir una fila por empleado activo
+    const filas = empleados
+      .filter(emp => emp.activo)
+      .map(emp => {
+        const clave = diezDigitos(emp.telefono);
+        const envio = envioPorTel[clave];
+        const pedido = pedidoPorTel[clave];
+        // Determinar semáforo:
+        // verde = ya pidió | rojo = fallido o nunca enviado | amarillo = enviado, sin pedir aún
+        let estado;
+        if (pedido) estado = 'pidio';
+        else if (!envio || envio.estado === 'fallido') estado = 'fallido';
+        else estado = 'pendiente';
+
+        return {
+          nombre: emp.nombre,
+          telefono: emp.telefono,
+          numero_empleado: emp.numero_empleado,
+          opcion: pedido ? (pedido.opcion_texto || pedido.opcion_id) : null,
+          zona: pedido ? pedido.zona : null,
+          turno: pedido ? pedido.turno : null,
+          estado,
+          estado_envio: envio ? envio.estado : 'no_enviado'
+        };
+      });
+
+    res.json({ fecha, filas });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
