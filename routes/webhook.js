@@ -1,5 +1,6 @@
 // routes/webhook.js — Recibe y procesa los mensajes de WhatsApp
 import express from 'express';
+import crypto from 'node:crypto';
 import * as db from '../services/supabase.js';
 import * as wa from '../services/whatsapp.js';
 import {
@@ -46,17 +47,76 @@ webhookRouter.get('/', (req, res) => {
   return res.sendStatus(403);
 });
 
+// ── Validación de firma HMAC (X-Hub-Signature-256) ────────────
+// Meta firma cada POST con APP_SECRET. Sin esta validación, cualquiera
+// que conozca la URL puede inyectar pedidos falsos.
+function firmaValida(req) {
+  const secret = process.env.APP_SECRET;
+  if (!secret) {
+    console.warn('[Webhook] APP_SECRET no configurado — se omite la validación de firma (NO usar así en producción)');
+    return true;
+  }
+  const firma = req.headers['x-hub-signature-256'];
+  if (!firma || !req.rawBody) return false;
+
+  const esperada = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(req.rawBody)
+    .digest('hex');
+
+  const a = Buffer.from(firma);
+  const b = Buffer.from(esperada);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// ── Deduplicación: Meta reintenta si no ve el 200 a tiempo ────
+const mensajesProcesados = new Map(); // message_id → ts
+const DEDUP_TTL_MS = 10 * 60 * 1000;
+
+function yaProcesado(msgId) {
+  if (!msgId) return false;
+  const ahora = Date.now();
+  // Limpieza de entradas viejas
+  for (const [id, ts] of mensajesProcesados) {
+    if (ahora - ts > DEDUP_TTL_MS) mensajesProcesados.delete(id);
+  }
+  if (mensajesProcesados.has(msgId)) return true;
+  mensajesProcesados.set(msgId, ahora);
+  return false;
+}
+
 // ── Recepción de mensajes (POST) ──────────────────────────────
 webhookRouter.post('/', async (req, res) => {
+  if (!firmaValida(req)) {
+    console.warn('[Webhook] Firma HMAC inválida — petición rechazada');
+    return res.sendStatus(403);
+  }
+
   res.sendStatus(200); // responder inmediato para que Meta no reintente
 
   try {
-    const entry   = req.body?.entry?.[0];
-    const change  = entry?.changes?.[0];
-    const value   = change?.value;
-    const mensaje = value?.messages?.[0];
+    const entry  = req.body?.entry?.[0];
+    const change = entry?.changes?.[0];
+    const value  = change?.value;
 
+    // Actualizaciones de estado de mensajes enviados (sent/delivered/read/failed)
+    const statuses = value?.statuses;
+    if (Array.isArray(statuses)) {
+      for (const st of statuses) {
+        try {
+          await db.actualizarEstadoEnvioPorMsgId(st.id, st.status);
+        } catch (err) {
+          console.error('[Webhook] Error actualizando estado de envío:', err.message);
+        }
+      }
+    }
+
+    const mensaje = value?.messages?.[0];
     if (!mensaje) return;
+    if (yaProcesado(mensaje.id)) {
+      console.log('[Webhook] Mensaje duplicado ignorado:', mensaje.id);
+      return;
+    }
 
     const telefono = mensaje.from;
     await procesarMensaje(telefono, mensaje);

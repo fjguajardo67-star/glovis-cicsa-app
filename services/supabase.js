@@ -12,14 +12,16 @@ const supabase = createClient(
 export async function getEmpleado(telefono) {
   // Buscar por cualquier variante del número (con/sin "1" mexicano, con/sin 52)
   const variantes = variantesTelefono(telefono);
+  // limit(1) en vez de maybeSingle(): si el empleado quedó guardado con dos
+  // variantes del número, maybeSingle() lanzaría error y el bot no lo reconocería
   const { data, error } = await supabase
     .from('empleados')
     .select('*')
     .in('telefono', variantes)
     .eq('activo', true)
-    .maybeSingle();
+    .limit(1);
   if (error) throw error;
-  return data;
+  return data?.[0] || null;
 }
 
 export async function listEmpleados() {

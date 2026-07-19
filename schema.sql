@@ -31,9 +31,29 @@ CREATE TABLE IF NOT EXISTS pedidos (
     empleado_telefono VARCHAR NOT NULL REFERENCES empleados(telefono) ON DELETE CASCADE,
     opcion_id         VARCHAR NOT NULL,          -- fija_a|fija_b|fija_c|var_1|var_2|var_3
     opcion_texto      TEXT    NOT NULL,          -- nombre del platillo (respaldo histórico)
+    zona              VARCHAR,                   -- zona_vdc | zona_refris
+    turno             VARCHAR,                   -- turno_a | turno_b
     creado_en         TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT unico_pedido_por_dia UNIQUE (fecha_menu, empleado_telefono)
 );
+
+-- Si la tabla ya existía sin estas columnas, ejecutar:
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS zona  VARCHAR;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS turno VARCHAR;
+
+-- Envíos del menú (registro de a quién se le mandó y su estado)
+CREATE TABLE IF NOT EXISTS envios (
+    id             BIGSERIAL PRIMARY KEY,
+    fecha_menu     DATE    NOT NULL,
+    telefono       VARCHAR NOT NULL,
+    nombre         TEXT,
+    estado         VARCHAR NOT NULL,             -- enviado|fallido|delivered|read|...
+    message_id     VARCHAR,                      -- wamid de WhatsApp
+    error          TEXT,
+    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT unico_envio_por_dia UNIQUE (fecha_menu, telefono)
+);
+CREATE INDEX IF NOT EXISTS idx_envios_msgid ON envios (message_id);
 
 -- Índices para acelerar consultas frecuentes
 CREATE INDEX IF NOT EXISTS idx_pedidos_fecha ON pedidos (fecha_menu);

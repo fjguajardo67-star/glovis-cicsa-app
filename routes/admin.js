@@ -4,6 +4,7 @@ import * as db from '../services/supabase.js';
 import * as wa from '../services/whatsapp.js';
 import { construirListMessage, hoy, manana, OPCION_LABELS } from '../services/menu.js';
 import { diezDigitos } from '../services/telefono.js';
+import { resumenCocina } from '../services/cocina.js';
 
 export const adminRouter = express.Router();
 
@@ -110,21 +111,10 @@ adminRouter.get('/pedidos', async (req, res) => {
   }
 });
 
-// Resumen para cocina: conteo por platillo de una fecha
+// Resumen para cocina: conteo por platillo (con desglose por turno y zona)
 adminRouter.get('/resumen-cocina/:fecha', async (req, res) => {
   try {
-    const pedidos = await db.getPedidosPorFecha(req.params.fecha);
-    const conteo = {};
-    for (const p of pedidos) {
-      conteo[p.opcion_texto] = (conteo[p.opcion_texto] || 0) + 1;
-    }
-    const total = pedidos.length;
-    const resumen = Object.entries(conteo).map(([platillo, porciones]) => ({
-      platillo,
-      porciones,
-      porcentaje: total ? Math.round((porciones / total) * 100) : 0
-    }));
-    res.json({ fecha: req.params.fecha, total, resumen });
+    res.json(await resumenCocina(req.params.fecha));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
