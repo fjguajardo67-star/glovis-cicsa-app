@@ -355,6 +355,18 @@
 
     <!-- MENÚ -->
     <section id="p-menu" class="panel activo">
+
+      <!-- Avisador: sin menú publicado = día sin servicio, que un olvido se vea -->
+      <div class="card" id="card-semana">
+        <div class="card-header">
+          <div class="card-icon">🗓️</div>
+          <h3>Próximos 7 días</h3>
+          <span style="margin-left:auto;font-size:.75rem;color:var(--gris-text)">Sin menú publicado = día sin servicio para los empleados</span>
+        </div>
+        <div id="tira-semana" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        <div id="alerta-semana" class="aviso" style="margin-top:12px"></div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <div class="card-icon">📋</div>
@@ -519,8 +531,10 @@
 
 <script>
 
-  // ⚙️ CONFIGURA ESTO: la URL pública de tu backend en Railway
-  const API_BASE = 'https://glovis-cicsa-app-production.up.railway.app';
+  // ⚙️ La URL pública del backend en Railway; en local usa el mismo origen
+  const API_BASE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+    ? location.origin
+    : 'https://glovis-cicsa-app-production.up.railway.app';
 
   // Texto legible de zonas y turnos (deben coincidir con services/menu.js)
   const ZONA_TXT = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
@@ -541,6 +555,7 @@
       const hoy = new Date().toISOString().slice(0,10);
       ['m-fecha','pe-fecha','co-fecha','r-fecha','r-ini','r-fin'].forEach(id => document.getElementById(id).value = hoy);
       cargarEmpleados();
+      cargarSemana();
     }).catch(() => {
       const e = document.getElementById('gateErr');
       e.className = 'aviso err'; e.textContent = 'Clave incorrecta o servidor no disponible.';
@@ -578,6 +593,45 @@
     setTimeout(() => { e.className = 'aviso'; }, 4000);
   }
 
+  // ── Avisador de menús: próximos 7 días ──
+  async function cargarSemana() {
+    const cont = document.getElementById('tira-semana');
+    try {
+      const { dias } = await api('/api/menus-proximos');
+      cont.innerHTML = dias.map(d => `
+        <div onclick="irAFecha('${d.fecha}')" title="${d.publicado ? 'Menú publicado' : 'Sin menú — clic para publicarlo'}"
+             style="flex:1;min-width:76px;cursor:pointer;text-align:center;padding:10px 6px;border-radius:9px;
+                    border:1.5px solid ${d.publicado ? 'var(--azul-line)' : (d.es_fin_de_semana ? 'var(--gris-line)' : '#f0c8c2')};
+                    background:${d.publicado ? 'var(--azul-light)' : (d.es_fin_de_semana ? 'var(--gris-bg)' : 'var(--rojo-light)')}">
+          <div style="font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+                      color:${d.publicado ? 'var(--azul)' : 'var(--gris-text)'}">${d.dia_semana}</div>
+          <div style="font-size:1.25rem;font-weight:700;line-height:1.2;
+                      color:${d.publicado ? 'var(--azul)' : (d.es_fin_de_semana ? 'var(--gris-text)' : 'var(--rojo)')}">${d.dia_num}</div>
+          <div style="font-size:.68rem;font-weight:600;
+                      color:${d.publicado ? 'var(--verde)' : (d.es_fin_de_semana ? 'var(--gris-text)' : 'var(--rojo)')}">
+            ${d.publicado ? '✓ Menú' : (d.es_fin_de_semana ? '—' : 'Falta')}</div>
+        </div>`).join('');
+
+      // El aviso que importa: ¿mañana (el próximo corte) tiene menú?
+      const alerta = document.getElementById('alerta-semana');
+      const m = dias[0];
+      if (!m.publicado) {
+        alerta.className = 'aviso err';
+        alerta.textContent = '⚠ Mañana ' + m.dia_semana + ' ' + m.dia_num + ' no tiene menú publicado. Si no se publica antes de las 8:00 PM de hoy, nadie podrá pedir para ese día.';
+      } else {
+        alerta.className = 'aviso';
+      }
+    } catch (e) {
+      cont.innerHTML = '<span style="font-size:.8rem;color:var(--gris-text)">No se pudo cargar el estado de la semana.</span>';
+    }
+  }
+
+  function irAFecha(fecha) {
+    document.getElementById('m-fecha').value = fecha;
+    cargarMenu();
+    document.getElementById('m-fija_a').focus();
+  }
+
   // ── Menú ──
   async function guardarMenu() {
     const body = {
@@ -588,6 +642,7 @@
     try {
       await api('/api/menu', { method:'POST', body: JSON.stringify(body) });
       aviso('menuAviso', 'Menú guardado para ' + body.fecha);
+      cargarSemana();
     } catch(e) { aviso('menuAviso', 'Error: ' + e.message, false); }
   }
 
@@ -1006,7 +1061,8 @@
 
     if (errores.length === 0) {
       av.className = 'aviso ok'; av.textContent = ok + ' dia(s) guardados correctamente.';
-      // Recargar tabla para reflejar cambios
+      // Recargar tabla y avisador para reflejar cambios
+      cargarSemana();
       setTimeout(() => generarTablaPeriodo(), 800);
     } else {
       av.className = 'aviso err';

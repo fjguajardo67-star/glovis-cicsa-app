@@ -158,6 +158,19 @@ export async function getProximaFechaConMenu(desdeFecha) {
   return data?.[0]?.fecha || null;
 }
 
+// Fechas que ya tienen menú publicado dentro de un rango (para el avisador
+// del panel: ahora que "sin menú = sin servicio", un olvido debe ser visible)
+export async function getFechasConMenu(fechaIni, fechaFin) {
+  const { data, error } = await supabase
+    .from('menus')
+    .select('fecha')
+    .gte('fecha', fechaIni)
+    .lte('fecha', fechaFin)
+    .order('fecha');
+  if (error) throw error;
+  return (data || []).map(m => m.fecha);
+}
+
 export async function upsertMenu(menu) {
   const { data, error } = await supabase
     .from('menus')

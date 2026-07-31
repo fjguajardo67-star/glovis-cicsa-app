@@ -1,5 +1,6 @@
 // routes/admin.js — API REST para el panel de administración
 import express from 'express';
+import { DateTime } from 'luxon';
 import * as db from '../services/supabase.js';
 import * as wa from '../services/whatsapp.js';
 import { construirListMessage } from '../services/menu.js';
@@ -85,6 +86,34 @@ adminRouter.post('/menu', async (req, res) => {
     }
     const menu = await db.upsertMenu({ fecha, fija_a, fija_b, fija_c, var_1, var_2, var_3 });
     res.json({ ok: true, menu });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Próximos 7 días y si ya tienen menú. Ahora que "sin menú = sin servicio",
+// olvidar publicar se vería idéntico a un día festivo: esta vista hace el
+// olvido visible en el panel.
+adminRouter.get('/menus-proximos', async (req, res) => {
+  try {
+    const tz = process.env.TZ || 'America/Mexico_City';
+    const inicio = DateTime.now().setZone(tz).plus({ days: 1 });
+    const fin = inicio.plus({ days: 6 });
+
+    const publicadas = new Set(await db.getFechasConMenu(inicio.toISODate(), fin.toISODate()));
+
+    const dias = [];
+    for (let i = 0; i < 7; i++) {
+      const d = inicio.plus({ days: i }).setLocale('es');
+      dias.push({
+        fecha: d.toISODate(),
+        dia_semana: d.toFormat('ccc'),        // "lun", "mar", ...
+        dia_num: d.day,
+        publicado: publicadas.has(d.toISODate()),
+        es_fin_de_semana: d.weekday >= 6
+      });
+    }
+    res.json({ dias });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

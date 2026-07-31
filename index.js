@@ -24,6 +24,10 @@ app.use(express.json({
 }));
 app.disable('x-powered-by');
 
+// Páginas estáticas (panel admin y página del empleado). GitHub Pages sigue
+// siendo el hosting principal; esto permite servirlas también desde Railway.
+app.use(express.static('public'));
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cicsa-comedor', ts: new Date().toISOString() });

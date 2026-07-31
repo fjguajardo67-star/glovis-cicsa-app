@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#003087">
+<title>Go Lunch — Pide tu comida</title>
+<style>
+  /* ── Tokens (mismos que el panel admin) ── */
+  :root {
+    --azul:       #003087;
+    --azul-mid:   #1a4ba0;
+    --azul-light: #e8eef8;
+    --azul-line:  #c5d3ec;
+    --verde:      #2d6b2f;
+    --verde-light:#eaf3ea;
+    --dorado:     #c9922a;
+    --dorado-light:#fdf5e6;
+    --blanco:     #ffffff;
+    --gris-bg:    #f4f6fb;
+    --gris-line:  #dde3ef;
+    --gris-text:  #5a6480;
+    --tinta:      #0d1b3e;
+    --rojo:       #c0392b;
+    --rojo-light: #fdf0ee;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--gris-bg);
+    color: var(--tinta);
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Encabezado ── */
+  header {
+    background: var(--azul);
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 12px rgba(0,48,135,.18);
+  }
+  header img { height: 26px; object-fit: contain; }
+  header .t { display: flex; flex-direction: column; line-height: 1.25; }
+  header .t b { font-size: .95rem; color: #fff; letter-spacing: -.01em; }
+  header .t span {
+    font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+    color: rgba(255,255,255,.55); font-weight: 700;
+  }
+  header .paso {
+    margin-left: auto; font-size: .72rem; color: rgba(255,255,255,.6);
+    font-variant-numeric: tabular-nums;
+  }
+
+  main { flex: 1; width: 100%; max-width: 520px; margin: 0 auto; padding: 16px 18px 24px; }
+
+  /* ── Barra de fecha de servicio ── */
+  .fechabar {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--blanco); border: 1.5px solid var(--azul-line);
+    border-left: 4px solid var(--azul);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+  }
+  .fechabar .cal {
+    width: 44px; flex-shrink: 0; text-align: center;
+    border: 1px solid var(--azul-line); border-radius: 7px; overflow: hidden;
+  }
+  .fechabar .cal .m {
+    background: var(--azul); color: #fff; font-size: .58rem;
+    letter-spacing: .1em; padding: 2px 0; font-weight: 700; text-transform: uppercase;
+  }
+  .fechabar .cal .d {
+    font-size: 1.15rem; font-weight: 700; color: var(--azul);
+    padding: 3px 0 4px; line-height: 1;
+  }
+  .fechabar .txt { min-width: 0; }
+  .fechabar .txt .lbl {
+    font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gris-text); font-weight: 700;
+  }
+  .fechabar .txt .val {
+    font-size: .98rem; font-weight: 700; color: var(--azul);
+    margin-top: 1px;
+  }
+  /* En español solo va mayúscula la inicial: "Sábado 1 de agosto" */
+  .fechabar .txt .val::first-letter { text-transform: uppercase; }
+  .fechabar .nota {
+    font-size: .74rem; color: var(--dorado); font-weight: 600; margin-top: 3px;
+  }
+  .fechabar.cerrado { border-color: var(--rojo); border-left-color: var(--rojo); background: var(--rojo-light); }
+  .fechabar.cerrado .cal { border-color: var(--rojo); }
+  .fechabar.cerrado .cal .m { background: var(--rojo); }
+  .fechabar.cerrado .cal .d,
+  .fechabar.cerrado .txt .val { color: var(--rojo); }
+  .fechabar.cerrado .nota { color: var(--rojo); }
+
+  /* ── Tarjeta ── */
+  .card {
+    background: var(--blanco); border: 1px solid var(--gris-line);
+    border-radius: 12px; padding: 20px 18px;
+  }
+  h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 5px; }
+  .sub { font-size: .87rem; color: var(--gris-text); margin-bottom: 18px; }
+
+  label.campo { display: block; font-size: .78rem; font-weight: 700; color: var(--gris-text); margin-bottom: 7px; }
+  input[type=text] {
+    width: 100%; padding: 14px 15px;
+    border: 1.5px solid var(--gris-line); border-radius: 9px;
+    font-size: 1.15rem; font-family: inherit; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase;
+    background: var(--gris-bg); color: var(--tinta); transition: border-color .15s;
+  }
+  input[type=text]:focus { outline: none; border-color: var(--azul); background: #fff; }
+  .ayuda { font-size: .76rem; color: var(--gris-text); margin-top: 10px; line-height: 1.5; }
+
+  /* ── Asignación de RRHH ── */
+  .asign {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--azul-light); border: 1px solid var(--azul-line);
+    border-radius: 9px; padding: 10px 12px; margin-bottom: 16px;
+  }
+  .asign .info { flex: 1; min-width: 0; }
+  .asign .info .k {
+    font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gris-text); font-weight: 700;
+  }
+  .asign .info .v { font-size: .85rem; font-weight: 700; color: var(--azul); margin-top: 2px; }
+  .asign button {
+    flex-shrink: 0; padding: 7px 12px; background: var(--blanco);
+    border: 1px solid var(--azul-line); border-radius: 7px;
+    color: var(--azul); font-size: .75rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .asign button:hover { border-color: var(--azul); }
+
+  /* ── Opciones ── */
+  .grupo {
+    font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--gris-text); font-weight: 700; margin: 16px 0 8px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .grupo::after { content: ""; flex: 1; height: 1px; background: var(--gris-line); }
+  .grupo:first-of-type { margin-top: 4px; }
+
+  .opt {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    background: var(--blanco); border: 1.5px solid var(--gris-line);
+    border-radius: 10px; padding: 13px; margin-bottom: 8px; cursor: pointer;
+    font-family: inherit; transition: border-color .15s, background .15s;
+  }
+  .opt:hover { border-color: var(--azul-line); }
+  .opt.sel { border-color: var(--azul); background: var(--azul-light); }
+  .opt .tx { flex: 1; min-width: 0; }
+  .opt .tx b { display: block; font-size: .93rem; color: var(--tinta); }
+  .opt .tx small { display: block; font-size: .74rem; color: var(--gris-text); margin-top: 2px; }
+  .opt .rd {
+    width: 21px; height: 21px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid var(--gris-line); position: relative;
+  }
+  .opt.sel .rd { border-color: var(--azul); }
+  .opt.sel .rd::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--azul); }
+
+  /* ── Botones ── */
+  .btn {
+    width: 100%; padding: 15px; margin-top: 16px;
+    background: var(--azul); color: var(--blanco);
+    border: none; border-radius: 10px;
+    font-size: 1rem; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn:hover:not(:disabled) { background: var(--azul-mid); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.sec { background: var(--blanco); color: var(--azul); border: 1.5px solid var(--azul-line); margin-top: 8px; }
+  .btn.sec:hover:not(:disabled) { background: var(--azul-light); }
+
+  /* ── Avisos ── */
+  .aviso { padding: 11px 13px; border-radius: 8px; font-size: .84rem; margin-bottom: 14px; display: none; }
+  .aviso.err { display: block; background: var(--rojo-light); color: var(--rojo); border: 1px solid #f0c8c2; }
+  .aviso.info { display: block; background: var(--dorado-light); color: #8a6318; border: 1px solid #f0dcae; }
+
+  /* ── Confirmación ── */
+  .listo { text-align: center; }
+  .listo .tick {
+    width: 62px; height: 62px; border-radius: 50%; margin: 4px auto 16px;
+    background: var(--verde-light); display: grid; place-items: center;
+    font-size: 1.9rem; color: var(--verde);
+  }
+  .listo h1 { color: var(--verde); }
+  .recibo {
+    text-align: left; background: var(--gris-bg); border: 1px solid var(--gris-line);
+    border-radius: 10px; padding: 4px 15px; margin: 16px 0 14px;
+  }
+  .recibo .fila {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    padding: 11px 0; border-bottom: 1px dashed var(--gris-line);
+  }
+  .recibo .fila:last-child { border-bottom: none; }
+  .recibo .fila .k {
+    font-size: .68rem; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--gris-text); font-weight: 700; flex-shrink: 0;
+  }
+  .recibo .fila .v { font-size: .9rem; font-weight: 700; text-align: right; display: inline-block; }
+  .recibo .fila .v::first-letter { text-transform: uppercase; }
+  .nota-edit { font-size: .78rem; color: var(--gris-text); line-height: 1.55; }
+
+  /* ── Estado vacío / cerrado ── */
+  .vacio { text-align: center; padding: 18px 6px; }
+  .vacio .em { font-size: 2.6rem; margin-bottom: 12px; }
+  .vacio h1 { margin-bottom: 8px; }
+  .vacio p { font-size: .87rem; color: var(--gris-text); max-width: 30ch; margin: 0 auto; }
+
+  .cargando { text-align: center; padding: 40px 0; color: var(--gris-text); font-size: .87rem; }
+
+  footer {
+    text-align: center; padding: 16px; font-size: .7rem; color: var(--gris-text);
+  }
+
+  .vista { display: none; }
+  .vista.activa { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="glovis-white.png" alt="Hyundai Glovis" onerror="this.style.display='none'">
+  <div class="t"><span>Comedor</span><b>Go Lunch</b></div>
+  <span class="paso" id="paso"></span>
+</header>
+
+<main>
+  <div class="cargando" id="cargando">Cargando el menú…</div>
+
+  <div id="contenido" style="display:none">
+    <!-- Fecha de servicio -->
+    <div class="fechabar" id="fechabar" style="display:none">
+      <div class="cal"><div class="m" id="cal-m">—</div><div class="d" id="cal-d">—</div></div>
+      <div class="txt">
+        <div class="lbl" id="fecha-lbl">Tu pedido es para</div>
+        <div class="val" id="fecha-val">—</div>
+        <div class="nota" id="fecha-nota" style="display:none"></div>
+      </div>
+    </div>
+
+    <div class="aviso" id="aviso"></div>
+
+    <!-- 1. Identificarse -->
+    <section class="vista activa card" id="v-id">
+      <h1>Pide tu comida</h1>
+      <p class="sub">Identifícate con tu número de empleado.</p>
+      <label class="campo" for="num">Número de empleado</label>
+      <input type="text" id="num" placeholder="EMP001" autocomplete="off"
+             inputmode="text" onkeydown="if(event.key==='Enter')identificar()">
+      <p class="ayuda">Es el mismo número de tu gafete. No necesitas contraseña: tu zona y turno ya vienen de tu registro en Recursos Humanos.</p>
+      <button class="btn" id="btn-id" onclick="identificar()">Continuar</button>
+    </section>
+
+    <!-- 2. Elegir platillo -->
+    <section class="vista card" id="v-menu">
+      <h1 id="saludo">Hola</h1>
+      <p class="sub" id="menu-sub">Elige tu platillo.</p>
+
+      <div class="asign">
+        <div class="info">
+          <div class="k">Tu entrega</div>
+          <div class="v" id="asig-txt">—</div>
+        </div>
+        <button onclick="ir('v-ajustar')">Cambiar</button>
+      </div>
+
+      <div id="platillos"></div>
+      <button class="btn" id="btn-enviar" onclick="enviar()" disabled>Enviar pedido</button>
+    </section>
+
+    <!-- 3. Ajustar entrega -->
+    <section class="vista card" id="v-ajustar">
+      <h1>Ajustar entrega</h1>
+      <p class="sub">Solo si hoy cubres otro turno o zona. Tu registro en RRHH no cambia.</p>
+      <div class="grupo">Turno</div>
+      <div id="turnos"></div>
+      <div class="grupo">Zona</div>
+      <div id="zonas"></div>
+      <button class="btn" onclick="guardarAjuste()">Guardar y volver</button>
+    </section>
+
+    <!-- 4. Listo -->
+    <section class="vista card" id="v-listo">
+      <div class="listo">
+        <div class="tick">✓</div>
+        <h1 id="listo-titulo">¡Pedido registrado!</h1>
+        <p class="sub" id="listo-sub">Te esperamos en el comedor.</p>
+        <div class="recibo">
+          <div class="fila"><span class="k">Para el día</span><span class="v" id="r-fecha">—</span></div>
+          <div class="fila"><span class="k">Platillo</span><span class="v" id="r-platillo">—</span></div>
+          <div class="fila"><span class="k">Turno</span><span class="v" id="r-turno">—</span></div>
+          <div class="fila"><span class="k">Zona</span><span class="v" id="r-zona">—</span></div>
+          <div class="fila"><span class="k">Empleado</span><span class="v" id="r-emp">—</span></div>
+        </div>
+        <p class="nota-edit" id="r-nota">Puedes cambiarlo volviendo a abrir esta página.</p>
+        <button class="btn sec" onclick="volverAlMenu()">Cambiar mi pedido</button>
+      </div>
+    </section>
+
+    <!-- Cerrado / sin menú -->
+    <section class="vista card" id="v-cerrado">
+      <div class="vacio">
+        <div class="em" id="cerrado-em">🌙</div>
+        <h1 id="cerrado-titulo">Los pedidos ya cerraron</h1>
+        <p id="cerrado-texto">Vuelve mañana para pedir el siguiente día de servicio.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>Comedores Industriales de Cuauhtémoc · CICSA</footer>
+
+<script>
+  // Servida desde GitHub Pages apunta a Railway; servida por el propio
+  // backend (o en local) usa su mismo origen.
+  const API_BASE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+    ? location.origin
+    : 'https://glovis-cicsa-app-production.up.railway.app';
+
+  // Deben coincidir con services/menu.js
+  const ZONAS  = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
+  const ZONA_DESC = { zona_vdc: 'Zona 1 · Centro de distribución', zona_refris: 'Zona 2 · Línea de refrigeradores' };
+  const TURNOS = { turno_a: 'Turno A', turno_b: 'Turno B' };
+  const TURNO_DESC = { turno_a: 'Entrega 10:00 am', turno_b: 'Entrega 5:00 pm' };
+  const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+  const OPCIONES = [
+    { grupo: 'Opciones fijas',        ids: ['fija_a','fija_b','fija_c'] },
+    { grupo: 'Variaciones del día',   ids: ['var_1','var_2','var_3'] }
+  ];
+
+  let estado = null;                  // respuesta de /pedido/estado
+  let empleado = null;                // respuesta de /pedido/identificar
+  let sel = { opcion_id: null, zona: null, turno: null };
+
+  const $ = id => document.getElementById(id);
+
+  // ── Arranque ────────────────────────────────────────────────
+  cargarEstado();
+
+  async function cargarEstado() {
+    try {
+      const r = await fetch(API_BASE + '/pedido/estado');
+      estado = await r.json();
+    } catch {
+      $('cargando').textContent = 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.';
+      return;
+    }
+
+    $('cargando').style.display = 'none';
+    $('contenido').style.display = 'block';
+
+    if (!estado.fecha) {
+      $('cerrado-em').textContent = '📋';
+      $('cerrado-titulo').textContent = 'Aún no hay menú publicado';
+      $('cerrado-texto').textContent = 'El comedor todavía no publica el menú del próximo día. Intenta más tarde.';
+      return ir('v-cerrado');
+    }
+
+    pintarFecha();
+
+    if (!estado.abierto) {
+      $('cerrado-texto').textContent =
+        'El corte fue a las ' + estado.corte + '. La cocina ya recibió su comanda. Vuelve mañana para pedir el siguiente día.';
+      return ir('v-cerrado');
+    }
+
+    $('num').focus();
+  }
+
+  function pintarFecha() {
+    const [a, m, d] = estado.fecha.split('-').map(Number);
+    $('cal-m').textContent = MESES[m - 1];
+    $('cal-d').textContent = String(d);
+    $('fecha-val').textContent = estado.fecha_legible || estado.fecha;
+    $('fechabar').style.display = 'flex';
+    $('fechabar').classList.toggle('cerrado', !estado.abierto);
+    $('fecha-lbl').textContent = estado.abierto ? 'Tu pedido es para' : 'Pedidos cerrados para';
+
+    // Si el servicio no es literalmente mañana, decirlo en vez de asumirlo
+    const manana = new Date(); manana.setDate(manana.getDate() + 1);
+    const esManana = estado.fecha === manana.toISOString().slice(0, 10);
+    if (!esManana && estado.abierto) {
+      $('fecha-nota').textContent = '↷ Mañana no hay servicio en el comedor.';
+      $('fecha-nota').style.display = 'block';
+    }
+  }
+
+  // ── Identificación ──────────────────────────────────────────
+  async function identificar() {
+    const numero = $('num').value.trim();
+    if (!numero) return;
+
+    $('btn-id').disabled = true;
+    $('btn-id').textContent = 'Verificando…';
+    limpiarAviso();
+
+    try {
+      const r = await fetch(API_BASE + '/pedido/identificar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numero_empleado: numero })
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'No se pudo verificar tu número.');
+      empleado = d;
+    } catch (e) {
+      mostrarAviso(e.message, 'err');
+      $('btn-id').disabled = false;
+      $('btn-id').textContent = 'Continuar';
+      return;
+    }
+
+    $('btn-id').disabled = false;
+    $('btn-id').textContent = 'Continuar';
+
+    const emp = empleado.empleado;
+    const previo = empleado.pedido_actual;
+
+    // Precargar: primero lo que ya pidió, si no la asignación de RRHH
+    sel.zona     = previo?.zona  || emp.zona_default  || null;
+    sel.turno    = previo?.turno || emp.turno_default || null;
+    sel.opcion_id = previo?.opcion_id || null;
+
+    $('saludo').textContent = 'Hola, ' + emp.nombre.split(' ')[0] + ' 👋';
+    $('menu-sub').textContent = previo
+      ? 'Ya tienes un pedido registrado. Puedes cambiarlo aquí.'
+      : 'Elige tu platillo. Ya sabemos dónde y a qué hora lo recibes.';
+
+    pintarPlatillos();
+    pintarAjustes();
+    refrescarAsignacion();
+
+    // Sin asignación de RRHH: hay que preguntarla antes de pedir
+    if (!sel.zona || !sel.turno) {
+      mostrarAviso('Tu registro no tiene zona y turno asignados. Indícalos para continuar.', 'info');
+      return ir('v-ajustar');
+    }
+    ir('v-menu');
+  }
+
+  // ── Pintado de opciones ─────────────────────────────────────
+  function pintarPlatillos() {
+    $('platillos').innerHTML = OPCIONES.map(g => `
+      <div class="grupo">${g.grupo}</div>
+      ${g.ids.map(id => opcionHTML(id, estado.menu[id], '', 'opcion_id')).join('')}
+    `).join('');
+  }
+
+  function pintarAjustes() {
+    $('turnos').innerHTML = Object.keys(TURNOS)
+      .map(id => opcionHTML(id, TURNOS[id], TURNO_DESC[id], 'turno')).join('');
+    $('zonas').innerHTML = Object.keys(ZONAS)
+      .map(id => opcionHTML(id, ZONAS[id], ZONA_DESC[id], 'zona')).join('');
+  }
+
+  function opcionHTML(id, titulo, desc, campo) {
+    const activa = sel[campo] === id ? ' sel' : '';
+    return `<button class="opt${activa}" data-campo="${campo}" data-id="${id}" onclick="elegir('${campo}','${id}')">
+      <div class="tx"><b>${esc(titulo)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}</div>
+      <div class="rd"></div>
+    </button>`;
+  }
+
+  function elegir(campo, id) {
+    sel[campo] = id;
+    // Limpiar solo las opciones del mismo campo (los platillos viven en dos grupos)
+    document.querySelectorAll(`.opt[data-campo="${campo}"]`).forEach(o => {
+      o.classList.toggle('sel', o.dataset.id === id);
+    });
+    if (campo === 'opcion_id') $('btn-enviar').disabled = false;
+    if (campo === 'zona' || campo === 'turno') refrescarAsignacion();
+  }
+
+  function refrescarAsignacion() {
+    const t = TURNOS[sel.turno] ? TURNOS[sel.turno] + ' · ' + TURNO_DESC[sel.turno].replace('Entrega ', '') : 'Sin turno';
+    const z = ZONAS[sel.zona] || 'Sin zona';
+    $('asig-txt').textContent = t + ' — ' + z;
+    $('btn-enviar').disabled = !sel.opcion_id;
+  }
+
+  function guardarAjuste() {
+    if (!sel.zona || !sel.turno) {
+      return mostrarAviso('Elige tu turno y tu zona para continuar.', 'err');
+    }
+    limpiarAviso();
+    refrescarAsignacion();
+    ir('v-menu');
+  }
+
+  // ── Envío ───────────────────────────────────────────────────
+  async function enviar() {
+    $('btn-enviar').disabled = true;
+    $('btn-enviar').textContent = 'Enviando…';
+    limpiarAviso();
+
+    try {
+      const r = await fetch(API_BASE + '/pedido', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numero_empleado: empleado.empleado.numero_empleado,
+          opcion_id: sel.opcion_id,
+          zona: sel.zona,
+          turno: sel.turno
+        })
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'No se pudo registrar tu pedido.');
+
+      $('r-fecha').textContent    = d.fecha_legible || d.fecha;
+      $('r-platillo').textContent = d.resumen.platillo;
+      $('r-turno').textContent    = d.resumen.turno;
+      $('r-zona').textContent     = d.resumen.zona;
+      $('r-emp').textContent      = '#' + d.empleado.numero_empleado;
+      $('r-nota').innerHTML       = 'Puedes cambiarlo hasta las <b>' + d.resumen.corte +
+                                    ' de hoy</b> volviendo a abrir esta página.';
+      $('fechabar').style.display = 'none';
+      ir('v-listo');
+    } catch (e) {
+      mostrarAviso(e.message, 'err');
+    } finally {
+      $('btn-enviar').disabled = false;
+      $('btn-enviar').textContent = 'Enviar pedido';
+    }
+  }
+
+  function volverAlMenu() {
+    $('fechabar').style.display = 'flex';
+    $('menu-sub').textContent = 'Ya tienes un pedido registrado. Puedes cambiarlo aquí.';
+    ir('v-menu');
+  }
+
+  // ── Utilidades ──────────────────────────────────────────────
+  function ir(vista) {
+    document.querySelectorAll('.vista').forEach(v => v.classList.toggle('activa', v.id === vista));
+    const pasos = { 'v-id': '1 de 2', 'v-menu': '2 de 2', 'v-ajustar': 'Ajustar' };
+    $('paso').textContent = pasos[vista] || '';
+    window.scrollTo(0, 0);
+  }
+
+  function mostrarAviso(msg, tipo) {
+    const a = $('aviso');
+    a.className = 'aviso ' + tipo;
+    a.textContent = msg;
+  }
+  function limpiarAviso() { $('aviso').className = 'aviso'; }
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
