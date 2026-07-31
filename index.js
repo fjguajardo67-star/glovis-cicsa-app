@@ -3,6 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import { webhookRouter } from './routes/webhook.js';
 import { adminRouter } from './routes/admin.js';
+import { pedidoRouter } from './routes/pedido.js';
 import { resumenCocina, htmlComanda, iniciarCronCocina } from './services/cocina.js';
 
 const app = express();
@@ -53,8 +54,11 @@ app.get('/test-supabase', async (req, res) => {
 // Webhook de WhatsApp (Meta)
 app.use('/webhook', webhookRouter);
 
-// API del panel de administración
+// API del panel de administración (protegida con ADMIN_KEY)
 app.use('/api', adminRouter);
+
+// API pública de la página del empleado (identifica por número de empleado)
+app.use('/pedido', pedidoRouter);
 
 // Comanda de cocina imprimible (HTML). Se abre en el navegador con:
 //   /comanda/2026-07-20?key=ADMIN_KEY

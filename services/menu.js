@@ -50,6 +50,14 @@ export function horaCorteTexto() {
   return '8:00 PM';
 }
 
+// "2026-07-27" → "lunes 27 de julio". Nunca decimos "mañana": cuando el
+// servicio salta un fin de semana o un festivo, la fecha real evita el
+// malentendido de que el pedido es para el día siguiente.
+export function fechaLegible(fechaISO) {
+  const d = DateTime.fromISO(fechaISO, { zone: ZONA }).setLocale('es');
+  return d.isValid ? d.toFormat("cccc d 'de' LLLL") : fechaISO;
+}
+
 // PASO 1 — Menú del día
 export function construirListMessage(telefono, nombre, menu) {
   return {

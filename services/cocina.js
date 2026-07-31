@@ -1,6 +1,7 @@
 // services/cocina.js — Comanda de cocina: resumen por platillo y vista imprimible
 import { DateTime } from 'luxon';
 import * as db from './supabase.js';
+import { fechaServicio } from './pedidos.js';
 import { manana, TURNOS, ZONAS } from './menu.js';
 
 const ZONA_TZ = process.env.TZ || 'America/Mexico_City';
@@ -153,7 +154,16 @@ export function iniciarCronCocina() {
     if (ahora.hour === 20 && ahora.minute >= 5 && ultimaEjecucion !== hoyISO) {
       ultimaEjecucion = hoyISO;
       try {
-        const r = await resumenCocina(manana());
+        // El corte de las 20:00 solo cierra los pedidos del día SIGUIENTE.
+        // Si mañana no hay servicio (fin de semana, festivo), la próxima
+        // fecha con menú aún tiene su propio corte por delante: no es hoy
+        // cuando se imprime su comanda.
+        const fecha = await fechaServicio();
+        if (fecha !== manana()) {
+          console.log(`[Cocina] Mañana no hay servicio; la próxima fecha (${fecha ?? 'ninguna'}) cierra otro día. Sin comanda.`);
+          return;
+        }
+        const r = await resumenCocina(fecha);
         console.log(`[Cocina] Comanda ${r.fecha} — ${r.total} porciones:`);
         for (const item of r.resumen) {
           console.log(`  · ${item.platillo}: ${item.porciones}`);

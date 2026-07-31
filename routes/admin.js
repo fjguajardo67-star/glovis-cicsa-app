@@ -2,9 +2,10 @@
 import express from 'express';
 import * as db from '../services/supabase.js';
 import * as wa from '../services/whatsapp.js';
-import { construirListMessage, hoy, manana, OPCION_LABELS } from '../services/menu.js';
+import { construirListMessage } from '../services/menu.js';
 import { diezDigitos } from '../services/telefono.js';
 import { resumenCocina } from '../services/cocina.js';
+import { fechaServicio } from '../services/pedidos.js';
 
 export const adminRouter = express.Router();
 
@@ -124,9 +125,9 @@ adminRouter.get('/resumen-cocina/:fecha', async (req, res) => {
 
 adminRouter.post('/enviar-menu', async (req, res) => {
   try {
-    const fecha = manana();
-    const menu = await db.getMenu(fecha);
-    if (!menu) return res.status(400).json({ error: `No hay menú publicado para ${fecha}` });
+    const fecha = await fechaServicio();
+    const menu = fecha ? await db.getMenu(fecha) : null;
+    if (!menu) return res.status(400).json({ error: 'No hay ningún menú publicado a futuro' });
 
     const empleados = await db.listEmpleadosActivos();
 

@@ -9,8 +9,17 @@ CREATE TABLE IF NOT EXISTS empleados (
     nombre          TEXT    NOT NULL,
     numero_empleado VARCHAR UNIQUE NOT NULL,
     activo          BOOLEAN DEFAULT true,
+    -- Asignación que entrega RRHH. Sirve de valor por defecto al pedir:
+    -- el empleado puede cubrir otro turno sin que esto cambie.
+    zona_default    VARCHAR,                   -- zona_vdc | zona_refris
+    turno_default   VARCHAR,                   -- turno_a | turno_b
     creado_en       TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Si la tabla ya existía sin estas columnas, ejecutar:
+ALTER TABLE empleados ADD COLUMN IF NOT EXISTS zona_default  VARCHAR;
+ALTER TABLE empleados ADD COLUMN IF NOT EXISTS turno_default VARCHAR;
+CREATE INDEX IF NOT EXISTS idx_empleados_numero ON empleados (numero_empleado);
 
 -- Menús diarios (3 opciones fijas + 3 variables)
 CREATE TABLE IF NOT EXISTS menus (

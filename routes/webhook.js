@@ -3,10 +3,11 @@ import express from 'express';
 import crypto from 'node:crypto';
 import * as db from '../services/supabase.js';
 import * as wa from '../services/whatsapp.js';
+import * as pedidos from '../services/pedidos.js';
 import {
-  manana, dentroDeHorario, horaCorteTexto,
+  dentroDeHorario, horaCorteTexto,
   construirListMessage, construirListZona, construirListTurno,
-  textoDeOpcion, textoDeZona, textoDeTurno,
+  textoDeOpcion, textoDeZona,
   OPCIONES_VALIDAS, ZONAS_VALIDAS, TURNOS_VALIDOS
 } from '../services/menu.js';
 
@@ -157,13 +158,12 @@ async function procesarMensaje(telefono, mensaje) {
 
   // ── CASO: eligió un platillo (viene del menú) ─────────────
   if (seleccion && OPCIONES_VALIDAS.includes(seleccion)) {
-    const fecha = manana();
-    const menu  = await db.getMenu(fecha);
-    if (!menu) {
-      await wa.enviarTexto(telefono, 'El menú de mañana ya no está disponible. Contacta al comedor.');
+    const estado = await pedidos.estadoDelDia();
+    if (!estado.menu) {
+      await wa.enviarTexto(telefono, 'El menú ya no está disponible. Contacta al comedor.');
       return;
     }
-    const opcionTexto = textoDeOpcion(menu, seleccion);
+    const opcionTexto = textoDeOpcion(estado.menu, seleccion);
     setSesion(telefono, { paso: 'zona', opcion_id: seleccion, opcion_texto: opcionTexto });
     await wa.enviarListMessage(construirListZona(telefono, opcionTexto));
     return;
@@ -191,37 +191,37 @@ async function procesarMensaje(telefono, mensaje) {
 
 // ── Enviar menú ───────────────────────────────────────────────
 async function enviarMenuDelDia(telefono, empleado) {
-  const fecha = manana();
-  const menu  = await db.getMenu(fecha);
+  const estado = await pedidos.estadoDelDia();
 
-  if (!menu) {
+  if (!estado.menu) {
     await wa.enviarTexto(telefono,
-      'Aún no se ha publicado el menú de mañana. Intenta más tarde.');
+      'Aún no se ha publicado el menú del próximo día de servicio. Intenta más tarde.');
     return;
   }
 
-  await wa.enviarListMessage(construirListMessage(telefono, empleado.nombre, menu));
+  await wa.enviarListMessage(construirListMessage(telefono, empleado.nombre, estado.menu));
 }
 
 // ── Registrar pedido completo ─────────────────────────────────
+// Las reglas viven en services/pedidos.js; aquí solo queda el mensaje.
 async function registrarPedido(telefono, empleado, sesion, turnoId) {
-  const fecha      = manana();
-  const turnoTexto = textoDeTurno(turnoId);
-
-  await db.upsertPedido({
-    fecha_menu:        fecha,
-    empleado_telefono: empleado.telefono,  // usar el tel registrado (formato canónico)
-    opcion_id:         sesion.opcion_id,
-    opcion_texto:      sesion.opcion_texto,
-    zona:              sesion.zona_id,
-    turno:             turnoId
+  const res = await pedidos.crearPedido({
+    telefono:  empleado.telefono,   // el registrado, en formato canónico
+    opcion_id: sesion.opcion_id,
+    zona:      sesion.zona_id,
+    turno:     turnoId
   });
 
+  if (!res.ok) {
+    await wa.enviarTexto(telefono, res.mensaje);
+    return;
+  }
+
   await wa.enviarTexto(telefono,
-    `✅ Pedido registrado para mañana:\n\n` +
-    `🍽️ ${sesion.opcion_texto}\n` +
-    `📍 ${sesion.zona_texto}\n` +
-    `🕐 ${turnoTexto}\n\n` +
-    `Puedes cambiarlo antes de las ${horaCorteTexto()} enviando cualquier mensaje.`
+    `✅ Pedido registrado para el ${res.fecha_legible}:\n\n` +
+    `🍽️ ${res.resumen.platillo}\n` +
+    `📍 ${res.resumen.zona}\n` +
+    `🕐 ${res.resumen.turno}\n\n` +
+    `Puedes cambiarlo antes de las ${res.resumen.corte} enviando cualquier mensaje.`
   );
 }

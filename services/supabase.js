@@ -24,6 +24,19 @@ export async function getEmpleado(telefono) {
   return data?.[0] || null;
 }
 
+// Identificación por número de empleado (lo que usa la página web:
+// el empleado lo trae en el gafete y no requiere contraseña)
+export async function getEmpleadoPorNumero(numeroEmpleado) {
+  const { data, error } = await supabase
+    .from('empleados')
+    .select('*')
+    .eq('numero_empleado', String(numeroEmpleado || '').trim())
+    .eq('activo', true)
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
 export async function listEmpleados() {
   const { data, error } = await supabase
     .from('empleados')
@@ -50,7 +63,11 @@ export async function upsertEmpleado(emp) {
       telefono:        formatoCanonico(emp.telefono),  // siempre 521 + 10 dígitos
       nombre:          emp.nombre,
       numero_empleado: emp.numero_empleado,
-      activo:          emp.activo ?? true
+      activo:          emp.activo ?? true,
+      // Asignación que da RRHH: sirve de valor por defecto al pedir,
+      // no de candado (la gente cubre turnos y cambia de línea)
+      zona_default:    emp.zona_default  ?? null,
+      turno_default:   emp.turno_default ?? null
     }, { onConflict: 'telefono' })
     .select()
     .single();
@@ -125,6 +142,20 @@ export async function getMenu(fecha) {
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+// Primera fecha con menú publicado a partir de `desdeFecha` (inclusive).
+// Es la que define el próximo día de servicio: publicar el menú es lo que
+// declara que ese día abre el comedor.
+export async function getProximaFechaConMenu(desdeFecha) {
+  const { data, error } = await supabase
+    .from('menus')
+    .select('fecha')
+    .gte('fecha', desdeFecha)
+    .order('fecha')
+    .limit(1);
+  if (error) throw error;
+  return data?.[0]?.fecha || null;
 }
 
 export async function upsertMenu(menu) {
