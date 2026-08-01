@@ -4,7 +4,7 @@ import express from 'express';
 import { webhookRouter } from './routes/webhook.js';
 import { adminRouter } from './routes/admin.js';
 import { pedidoRouter } from './routes/pedido.js';
-import { resumenCocina, htmlComanda, iniciarCronCocina } from './services/cocina.js';
+import { resumenCocina, htmlComanda, etiquetas, htmlEtiquetas, iniciarCronCocina } from './services/cocina.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -107,6 +107,38 @@ app.get('/comanda/:fecha', async (req, res) => {
   } catch (err) {
     console.error('[Comanda] Error:', err);
     res.status(500).send('Error generando la comanda');
+  }
+});
+
+// Etiquetas para pegar en cada contenedor:
+//   /etiquetas/2026-08-03?key=ADMIN_KEY&ancho=57&alto=32
+// El tamaño va por parámetro porque depende del rollo que se compre, y
+// &modo=hoja imprime en papel carta para validar la medida sin gastar rollo.
+app.get('/etiquetas/:fecha', async (req, res) => {
+  if (!process.env.ADMIN_KEY || req.query.key !== process.env.ADMIN_KEY) {
+    return res.status(401).send('No autorizado');
+  }
+  const fecha = req.params.fecha;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return res.status(400).send('Fecha inválida — usa el formato YYYY-MM-DD');
+  }
+
+  // Límites sensatos: fuera de este rango no es una etiqueta de comedor
+  const num = (v, def, min, max) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= min && n <= max ? n : def;
+  };
+
+  try {
+    const datos = await etiquetas(fecha, {
+      ancho: num(req.query.ancho, 57, 20, 210),
+      alto:  num(req.query.alto,  32, 15, 297),
+      modo:  req.query.modo === 'hoja' ? 'hoja' : 'rollo'
+    });
+    res.type('html').send(htmlEtiquetas(datos));
+  } catch (err) {
+    console.error('[Etiquetas] Error:', err);
+    res.status(500).send('Error generando las etiquetas');
   }
 });
 

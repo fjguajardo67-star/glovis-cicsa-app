@@ -135,6 +135,144 @@ function esc(s) {
     .replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
 
+// ── Etiquetas por comida (una por pedido) ───────────────────────
+// Se pegan en el contenedor. El tamaño es configurable porque depende del
+// rollo que se compre; con modo 'hoja' se prueban en papel carta antes de
+// invertir en la impresora.
+export async function etiquetas(fecha, { ancho = 57, alto = 32, modo = 'rollo' } = {}) {
+  const pedidos = await db.getPedidosPorFecha(fecha);
+  return { fecha, ancho, alto, modo, pedidos };
+}
+
+export function htmlEtiquetas({ fecha, ancho, alto, modo, pedidos }) {
+  const generado = DateTime.now().setZone(ZONA_TZ).toFormat('dd/MM/yyyy HH:mm');
+  const fechaCorta = DateTime.fromISO(fecha, { zone: ZONA_TZ }).toFormat('dd/MM/yyyy');
+  const enHoja = modo === 'hoja';
+
+  // Las etiquetas salen agrupadas por turno y zona: así se empacan y se
+  // reparten en el mismo orden en que la cocina las va a necesitar.
+  const orden = [...pedidos].sort((a, b) =>
+    String(a.turno).localeCompare(String(b.turno)) ||
+    String(a.zona).localeCompare(String(b.zona)) ||
+    String(a.empleados?.nombre || '').localeCompare(String(b.empleados?.nombre || '')));
+
+  // En la etiqueta la ruta va abreviada: el turno ya implica la hora, y
+  // escribirla completa hace que se corte en los rollos angostos.
+  const turnoCorto = t => (TURNOS[t] || t || 'Sin turno').split('—')[0].trim();
+  const zonaCorta  = z => (ZONAS[z] || z || 'Sin zona').replace(/^Glovis\s+/i, '');
+
+  const cuerpo = orden.map(p => `
+    <div class="etiqueta">
+      <div class="ruta">${esc(turnoCorto(p.turno))} &nbsp;·&nbsp; ${esc(zonaCorta(p.zona))}</div>
+      <div class="nombre">${esc(p.empleados?.nombre || 'Sin nombre')}</div>
+      <div class="platillo">${esc(p.opcion_texto || p.opcion_id)}</div>
+      <div class="pie">
+        <span>#${esc(p.empleados?.numero_empleado || '—')}</span>
+        <span>${esc(fechaCorta)}</span>
+      </div>
+    </div>`).join('');
+
+  const vacio = '<p style="font-family:sans-serif;padding:20px">Sin pedidos registrados para esta fecha.</p>';
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Etiquetas ${esc(fecha)}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #e9ecf1; font-family: 'Segoe UI', system-ui, sans-serif; color: #000; }
+
+  .barra {
+    background: #003087; color: #fff; padding: 12px 18px;
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .barra b { font-size: .95rem; }
+  .barra .dato { font-size: .8rem; color: rgba(255,255,255,.75); }
+  .barra button {
+    margin-left: auto; padding: 9px 18px; background: #c9922a; color: #fff;
+    border: none; border-radius: 7px; font-family: inherit; font-size: .88rem;
+    font-weight: 700; cursor: pointer;
+  }
+  .ayuda {
+    background: #fff; padding: 11px 18px; font-size: .8rem; color: #5a6480;
+    border-bottom: 1px solid #dde3ef;
+  }
+  .ayuda b { color: #0d1b3e; }
+
+  /* Cada etiqueta mide exactamente lo que mide el rollo */
+  .hoja { padding: 18px; }
+  .hoja.rollo { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .hoja.prueba { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .etiqueta {
+    width: ${ancho}mm;
+    height: ${alto}mm;
+    background: #fff;
+    border: 1px solid #b9c2d4;      /* guía en pantalla; se quita al imprimir en rollo */
+    border-radius: 2mm;              /* recordatorio de las esquinas redondeadas */
+    padding: 1.6mm 2.2mm;
+    display: flex; flex-direction: column; justify-content: space-between;
+    overflow: hidden;
+  }
+  .etiqueta .ruta {
+    font-size: 6.5pt; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .etiqueta .nombre {
+    font-size: 10.5pt; font-weight: 800; line-height: 1.1;
+    overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  .etiqueta .platillo {
+    font-size: 8pt; line-height: 1.15; font-weight: 600;
+    overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  }
+  .etiqueta .pie {
+    display: flex; justify-content: space-between;
+    font-size: 6pt; border-top: .3mm solid #000; padding-top: .8mm;
+  }
+
+  @media print {
+    .barra, .ayuda { display: none; }
+    body { background: #fff; }
+    .hoja { padding: 0; gap: 0; }
+    .etiqueta { border: none; border-radius: 0; }
+  }
+
+  ${enHoja
+    ? `/* Prueba en papel carta: se recortan para validar la medida */
+       @page { size: letter; margin: 10mm; }
+       @media print { .etiqueta { border: .2mm dashed #999; } .hoja.prueba { gap: 4mm; } }`
+    : `/* Rollo continuo: una etiqueta por página, del tamaño exacto */
+       @page { size: ${ancho}mm ${alto}mm; margin: 0; }
+       @media print { .etiqueta { page-break-after: always; } .etiqueta:last-child { page-break-after: auto; } }`}
+</style>
+</head>
+<body>
+  <div class="barra">
+    <b>🏷️ Etiquetas · ${esc(fechaCorta)}</b>
+    <span class="dato">${orden.length} comida(s)</span>
+    <span class="dato">${ancho} × ${alto} mm</span>
+    <span class="dato">${enHoja ? 'prueba en papel carta' : 'rollo continuo'}</span>
+    <button onclick="window.print()">Imprimir</button>
+  </div>
+  <div class="ayuda">
+    ${enHoja
+      ? 'Imprime esta hoja en papel normal y recórtala para comprobar que la medida cabe en el contenedor <b>antes</b> de comprar el rollo. Cambia el tamaño con <b>?ancho=</b> y <b>?alto=</b> en milímetros.'
+      : 'Ajusta el tamaño con <b>?ancho=</b> y <b>?alto=</b> (mm) para que coincida con tu rollo. Para probar en papel carta primero, agrega <b>&amp;modo=hoja</b>.'}
+    Las etiquetas van ordenadas por turno y zona, en el orden en que se empacan.
+  </div>
+  <div class="hoja ${enHoja ? 'prueba' : 'rollo'}">
+    ${orden.length ? cuerpo : vacio}
+  </div>
+  <script>window.__generado = ${JSON.stringify(generado)};</script>
+</body>
+</html>`;
+}
+
 // ── Cron interno: genera la comanda tras el corte de las 20:00 ──
 // Activar con CRON_COCINA=on en Railway. Revisa cada minuto la hora local;
 // al llegar a las 20:05 genera el resumen del día siguiente (fecha de
