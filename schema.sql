@@ -50,6 +50,12 @@ CREATE TABLE IF NOT EXISTS pedidos (
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS zona  VARCHAR;
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS turno VARCHAR;
 
+-- Confirmación de entrega (se escanea el QR de la etiqueta al entregar).
+-- entregado_en guarda la hora REAL del escaneo, no la de sincronización:
+-- el reparto ocurre sin señal y los datos suben después.
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS entregado_en TIMESTAMP WITH TIME ZONE;
+CREATE INDEX IF NOT EXISTS idx_pedidos_entrega ON pedidos (fecha_menu, entregado_en);
+
 -- Envíos del menú (registro de a quién se le mandó y su estado)
 CREATE TABLE IF NOT EXISTS envios (
     id             BIGSERIAL PRIMARY KEY,

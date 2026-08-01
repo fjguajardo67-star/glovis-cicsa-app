@@ -139,12 +139,12 @@ function esc(s) {
 // Se pegan en el contenedor. El tamaño es configurable porque depende del
 // rollo que se compre; con modo 'hoja' se prueban en papel carta antes de
 // invertir en la impresora.
-export async function etiquetas(fecha, { ancho = 57, alto = 32, modo = 'rollo' } = {}) {
+export async function etiquetas(fecha, { ancho = 57, alto = 32, modo = 'rollo', qr = true } = {}) {
   const pedidos = await db.getPedidosPorFecha(fecha);
-  return { fecha, ancho, alto, modo, pedidos };
+  return { fecha, ancho, alto, modo, qr, pedidos };
 }
 
-export function htmlEtiquetas({ fecha, ancho, alto, modo, pedidos }) {
+export function htmlEtiquetas({ fecha, ancho, alto, modo, qr = true, pedidos }) {
   const generado = DateTime.now().setZone(ZONA_TZ).toFormat('dd/MM/yyyy HH:mm');
   const fechaCorta = DateTime.fromISO(fecha, { zone: ZONA_TZ }).toFormat('dd/MM/yyyy');
   const enHoja = modo === 'hoja';
@@ -161,16 +161,25 @@ export function htmlEtiquetas({ fecha, ancho, alto, modo, pedidos }) {
   const turnoCorto = t => (TURNOS[t] || t || 'Sin turno').split('—')[0].trim();
   const zonaCorta  = z => (ZONAS[z] || z || 'Sin zona').replace(/^Glovis\s+/i, '');
 
-  const cuerpo = orden.map(p => `
+  // El QR lleva número de empleado y fecha: sin la fecha, la etiqueta de ayer
+  // se podría escanear hoy y marcaría una entrega que no ocurrió.
+  const cuerpo = orden.map(p => {
+    const numero = p.empleados?.numero_empleado || '';
+    const codigo = `${numero}|${fecha}`;
+    return `
     <div class="etiqueta">
-      <div class="ruta">${esc(turnoCorto(p.turno))} &nbsp;·&nbsp; ${esc(zonaCorta(p.zona))}</div>
-      <div class="nombre">${esc(p.empleados?.nombre || 'Sin nombre')}</div>
-      <div class="platillo">${esc(p.opcion_texto || p.opcion_id)}</div>
-      <div class="pie">
-        <span>#${esc(p.empleados?.numero_empleado || '—')}</span>
-        <span>${esc(fechaCorta)}</span>
+      <div class="texto">
+        <div class="ruta">${esc(turnoCorto(p.turno))} &nbsp;·&nbsp; ${esc(zonaCorta(p.zona))}</div>
+        <div class="nombre">${esc(p.empleados?.nombre || 'Sin nombre')}</div>
+        <div class="platillo">${esc(p.opcion_texto || p.opcion_id)}</div>
+        <div class="pie">
+          <span>#${esc(numero || '—')}</span>
+          <span>${esc(fechaCorta)}</span>
+        </div>
       </div>
-    </div>`).join('');
+      ${qr ? `<div class="qr" data-codigo="${esc(codigo)}"></div>` : ''}
+    </div>`;
+  }).join('');
 
   const vacio = '<p style="font-family:sans-serif;padding:20px">Sin pedidos registrados para esta fecha.</p>';
 
@@ -214,9 +223,18 @@ export function htmlEtiquetas({ fecha, ancho, alto, modo, pedidos }) {
     border: 1px solid #b9c2d4;      /* guía en pantalla; se quita al imprimir en rollo */
     border-radius: 2mm;              /* recordatorio de las esquinas redondeadas */
     padding: 1.6mm 2.2mm;
-    display: flex; flex-direction: column; justify-content: space-between;
+    display: flex; gap: 1.5mm; align-items: stretch;
     overflow: hidden;
   }
+  .etiqueta .texto {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .etiqueta .qr {
+    flex: none; align-self: center;
+    width: ${Math.min(alto - 5, 18)}mm; height: ${Math.min(alto - 5, 18)}mm;
+  }
+  .etiqueta .qr canvas, .etiqueta .qr img { width: 100% !important; height: 100% !important; display: block; }
   .etiqueta .ruta {
     font-size: 6.5pt; font-weight: 700; letter-spacing: .04em;
     text-transform: uppercase; white-space: nowrap;
@@ -268,6 +286,19 @@ export function htmlEtiquetas({ fecha, ancho, alto, modo, pedidos }) {
   <div class="hoja ${enHoja ? 'prueba' : 'rollo'}">
     ${orden.length ? cuerpo : vacio}
   </div>
+${qr ? `  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    // Los píxeles de un canvas no viajan en el HTML: el QR se genera sobre
+    // el elemento ya insertado en la página, nunca copiando su marcado.
+    document.querySelectorAll('.qr[data-codigo]').forEach(function (caja) {
+      new QRCode(caja, {
+        text: caja.dataset.codigo,
+        width: 160, height: 160,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    });
+  </script>` : ''}
   <script>window.__generado = ${JSON.stringify(generado)};</script>
 </body>
 </html>`;

@@ -133,7 +133,8 @@ app.get('/etiquetas/:fecha', async (req, res) => {
     const datos = await etiquetas(fecha, {
       ancho: num(req.query.ancho, 57, 20, 210),
       alto:  num(req.query.alto,  32, 15, 297),
-      modo:  req.query.modo === 'hoja' ? 'hoja' : 'rollo'
+      modo:  req.query.modo === 'hoja' ? 'hoja' : 'rollo',
+      qr:    req.query.qr !== 'no'
     });
     res.type('html').send(htmlEtiquetas(datos));
   } catch (err) {

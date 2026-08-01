@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#003087">
+<title>Go Lunch — Entrega</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+  :root {
+    --azul: #003087; --azul-mid: #1a4ba0; --azul-light: #e8eef8; --azul-line: #c5d3ec;
+    --verde: #1e7a22; --verde-light: #e6f4e6;
+    --dorado: #b8860b; --dorado-light: #fdf5e6;
+    --gris-bg: #f4f6fb; --gris-line: #dde3ef; --gris-text: #5a6480;
+    --tinta: #0d1b3e; --rojo: #c0392b; --rojo-light: #fdecec;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--gris-bg); color: var(--tinta);
+    /* Reparto a pleno sol: contraste alto y nada de grises tenues */
+    line-height: 1.45; min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── Encabezado con estado de conexión ── */
+  header {
+    background: var(--azul); color: #fff; padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 0; z-index: 20;
+  }
+  header .t { flex: 1; min-width: 0; }
+  header .t b { font-size: 1rem; display: block; }
+  header .t span { font-size: .72rem; color: rgba(255,255,255,.75); }
+  .conexion {
+    font-size: .68rem; font-weight: 800; padding: 5px 9px; border-radius: 20px;
+    white-space: nowrap; letter-spacing: .03em;
+  }
+  .conexion.on  { background: #1e7a22; color: #fff; }
+  .conexion.off { background: var(--dorado); color: #fff; }
+
+  /* ── Contadores ── */
+  .marcador {
+    display: flex; gap: 8px; padding: 10px 14px; background: #fff;
+    border-bottom: 1px solid var(--gris-line);
+  }
+  .marcador div {
+    flex: 1; text-align: center; padding: 9px 4px; border-radius: 10px;
+  }
+  .marcador .n { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+  .marcador .e { font-size: .66rem; font-weight: 700; color: var(--gris-text); margin-top: 3px; }
+  .m-entregado { background: var(--verde-light); } .m-entregado .n { color: var(--verde); }
+  .m-falta     { background: var(--gris-bg); }     .m-falta .n     { color: var(--tinta); }
+  .m-cola      { background: var(--dorado-light); }.m-cola .n      { color: var(--dorado); }
+  .m-cola.vacia { background: var(--gris-bg); } .m-cola.vacia .n { color: var(--gris-text); }
+
+  main { flex: 1; padding: 12px 14px 20px; width: 100%; max-width: 560px; margin: 0 auto; }
+
+  /* ── Cámara ── */
+  .camara {
+    position: relative; width: 100%; aspect-ratio: 4/3;
+    background: #000; border-radius: 14px; overflow: hidden; margin-bottom: 12px;
+  }
+  .camara video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .camara .mira {
+    position: absolute; inset: 18%; border: 3px solid rgba(255,255,255,.9);
+    border-radius: 12px; pointer-events: none;
+  }
+  .camara.oculta { display: none; }
+
+  /* ── Aviso grande tras cada escaneo (se lee de reojo) ── */
+  .flash {
+    padding: 16px 14px; border-radius: 14px; margin-bottom: 12px;
+    display: none; border-left: 7px solid;
+  }
+  .flash.ver { display: block; }
+  .flash b { display: block; font-size: 1.25rem; line-height: 1.2; margin-bottom: 3px; }
+  .flash span { font-size: .9rem; }
+  .flash.ok   { background: var(--verde-light); border-color: var(--verde); color: #14571a; }
+  .flash.dup  { background: var(--dorado-light); border-color: var(--dorado); color: #6d4c07; }
+  .flash.mal  { background: var(--rojo-light);  border-color: var(--rojo);  color: #8d2117; }
+
+  /* ── Botones grandes: se usan con guantes ── */
+  .btn {
+    width: 100%; padding: 17px; border: none; border-radius: 13px;
+    font-family: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer;
+    background: var(--azul); color: #fff; margin-bottom: 9px;
+  }
+  .btn:active { background: var(--azul-mid); }
+  .btn.sec { background: #fff; color: var(--azul); border: 2px solid var(--azul-line); }
+  .btn.alta { background: var(--dorado); }
+  .btn:disabled { opacity: .45; }
+
+  /* ── Captura manual / pistola bluetooth ── */
+  .manual { display: flex; gap: 8px; margin-bottom: 12px; }
+  .manual input {
+    flex: 1; padding: 15px 13px; border: 2px solid var(--gris-line); border-radius: 12px;
+    font-size: 1.15rem; font-weight: 700; font-family: ui-monospace, Menlo, monospace;
+    text-transform: uppercase; background: #fff; color: var(--tinta); min-width: 0;
+  }
+  .manual input:focus { outline: none; border-color: var(--azul); }
+  .manual button { flex: none; padding: 0 18px; }
+
+  /* ── Lista ── */
+  .titulo {
+    font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--gris-text); margin: 16px 0 8px; display: flex; align-items: center; gap: 8px;
+  }
+  .titulo::after { content: ""; flex: 1; height: 1px; background: var(--gris-line); }
+  .fila {
+    display: flex; align-items: center; gap: 10px; background: #fff;
+    border: 1px solid var(--gris-line); border-radius: 11px;
+    padding: 11px 12px; margin-bottom: 7px;
+  }
+  .fila.hecho { background: var(--verde-light); border-color: #b9dcbb; }
+  .fila .ic { font-size: 1.2rem; flex: none; }
+  .fila .d { flex: 1; min-width: 0; }
+  .fila .d b { display: block; font-size: .95rem; }
+  .fila .d span { display: block; font-size: .76rem; color: var(--gris-text); }
+  .fila .btn-e {
+    flex: none; padding: 9px 13px; border-radius: 9px; border: 2px solid var(--azul-line);
+    background: #fff; color: var(--azul); font-family: inherit; font-weight: 800;
+    font-size: .8rem; cursor: pointer;
+  }
+
+  .aviso { padding: 12px; border-radius: 10px; font-size: .88rem; margin-bottom: 12px; }
+  .aviso.err { background: var(--rojo-light); color: var(--rojo); }
+  .aviso.info { background: var(--azul-light); color: var(--azul); }
+
+  .gate { padding: 28px 18px; max-width: 380px; margin: 40px auto; }
+  .gate h1 { font-size: 1.2rem; margin-bottom: 6px; }
+  .gate p { font-size: .85rem; color: var(--gris-text); margin-bottom: 18px; }
+  .gate input {
+    width: 100%; padding: 14px; border: 2px solid var(--gris-line);
+    border-radius: 11px; font-size: 1rem; font-family: inherit; margin-bottom: 10px;
+  }
+  .oculto { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Puerta: una sola vez por dispositivo -->
+<div id="gate" class="gate">
+  <h1>🚚 Entrega de comidas</h1>
+  <p>Escribe la clave del comedor. Se guarda en este teléfono para que no la pidan de nuevo.</p>
+  <input type="password" id="clave" placeholder="Clave" onkeydown="if(event.key==='Enter')entrar()">
+  <button class="btn" onclick="entrar()">Entrar</button>
+  <div id="gateErr" class="aviso oculto"></div>
+</div>
+
+<div id="app" class="oculto">
+  <header>
+    <div class="t"><b>Entrega</b><span id="cab-fecha">—</span></div>
+    <span class="conexion on" id="conexion">EN LÍNEA</span>
+  </header>
+
+  <div class="marcador">
+    <div class="m-entregado"><div class="n" id="n-entregado">0</div><div class="e">Entregadas</div></div>
+    <div class="m-falta"><div class="n" id="n-falta">0</div><div class="e">Faltan</div></div>
+    <div class="m-cola vacia" id="caja-cola"><div class="n" id="n-cola">0</div><div class="e">Por subir</div></div>
+  </div>
+
+  <main>
+    <div id="flash" class="flash"><b id="flash-t"></b><span id="flash-s"></span></div>
+
+    <div class="camara oculta" id="camara">
+      <video id="video" playsinline muted></video>
+      <div class="mira"></div>
+    </div>
+
+    <button class="btn" id="btn-camara" onclick="alternarCamara()">📷 Escanear con la cámara</button>
+
+    <div class="manual">
+      <input id="manual" placeholder="O captura el número" autocomplete="off"
+             onkeydown="if(event.key==='Enter')entregarManual()">
+      <button class="btn" style="margin:0" onclick="entregarManual()">OK</button>
+    </div>
+
+    <div id="avisoSync"></div>
+
+    <div class="titulo">Pendientes</div>
+    <div id="lista-pendientes"></div>
+    <div class="titulo">Entregadas</div>
+    <div id="lista-hechas"></div>
+  </main>
+</div>
+
+<script>
+  const API_BASE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+    ? location.origin
+    : 'https://glovis-cicsa-app-production.up.railway.app';
+
+  const ZONA_TXT  = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
+  const TURNO_TXT = { turno_a: 'Turno A', turno_b: 'Turno B' };
+
+  const LS = {
+    clave: 'cicsa_entrega_clave',
+    datos: 'cicsa_entrega_datos',   // { fecha, pedidos: [...] }
+    cola:  'cicsa_entrega_cola'     // [{ numero_empleado, entregado_en }]
+  };
+
+  let PEDIDOS = [];
+  let FECHA = '';
+  let COLA = [];
+  let CLAVE = '';
+  let escaneando = false, stream = null, ultimoCodigo = '', ultimoTs = 0;
+
+  const $ = id => document.getElementById(id);
+  const leerLS  = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } };
+  const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  // ── Arranque ──────────────────────────────────────────────
+  CLAVE = localStorage.getItem(LS.clave) || '';
+  if (CLAVE) iniciar(); else $('gate').classList.remove('oculto');
+
+  function entrar() {
+    const k = $('clave').value.trim();
+    if (!k) return;
+    CLAVE = k;
+    localStorage.setItem(LS.clave, k);
+    iniciar();
+  }
+
+  async function iniciar() {
+    $('gate').classList.add('oculto');
+    $('app').classList.remove('oculto');
+
+    // Primero lo guardado: la app abre y sirve aunque no haya señal
+    const cache = leerLS(LS.datos, null);
+    COLA = leerLS(LS.cola, []);
+    if (cache) { FECHA = cache.fecha; PEDIDOS = cache.pedidos; pintar(); }
+
+    window.addEventListener('online',  estadoConexion);
+    window.addEventListener('offline', estadoConexion);
+    estadoConexion();
+
+    await sincronizar();          // sube lo pendiente y baja lo del día
+    setInterval(sincronizar, 60000);
+  }
+
+  function estadoConexion() {
+    const el = $('conexion');
+    const on = navigator.onLine;
+    el.className = 'conexion ' + (on ? 'on' : 'off');
+    el.textContent = on ? 'EN LÍNEA' : 'SIN SEÑAL';
+  }
+
+  // ── Sincronización ────────────────────────────────────────
+  async function sincronizar() {
+    if (!navigator.onLine) return;
+
+    // 1) Subir la cola. Solo se quita lo que el servidor confirma.
+    if (COLA.length) {
+      try {
+        const r = await fetch(API_BASE + '/api/entrega', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-key': CLAVE },
+          body: JSON.stringify({ fecha: FECHA, entregas: COLA })
+        });
+        if (r.ok) {
+          const d = await r.json();
+          // Solo dos cosas sacan un escaneo de la cola: que el servidor lo
+          // CONFIRME, o que lo rechace por regla de negocio (ese pedido no
+          // existe). Un error del servidor o de red lo deja en la cola para
+          // reintentar — borrarlo ahí sería perder una entrega real.
+          const confirmados = new Set(d.resultados.filter(x => x.ok).map(x => x.numero_empleado));
+          const RECHAZO_DEFINITIVO = ['sin_pedido', 'empleado_no_encontrado', 'sin_numero'];
+          const rechazados = d.resultados.filter(x => !x.ok && RECHAZO_DEFINITIVO.includes(x.motivo));
+          const definitivos = new Set(rechazados.map(x => x.numero_empleado));
+
+          COLA = COLA.filter(e => !confirmados.has(e.numero_empleado) && !definitivos.has(e.numero_empleado));
+          guardar(LS.cola, COLA);
+          if (rechazados.length) {
+            mostrarAviso('avisoSync',
+              rechazados.length + ' escaneo(s) no se pudieron registrar: ' +
+              rechazados.map(x => x.numero_empleado + ' (' + x.motivo + ')').join(', '), 'err');
+          }
+        }
+      } catch {}
+    }
+
+    // 2) Bajar el estado del día
+    try {
+      const fechaObjetivo = FECHA || (await fechaDeServicio());
+      if (!fechaObjetivo) return;
+      const r = await fetch(API_BASE + '/api/entrega/' + fechaObjetivo, { headers: { 'x-admin-key': CLAVE } });
+      if (r.status === 401) return mostrarAviso('avisoSync', 'Clave incorrecta. Bórrala y vuelve a entrar.', 'err');
+      if (!r.ok) return;
+      const d = await r.json();
+      FECHA = d.fecha;
+      // Lo del servidor manda, EXCEPTO para lo que sigue en la cola local:
+      // esas entregas ya ocurrieron aunque el servidor todavía no las tenga.
+      const enCola = new Map(COLA.map(e => [e.numero_empleado, e.entregado_en]));
+      PEDIDOS = d.pedidos.map(p =>
+        !p.entregado_en && enCola.has(p.numero_empleado)
+          ? { ...p, entregado_en: enCola.get(p.numero_empleado) }
+          : p);
+      guardar(LS.datos, { fecha: FECHA, pedidos: PEDIDOS });
+      pintar();
+    } catch {}
+  }
+
+  async function fechaDeServicio() {
+    try {
+      const r = await fetch(API_BASE + '/pedido/estado');
+      const d = await r.json();
+      return d.fecha || null;
+    } catch { return null; }
+  }
+
+  // ── Registrar una entrega ─────────────────────────────────
+  function entregar(numero, origen) {
+    numero = String(numero || '').trim().toUpperCase();
+    if (!numero) return;
+
+    // El QR trae "GL-001|2026-08-03": la fecha evita que la etiqueta de
+    // ayer marque una entrega de hoy.
+    let fechaCodigo = null;
+    if (numero.includes('|')) {
+      const partes = numero.split('|');
+      numero = partes[0].trim();
+      fechaCodigo = (partes[1] || '').trim();
+    }
+    if (fechaCodigo && FECHA && fechaCodigo !== FECHA) {
+      return flash('mal', 'Etiqueta de otro día', 'Es del ' + fechaCodigo + ', hoy se reparte el ' + FECHA);
+    }
+
+    const p = PEDIDOS.find(x => String(x.numero_empleado || '').toUpperCase() === numero);
+    if (!p) return flash('mal', 'No está en la lista', 'El número ' + numero + ' no tiene pedido para hoy.');
+    if (p.entregado_en) return flash('dup', 'Ya estaba entregada', p.nombre + ' — se registró antes.');
+
+    p.entregado_en = new Date().toISOString();
+    guardar(LS.datos, { fecha: FECHA, pedidos: PEDIDOS });
+
+    COLA.push({ numero_empleado: p.numero_empleado, entregado_en: p.entregado_en });
+    guardar(LS.cola, COLA);
+
+    flash('ok', p.nombre, p.platillo + ' · ' + (TURNO_TXT[p.turno] || '') + ' · ' + (ZONA_TXT[p.zona] || ''));
+    pintar();
+    if (navigator.onLine) sincronizar();
+    if (origen === 'manual') $('manual').value = '';
+  }
+
+  function entregarManual() { entregar($('manual').value, 'manual'); }
+
+  // ── Cámara ────────────────────────────────────────────────
+  async function alternarCamara() {
+    if (escaneando) return detenerCamara();
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    } catch {
+      return mostrarAviso('avisoSync', 'No se pudo abrir la cámara. Usa la captura manual o revisa los permisos.', 'err');
+    }
+    const v = $('video');
+    v.srcObject = stream;
+    await v.play();
+    escaneando = true;
+    $('camara').classList.remove('oculta');
+    $('btn-camara').textContent = '✕ Cerrar la cámara';
+    $('btn-camara').classList.add('alta');
+    requestAnimationFrame(leerCuadro);
+  }
+
+  function detenerCamara() {
+    escaneando = false;
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = null;
+    $('camara').classList.add('oculta');
+    $('btn-camara').textContent = '📷 Escanear con la cámara';
+    $('btn-camara').classList.remove('alta');
+  }
+
+  const lienzo = document.createElement('canvas');
+  function leerCuadro() {
+    if (!escaneando) return;
+    const v = $('video');
+    if (v.readyState === v.HAVE_ENOUGH_DATA) {
+      lienzo.width = v.videoWidth; lienzo.height = v.videoHeight;
+      const ctx = lienzo.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(v, 0, 0, lienzo.width, lienzo.height);
+      const img = ctx.getImageData(0, 0, lienzo.width, lienzo.height);
+      const cod = jsQR(img.data, img.width, img.height);
+      // Con la cámara abierta el mismo código se lee 30 veces por segundo:
+      // se ignora si es el mismo de hace menos de 2.5 s.
+      if (cod && cod.data && (cod.data !== ultimoCodigo || Date.now() - ultimoTs > 2500)) {
+        ultimoCodigo = cod.data; ultimoTs = Date.now();
+        entregar(cod.data, 'camara');
+        if (navigator.vibrate) navigator.vibrate(60);
+      }
+    }
+    requestAnimationFrame(leerCuadro);
+  }
+
+  // ── Pintado ───────────────────────────────────────────────
+  function pintar() {
+    $('cab-fecha').textContent = FECHA || 'sin fecha';
+    const hechas = PEDIDOS.filter(p => p.entregado_en);
+    const faltan = PEDIDOS.filter(p => !p.entregado_en);
+
+    $('n-entregado').textContent = hechas.length;
+    $('n-falta').textContent = faltan.length;
+    $('n-cola').textContent = COLA.length;
+    $('caja-cola').classList.toggle('vacia', COLA.length === 0);
+
+    const fila = (p, hecho) => `
+      <div class="fila ${hecho ? 'hecho' : ''}">
+        <span class="ic">${hecho ? '✅' : '⬜'}</span>
+        <div class="d">
+          <b>${esc(p.nombre || '—')}</b>
+          <span>${esc(p.platillo || '')} · ${esc(TURNO_TXT[p.turno] || '')} · ${esc(ZONA_TXT[p.zona] || '')}</span>
+        </div>
+        ${hecho ? '' : `<button class="btn-e" onclick="entregar('${esc(p.numero_empleado)}','lista')">Entregar</button>`}
+      </div>`;
+
+    $('lista-pendientes').innerHTML = faltan.length
+      ? faltan.map(p => fila(p, false)).join('')
+      : '<p style="font-size:.85rem;color:var(--gris-text);padding:6px 2px">Todo entregado. 🎉</p>';
+    $('lista-hechas').innerHTML = hechas.length
+      ? hechas.map(p => fila(p, true)).join('')
+      : '<p style="font-size:.85rem;color:var(--gris-text);padding:6px 2px">Aún no hay entregas.</p>';
+  }
+
+  let flashTimer = null;
+  function flash(tipo, titulo, detalle) {
+    const el = $('flash');
+    el.className = 'flash ver ' + tipo;
+    $('flash-t').textContent = titulo;
+    $('flash-s').textContent = detalle || '';
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { el.className = 'flash'; }, 4000);
+  }
+
+  function mostrarAviso(id, msg, tipo) {
+    $(id).innerHTML = '<div class="aviso ' + tipo + '">' + esc(msg) + '</div>';
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Aviso al salir con escaneos sin subir
+  window.addEventListener('beforeunload', e => {
+    if (COLA.length) { e.preventDefault(); e.returnValue = ''; }
+  });
+</script>
+</body>
+</html>

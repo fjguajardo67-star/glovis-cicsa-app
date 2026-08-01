@@ -220,6 +220,23 @@ export async function getPedidosPorFecha(fecha) {
   return data;
 }
 
+// Marca entregas entrando por número de empleado, que es lo que trae el QR
+// de la etiqueta. `entregadoEn` es la hora del escaneo, no la de sincronización.
+export async function marcarEntregado(fecha, numeroEmpleado, entregadoEn) {
+  const emp = await getEmpleadoPorNumero(numeroEmpleado);
+  if (!emp) return { ok: false, motivo: 'empleado_no_encontrado' };
+
+  const { data, error } = await supabase
+    .from('pedidos')
+    .update({ entregado_en: entregadoEn })
+    .eq('fecha_menu', fecha)
+    .eq('empleado_telefono', emp.telefono)
+    .select('*, empleados(nombre, numero_empleado)');
+  if (error) throw error;
+  if (!data || !data.length) return { ok: false, motivo: 'sin_pedido' };
+  return { ok: true, pedido: data[0] };
+}
+
 export async function getPedidosRango(fechaIni, fechaFin) {
   const { data, error } = await supabase
     .from('pedidos')
