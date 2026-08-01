@@ -52,10 +52,12 @@
   .cartel { text-align: center; padding: 20px 26px 26px; }
   .cartel .marca {
     display: flex; align-items: center; justify-content: center; gap: 14px;
-    padding-bottom: 16px; margin-bottom: 20px; border-bottom: 2px solid var(--azul);
+    padding-bottom: 14px; margin-bottom: 20px; border-bottom: 2px solid var(--azul);
   }
-  .cartel .marca img { height: 42px; object-fit: contain; }
-  .cartel .marca .sep { width: 1px; height: 40px; background: var(--gris-line); }
+  /* Solo Go Lunch encabeza la hoja. El PNG de Glovis quedó fuera a propósito:
+     es blanco sobre degradado gris —hecho para el encabezado azul del panel—
+     y en papel blanco imprime como un recuadro gris ilegible. */
+  .cartel .marca img.golunch { height: 78px; object-fit: contain; }
   .cartel h1 {
     font-size: 2.1rem; color: var(--azul); letter-spacing: -.02em; margin-bottom: 6px;
   }
@@ -93,8 +95,8 @@
     border: 2px dashed var(--azul-line); border-radius: 10px;
     padding: 14px; text-align: center; page-break-inside: avoid;
   }
-  .tarjeta h2 { font-size: 1rem; color: var(--azul); margin-bottom: 3px; }
-  .tarjeta .sub { font-size: .72rem; color: var(--gris-text); margin-bottom: 10px; }
+  .tarjeta .logo { height: 30px; object-fit: contain; display: block; margin: 0 auto 3px; }
+  .tarjeta .sub { font-size: .72rem; color: var(--gris-text); margin-bottom: 9px; }
   .tarjeta .qr-caja { display: inline-block; padding: 7px; border: 2px solid var(--azul); border-radius: 8px; }
   .tarjeta .pie { font-size: .68rem; color: var(--gris-text); margin-top: 9px; line-height: 1.4; }
   .tarjeta .pie b { color: var(--azul); }
@@ -167,9 +169,7 @@
     <div class="hoja">
       <div class="cartel">
         <div class="marca">
-          <img src="glovis-white.png" alt="Hyundai Glovis" style="background:#003087;padding:6px 10px;border-radius:6px" onerror="this.style.display='none'">
-          <div class="sep"></div>
-          <img src="golunch-logo.png" alt="CICSA Go Lunch" onerror="this.style.display='none'">
+          <img class="golunch" src="golunch-logo-print.png" alt="CICSA Go Lunch" onerror="this.style.display='none'">
         </div>
         <h1>Pide tu comida de mañana</h1>
         <p class="lema">Escanea con la cámara de tu teléfono. No necesitas instalar nada.</p>
@@ -190,8 +190,8 @@
   function tarjetas(destino) {
     const una = `
       <div class="tarjeta">
-        <h2>🍽️ Pide tu comida</h2>
-        <p class="sub">Comedor CICSA · Glovis</p>
+        <img class="logo" src="golunch-logo-print.png" alt="CICSA Go Lunch" onerror="this.style.display='none'">
+        <p class="sub">Pide tu comida</p>
         ${hueco(132)}
         <p class="pie">Escanea, pon tu <b>número de empleado</b> y elige platillo.<br>Cierra a las <b>8:00 PM</b>.</p>
       </div>`;
