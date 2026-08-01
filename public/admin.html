@@ -824,11 +824,20 @@
     try {
       const r = await api('/api/pedidos/' + f);
       if (!r.count) return box.innerHTML = '<div class="vacio">Sin pedidos para esta fecha.</div>';
-      let h = `<table><tr><th>Empleado</th><th>No.</th><th>Platillo</th><th>Zona</th><th>Turno</th></tr>`;
+      const horaEntrega = iso => {
+        if (!iso) return '<span style="color:#aaa">—</span>';
+        const d = new Date(iso);
+        return isNaN(d) ? '<span style="color:#aaa">—</span>'
+          : '<span style="color:var(--verde);font-weight:700">✓ ' +
+            d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true }) + '</span>';
+      };
+      let h = `<table><tr><th>Empleado</th><th>No.</th><th>Platillo</th><th>Zona</th><th>Turno</th><th>Entregado</th></tr>`;
+      let entregados = 0;
       for (const p of r.pedidos) {
-        h += `<tr><td>${p.empleados?.nombre||'—'}</td><td>${p.empleados?.numero_empleado||'—'}</td><td>${p.opcion_texto}</td><td>${zonaTxt(p.zona)}</td><td>${turnoTxt(p.turno)}</td></tr>`;
+        if (p.entregado_en) entregados++;
+        h += `<tr><td>${p.empleados?.nombre||'—'}</td><td>${p.empleados?.numero_empleado||'—'}</td><td>${p.opcion_texto}</td><td>${zonaTxt(p.zona)}</td><td>${turnoTxt(p.turno)}</td><td>${horaEntrega(p.entregado_en)}</td></tr>`;
       }
-      h += `</table><p style="margin-top:10px;font-size:.85rem;color:var(--gris)">Total: ${r.count} pedidos</p>`;
+      h += `</table><p style="margin-top:10px;font-size:.85rem;color:var(--gris)">Total: ${r.count} pedidos · Entregados: ${entregados} · Sin recoger: ${r.count - entregados}</p>`;
       box.innerHTML = h;
     } catch(e) { box.innerHTML = `<div class="aviso err">Error: ${e.message}</div>`; }
   }
