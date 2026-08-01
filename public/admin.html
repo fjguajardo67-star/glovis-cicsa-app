@@ -643,6 +643,7 @@
       await api('/api/menu', { method:'POST', body: JSON.stringify(body) });
       aviso('menuAviso', 'Menú guardado para ' + body.fecha);
       cargarSemana();
+      reflejarEnTabla(body.fecha, body);   // que la tabla semanal no quede desfasada
     } catch(e) { aviso('menuAviso', 'Error: ' + e.message, false); }
   }
 
@@ -936,6 +937,31 @@
 
 
   // ── Programar menú semanal ──
+  // Refleja en la tabla semanal un menú recién guardado desde el formulario
+  // de arriba. Actualiza solo esa fila en lugar de regenerar la tabla, para
+  // no borrar lo que se haya escrito en los otros días sin guardar todavía.
+  function reflejarEnTabla(fecha, menu) {
+    const tr = document.querySelector('#tablaMenuBox tbody tr[data-fecha="' + fecha + '"]');
+    if (!tr) return;
+
+    tr.dataset.bloqueado = 'true';
+    tr.style.background = '#f0f7f0';
+    tr.querySelectorAll('.menu-cell').forEach(inp => {
+      inp.value = menu[inp.dataset.campo] || '';
+      inp.setAttribute('readonly', '');
+      inp.style.background = '#e8f5e9';
+      inp.style.cursor = 'default';
+    });
+
+    // Marca de "ya programado" con su botón de Editar, si aún no la tiene
+    const celdaFecha = tr.querySelector('td');
+    if (celdaFecha && !celdaFecha.querySelector('button')) {
+      celdaFecha.insertAdjacentHTML('beforeend',
+        ' <span style="color:var(--verde);font-size:.7rem">&#9679;</span>' +
+        ' <button onclick="desbloquearFila(this)" style="background:none;border:1px solid #003087;color:#003087;border-radius:4px;font-size:.65rem;padding:1px 5px;cursor:pointer;margin-left:2px">Editar</button>');
+    }
+  }
+
   function desbloquearFila(btn) {
     const tr = btn.closest('tr');
     tr.dataset.bloqueado = 'false';
