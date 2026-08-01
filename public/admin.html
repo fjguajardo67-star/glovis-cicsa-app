@@ -536,6 +536,37 @@
         </div>
         <div id="cocinaBox" style="margin-top:18px"></div>
       </div>
+
+      <!-- Impresos del día: la clave va incluida, no hay que armar URLs -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">🖨️</div>
+          <h3>Imprimir comanda y etiquetas</h3>
+        </div>
+        <div class="row-fin" style="align-items:flex-end;flex-wrap:wrap;gap:14px">
+          <div><label>Fecha de servicio</label><input type="date" id="im-fecha" style="max-width:180px"></div>
+          <div>
+            <label>Tamaño de etiqueta</label>
+            <select id="im-tamano" style="max-width:200px">
+              <option value="57x32" selected>57 × 32 mm (recomendado)</option>
+              <option value="62x29">62 × 29 mm</option>
+              <option value="50x25">50 × 25 mm</option>
+              <option value="62x40">62 × 40 mm</option>
+              <option value="100x50">100 × 50 mm</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+          <button class="accion" onclick="abrirImpreso('comanda')">🍳 Comanda de cocina</button>
+          <button class="accion" onclick="abrirImpreso('etiquetas')">🏷️ Etiquetas (rollo)</button>
+          <button class="accion sec" onclick="abrirImpreso('etiquetas-hoja')">Etiquetas en papel carta (prueba)</button>
+          <button class="accion sec" onclick="window.open('entrega.html','_blank')">🚚 App de entrega</button>
+        </div>
+        <p style="font-size:.76rem;color:var(--gris-text);margin-top:12px">
+          Cada botón abre la vista lista para imprimir, con la clave ya incluida.
+          La prueba en papel carta sirve para validar la medida contra el contenedor antes de comprar rollos.
+        </p>
+      </div>
     </section>
 
     <!-- REPORTES -->
@@ -594,6 +625,9 @@
       document.getElementById('app').style.display = 'block';
       const hoy = new Date().toISOString().slice(0,10);
       ['m-fecha','pe-fecha','co-fecha','r-fecha','r-ini','r-fin'].forEach(id => document.getElementById(id).value = hoy);
+      // Los impresos casi siempre son del día de servicio (mañana)
+      const man = new Date(); man.setDate(man.getDate() + 1);
+      document.getElementById('im-fecha').value = man.toISOString().slice(0,10);
       cargarEmpleados();
       cargarSemana();
     }).catch(() => {
@@ -631,6 +665,22 @@
     e.className = 'aviso ' + (ok ? 'ok' : 'err');
     e.textContent = msg;
     setTimeout(() => { e.className = 'aviso'; }, 4000);
+  }
+
+  // ── Impresos (comanda / etiquetas) con la clave ya incluida ──
+  function abrirImpreso(tipo) {
+    const fecha = document.getElementById('im-fecha').value;
+    if (!fecha) return;
+    const [ancho, alto] = document.getElementById('im-tamano').value.split('x');
+    let url;
+    if (tipo === 'comanda') {
+      url = API_BASE + '/comanda/' + fecha + '?key=' + encodeURIComponent(ADMIN_KEY);
+    } else {
+      url = API_BASE + '/etiquetas/' + fecha + '?key=' + encodeURIComponent(ADMIN_KEY)
+          + '&ancho=' + ancho + '&alto=' + alto
+          + (tipo === 'etiquetas-hoja' ? '&modo=hoja' : '');
+    }
+    window.open(url, '_blank');
   }
 
   // ── Avisador de menús: próximos 7 días ──
