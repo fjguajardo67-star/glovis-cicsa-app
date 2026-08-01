@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instalar la app de entrega</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --azul: #003087; --azul-light: #e8eef8; --azul-line: #c5d3ec;
+    --dorado: #c9922a; --gris-bg: #f4f6fb; --gris-line: #dde3ef;
+    --gris-text: #5a6480; --tinta: #0d1b3e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--gris-bg); color: var(--tinta); line-height: 1.5;
+  }
+  .barra {
+    background: var(--azul); color: #fff; padding: 12px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .barra b { flex: 1; }
+  .barra button {
+    padding: 9px 20px; background: var(--dorado); color: #fff; border: none;
+    border-radius: 8px; font-family: inherit; font-size: .9rem; font-weight: 700; cursor: pointer;
+  }
+  .hoja {
+    background: #fff; max-width: 700px; margin: 22px auto; padding: 36px 40px;
+    border: 1px solid var(--gris-line); border-radius: 12px;
+  }
+  h1 { color: var(--azul); font-size: 1.5rem; margin-bottom: 4px; }
+  .sub { color: var(--gris-text); font-size: .92rem; margin-bottom: 26px; }
+  .centro { text-align: center; margin: 22px 0; }
+  .qr-caja {
+    display: inline-block; padding: 14px; border: 3px solid var(--azul); border-radius: 14px;
+  }
+  .url {
+    font-family: ui-monospace, Menlo, monospace; font-size: .74rem;
+    color: var(--gris-text); word-break: break-all; text-align: center; margin: 10px 0 26px;
+  }
+  .paso { display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
+  .paso .n {
+    width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
+    background: var(--azul); color: #fff; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .paso .t b { display: block; color: var(--azul); margin-bottom: 2px; }
+  .paso .t { font-size: .93rem; }
+  .paso .t small { color: var(--gris-text); }
+  .nota {
+    background: var(--azul-light); border: 1px solid var(--azul-line);
+    border-radius: 10px; padding: 14px 16px; font-size: .87rem; margin-top: 24px;
+  }
+  .nota b { color: var(--azul); }
+  @media print {
+    .barra { display: none; }
+    body { background: #fff; }
+    .hoja { margin: 0; border: none; max-width: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <b>Hoja de instalación — teléfono del repartidor</b>
+  <button onclick="window.print()">Imprimir</button>
+</div>
+
+<div class="hoja">
+  <h1>🚚 App de entrega de comidas</h1>
+  <p class="sub">Comedor CICSA · Glovis — instalación en el teléfono del repartidor (una sola vez)</p>
+
+  <div class="centro"><div class="qr-caja" id="qr"></div></div>
+  <p class="url" id="url-texto"></p>
+
+  <div class="paso"><div class="n">1</div><div class="t">
+    <b>Escanea el código con la cámara del teléfono</b>
+    Se abre la página de entrega en el navegador.
+  </div></div>
+
+  <div class="paso"><div class="n">2</div><div class="t">
+    <b>Agrégala a la pantalla de inicio</b>
+    iPhone: botón Compartir → "Agregar a pantalla de inicio".<br>
+    Android: menú ⋮ → "Agregar a pantalla principal".<br>
+    <small>Queda un ícono como cualquier app; de ahí se abre siempre.</small>
+  </div></div>
+
+  <div class="paso"><div class="n">3</div><div class="t">
+    <b>Escribe la clave de reparto</b>
+    Te la da el administrador del comedor. Se guarda en el teléfono
+    y no la vuelve a pedir.
+  </div></div>
+
+  <div class="paso"><div class="n">4</div><div class="t">
+    <b>Listo — así se usa cada día</b>
+    Abre la app antes de salir (con señal) para que cargue la lista.
+    En el puerto, escanea el QR de cada etiqueta al entregar.
+    <small>Funciona sin señal: el contador "Por subir" baja a cero solo
+    cuando el teléfono recupera cobertura. No cierres la app si ese
+    número no está en cero.</small>
+  </div></div>
+
+  <div class="nota">
+    <b>Si el teléfono se pierde o cambia de dueño:</b> avisa al administrador
+    para cambiar la clave de reparto. Con eso el teléfono perdido queda fuera
+    y no hace falta tocar nada más.
+  </div>
+</div>
+
+<script>
+  var URL_APP = 'https://glovis-cicsa-app-production.up.railway.app/entrega.html';
+  // El QR se genera sobre el elemento ya insertado en la página:
+  // los píxeles de un canvas no viajan en el HTML.
+  new QRCode(document.getElementById('qr'), {
+    text: URL_APP, width: 240, height: 240,
+    colorDark: '#003087', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+  document.getElementById('url-texto').textContent = URL_APP;
+</script>
+</body>
+</html>
