@@ -54,10 +54,9 @@
     display: flex; align-items: center; justify-content: center; gap: 14px;
     padding-bottom: 14px; margin-bottom: 20px; border-bottom: 2px solid var(--azul);
   }
-  /* Solo Go Lunch encabeza la hoja. El PNG de Glovis quedó fuera a propósito:
-     es blanco sobre degradado gris —hecho para el encabezado azul del panel—
-     y en papel blanco imprime como un recuadro gris ilegible. */
-  .cartel .marca img.golunch { height: 78px; object-fit: contain; }
+  /* El logo lleva sus propios llamados ("Pide fácilmente desde tu celular"),
+     por eso el cartel ya no necesita encabezado propio. */
+  .cartel .marca img.golunch { width: 340px; max-width: 100%; object-fit: contain; }
   .cartel h1 {
     font-size: 2.1rem; color: var(--azul); letter-spacing: -.02em; margin-bottom: 6px;
   }
@@ -95,8 +94,9 @@
     border: 2px dashed var(--azul-line); border-radius: 10px;
     padding: 14px; text-align: center; page-break-inside: avoid;
   }
-  .tarjeta .logo { height: 30px; object-fit: contain; display: block; margin: 0 auto 3px; }
-  .tarjeta .sub { font-size: .72rem; color: var(--gris-text); margin-bottom: 9px; }
+  /* En la tarjeta va la versión compacta: los cuatro llamados del logo completo
+     serían ilegibles a este tamaño. */
+  .tarjeta .logo { width: 122px; max-width: 92%; object-fit: contain; display: block; margin: 0 auto 9px; }
   .tarjeta .qr-caja { display: inline-block; padding: 7px; border: 2px solid var(--azul); border-radius: 8px; }
   .tarjeta .pie { font-size: .68rem; color: var(--gris-text); margin-top: 9px; line-height: 1.4; }
   .tarjeta .pie b { color: var(--azul); }
@@ -169,9 +169,8 @@
     <div class="hoja">
       <div class="cartel">
         <div class="marca">
-          <img class="golunch" src="golunch-logo-print.png" alt="CICSA Go Lunch" onerror="this.style.display='none'">
+          <img class="golunch" src="golunch-print.png" alt="CICSA GoLunch" onerror="this.style.display='none'">
         </div>
-        <h1>Pide tu comida de mañana</h1>
         <p class="lema">Escanea con la cámara de tu teléfono. No necesitas instalar nada.</p>
         ${hueco(300)}
         <div class="pasos">
@@ -181,7 +180,7 @@
               <div class="t"><b>${t}</b>${d}</div>
             </div>`).join('')}
         </div>
-        <div class="corte">⏰ Los pedidos cierran todos los días a las 8:00 PM</div>
+        <div class="corte">⏰ Pide antes de las 8:00 PM · Tu comida es para el día siguiente</div>
         <p class="url">${destino}</p>
       </div>
     </div>`;
@@ -190,10 +189,9 @@
   function tarjetas(destino) {
     const una = `
       <div class="tarjeta">
-        <img class="logo" src="golunch-logo-print.png" alt="CICSA Go Lunch" onerror="this.style.display='none'">
-        <p class="sub">Pide tu comida</p>
+        <img class="logo" src="golunch-compacto.png" alt="CICSA GoLunch" onerror="this.style.display='none'">
         ${hueco(132)}
-        <p class="pie">Escanea, pon tu <b>número de empleado</b> y elige platillo.<br>Cierra a las <b>8:00 PM</b>.</p>
+        <p class="pie">Escanea, pon tu <b>número de empleado</b> y elige platillo.<br>Cierra a las <b>8:00 PM</b>, para el día siguiente.</p>
       </div>`;
     return `<div class="hoja"><div class="rejilla">${una.repeat(6)}</div></div>`;
   }
