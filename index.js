@@ -4,6 +4,7 @@ import express from 'express';
 import { webhookRouter } from './routes/webhook.js';
 import { adminRouter } from './routes/admin.js';
 import { pedidoRouter } from './routes/pedido.js';
+import { entregaRouter } from './routes/entrega.js';
 import { resumenCocina, htmlComanda, etiquetas, htmlEtiquetas, iniciarCronCocina } from './services/cocina.js';
 
 const app = express();
@@ -82,6 +83,10 @@ app.get('/test-supabase', soloAdmin, async (req, res) => {
 
 // Webhook de WhatsApp (Meta)
 app.use('/webhook', webhookRouter);
+
+// Entregas: acepta ENTREGA_KEY (clave del repartidor) o ADMIN_KEY.
+// Montada ANTES de /api para que su regla de clave gane a la del panel.
+app.use('/api/entrega', entregaRouter);
 
 // API del panel de administración (protegida con ADMIN_KEY)
 app.use('/api', adminRouter);

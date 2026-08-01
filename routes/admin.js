@@ -152,62 +152,6 @@ adminRouter.get('/resumen-cocina/:fecha', async (req, res) => {
   }
 });
 
-// ── Entrega (escaneo del QR de la etiqueta) ─────────────────────
-// La página de reparto descarga esto al salir y luego trabaja sin señal.
-adminRouter.get('/entrega/:fecha', async (req, res) => {
-  try {
-    const pedidos = await db.getPedidosPorFecha(req.params.fecha);
-    res.json({
-      fecha: req.params.fecha,
-      total: pedidos.length,
-      entregados: pedidos.filter(p => p.entregado_en).length,
-      pedidos: pedidos.map(p => ({
-        numero_empleado: p.empleados?.numero_empleado || null,
-        nombre:          p.empleados?.nombre || null,
-        platillo:        p.opcion_texto,
-        zona:            p.zona,
-        turno:           p.turno,
-        entregado_en:    p.entregado_en || null
-      }))
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Sincronización por lotes: el reparto ocurre sin señal, así que llegan
-// varias entregas juntas cuando el vehículo recupera cobertura. Cada una
-// se responde por separado para que la app sepa cuáles reintentar.
-adminRouter.post('/entrega', async (req, res) => {
-  try {
-    const { fecha, entregas } = req.body || {};
-    if (!fecha || !Array.isArray(entregas)) {
-      return res.status(400).json({ error: 'Se requieren fecha y entregas[]' });
-    }
-
-    const resultados = [];
-    for (const e of entregas) {
-      const numero = e?.numero_empleado;
-      if (!numero) { resultados.push({ numero_empleado: null, ok: false, motivo: 'sin_numero' }); continue; }
-      try {
-        const r = await db.marcarEntregado(fecha, numero, e.entregado_en || new Date().toISOString());
-        resultados.push({
-          numero_empleado: numero,
-          ok: r.ok,
-          motivo: r.motivo || null,
-          nombre: r.pedido?.empleados?.nombre || null
-        });
-      } catch (err) {
-        resultados.push({ numero_empleado: numero, ok: false, motivo: 'error_servidor', detalle: err.message });
-      }
-    }
-
-    res.json({ fecha, confirmadas: resultados.filter(r => r.ok).length, resultados });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ── Envío masivo del menú a todos los empleados activos ──────────
 
 adminRouter.post('/enviar-menu', async (req, res) => {
