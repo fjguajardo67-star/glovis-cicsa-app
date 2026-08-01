@@ -49,7 +49,25 @@ app.get('/test-supabase', async (req, res) => {
     const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
     const { data, error } = await sb.from('empleados').select('count');
     if (error) return res.json({ ok: false, error: error.message, code: error.code });
-    res.json({ ok: true, data });
+
+    // Qué ve el servidor en la tabla de menús: la causa más común de que la
+    // página del empleado muestre "sin menú publicado" es no tener ninguno
+    // con fecha futura.
+    const { DateTime } = await import('luxon');
+    const tz = process.env.TZ || 'America/Mexico_City';
+    const ahora = DateTime.now().setZone(tz);
+    const { data: menus, error: e2 } = await sb
+      .from('menus').select('fecha').order('fecha', { ascending: false }).limit(10);
+
+    res.json({
+      ok: true,
+      empleados: data,
+      hora_servidor: ahora.toFormat('yyyy-LL-dd HH:mm'),
+      tz_configurada: process.env.TZ || '(no definida, usando default)',
+      manana: ahora.plus({ days: 1 }).toISODate(),
+      menus_error: e2?.message || null,
+      menus_ultimos: (menus || []).map(m => m.fecha)
+    });
   } catch(e) {
     res.json({ ok: false, error: e.message });
   }
