@@ -32,18 +32,25 @@ app.use(express.static('public'));
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cicsa-comedor', ts: new Date().toISOString() });
 });
-// Diagnóstico temporal Supabase
-app.get('/debug', async (req, res) => {
+// Diagnóstico. Exige ADMIN_KEY: revela detalles de la infraestructura y
+// SUPABASE_KEY es la llave de service-role, que no debe asomarse en público
+// ni por fragmentos.
+function soloAdmin(req, res, next) {
+  if (!process.env.ADMIN_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+  next();
+}
+
+app.get('/debug', soloAdmin, async (req, res) => {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_KEY;
   res.json({
     url_set: !!url,
-    key_set: !!key,
-    url_preview: url ? url.slice(0,30) : 'vacía',
-    key_preview: key ? key.slice(0,20) : 'vacía'
+    key_set: !!process.env.SUPABASE_KEY,
+    url_preview: url ? url.slice(0, 30) : 'vacía'
   });
 });
-app.get('/test-supabase', async (req, res) => {
+app.get('/test-supabase', soloAdmin, async (req, res) => {
   try {
     const { createClient } = await import('@supabase/supabase-js');
     const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
