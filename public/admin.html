@@ -471,6 +471,29 @@
           <div><label>No. empleado</label><input id="e-num" placeholder="EMP001"></div>
           <div><label>Teléfono WhatsApp</label><input id="e-tel" placeholder="5215512345678"></div>
         </div>
+        <div class="grid3">
+          <div>
+            <label>Zona habitual <span style="font-weight:400;color:var(--gris-text)">(según RRHH)</span></label>
+            <select id="e-zona">
+              <option value="">— Sin asignar —</option>
+              <option value="zona_vdc">Glovis VDC</option>
+              <option value="zona_refris">Glovis REFRIS</option>
+            </select>
+          </div>
+          <div>
+            <label>Turno habitual <span style="font-weight:400;color:var(--gris-text)">(según RRHH)</span></label>
+            <select id="e-turno">
+              <option value="">— Sin asignar —</option>
+              <option value="turno_a">Turno A (10:00 am)</option>
+              <option value="turno_b">Turno B (5:00 pm)</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <p style="font-size:.74rem;color:var(--gris-text);line-height:1.45;margin-bottom:4px">
+              Con estos datos el empleado solo elige platillo. Puede cambiarlos al pedir si cubre otro turno, sin afectar su registro.
+            </p>
+          </div>
+        </div>
         <button class="accion verde" onclick="guardarEmpleado()">Guardar empleado</button>
         <div id="empAviso" class="aviso"></div>
       </div>
@@ -677,17 +700,30 @@
       const filas = data.filas || [];
       if (!filas.length) { box.innerHTML = '<p style="color:var(--gris-text)">No hay empleados activos.</p>'; return; }
 
-      let pidieron = 0, pendientes = 0, fallidos = 0;
+      // En modo web no hubo envíos por WhatsApp: el semáforo es binario
+      // (pidió / no ha pedido) en vez de marcar en rojo a medio mundo.
+      const modoWeb = data.modo === 'web';
+
+      let pidieron = 0, pendientes = 0, fallidos = 0, sinPedir = 0;
       filas.forEach(f => {
         if (f.estado === 'pidio') pidieron++;
         else if (f.estado === 'pendiente') pendientes++;
+        else if (f.estado === 'sin_pedir') sinPedir++;
         else fallidos++;
       });
 
-      let h = '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px">';
+      let h = '';
+      if (modoWeb) {
+        h += '<p style="font-size:.78rem;color:var(--gris-text);margin-bottom:12px">📱 Día operado por la página web (sin envíos de WhatsApp): los pedidos llegan cuando el empleado escanea el QR.</p>';
+      }
+      h += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px">';
       h += '<div style="flex:1;min-width:120px;background:#f0f7f0;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--verde)">' + pidieron + '</div><div style="font-size:.75rem;color:var(--gris-text)">Ya pidieron</div></div>';
-      h += '<div style="flex:1;min-width:120px;background:#fff9e6;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:#b8860b">' + pendientes + '</div><div style="font-size:.75rem;color:var(--gris-text)">Recibieron, sin pedir</div></div>';
-      h += '<div style="flex:1;min-width:120px;background:#fdecec;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--rojo)">' + fallidos + '</div><div style="font-size:.75rem;color:var(--gris-text)">No recibieron</div></div>';
+      if (modoWeb) {
+        h += '<div style="flex:1;min-width:120px;background:var(--gris-bg);border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--gris-text)">' + sinPedir + '</div><div style="font-size:.75rem;color:var(--gris-text)">Sin pedir aún</div></div>';
+      } else {
+        h += '<div style="flex:1;min-width:120px;background:#fff9e6;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:#b8860b">' + pendientes + '</div><div style="font-size:.75rem;color:var(--gris-text)">Recibieron, sin pedir</div></div>';
+        h += '<div style="flex:1;min-width:120px;background:#fdecec;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--rojo)">' + fallidos + '</div><div style="font-size:.75rem;color:var(--gris-text)">No recibieron</div></div>';
+      }
       h += '</div>';
 
       h += '<div style="overflow-x:auto"><table style="min-width:600px"><tr><th>Estado</th><th>Nombre</th><th>No.</th><th>Telefono</th><th>Opcion elegida</th><th>Zona</th><th>Turno</th></tr>';
@@ -695,6 +731,7 @@
         let icono, bg;
         if (f.estado === 'pidio') { icono = '✅'; bg = '#f0f7f0'; }
         else if (f.estado === 'pendiente') { icono = '\ud83d\udfe1'; bg = '#fff9e6'; }
+        else if (f.estado === 'sin_pedir') { icono = '\u2b1c'; bg = ''; }
         else { icono = '\ud83d\udd34'; bg = '#fdecec'; }
         h += '<tr style="background:' + bg + '">';
         h += '<td style="text-align:center;font-size:1.1rem">' + icono + '</td>';
@@ -729,13 +766,50 @@
   }
 
   // ── Empleados ──
+  let EMPLEADOS = {};   // telefono → registro completo, para reasignar sin recapturar
+
+  // Selector en línea de la asignación de RRHH dentro de la tabla
+  function selectAsignacion(telefono, campo, valor, etiquetas) {
+    const opts = ['<option value="">— Sin asignar —</option>']
+      .concat(Object.entries(etiquetas).map(([id, txt]) =>
+        `<option value="${id}"${valor === id ? ' selected' : ''}>${txt}</option>`))
+      .join('');
+    const alerta = valor ? '' : 'border-color:var(--dorado);background:#fdf5e6;';
+    return `<select style="font-size:.78rem;padding:5px 6px;min-width:130px;${alerta}"
+              onchange="asignar('${telefono}','${campo}',this.value)">${opts}</select>`;
+  }
+
+  async function asignar(telefono, campo, valor) {
+    const emp = EMPLEADOS[telefono];
+    if (!emp) return;
+    try {
+      await api('/api/empleados', { method: 'POST', body: JSON.stringify({
+        telefono:      emp.telefono,
+        nombre:        emp.nombre,
+        numero_empleado: emp.numero_empleado,
+        activo:        emp.activo,
+        zona_default:  campo === 'zona_default'  ? (valor || null) : (emp.zona_default  || null),
+        turno_default: campo === 'turno_default' ? (valor || null) : (emp.turno_default || null)
+      })});
+      aviso('empAviso', 'Asignación actualizada para ' + emp.nombre);
+      cargarEmpleados();
+    } catch (e) {
+      aviso('empAviso', 'Error: ' + e.message, false);
+      cargarEmpleados();
+    }
+  }
+
   async function guardarEmpleado() {
-    const body = { nombre: val('e-nombre'), numero_empleado: val('e-num'), telefono: val('e-tel') };
-    if (!body.nombre || !body.numero_empleado || !body.telefono) return aviso('empAviso','Completa los 3 campos', false);
+    const body = {
+      nombre: val('e-nombre'), numero_empleado: val('e-num'), telefono: val('e-tel'),
+      zona_default:  val('e-zona')  || null,
+      turno_default: val('e-turno') || null
+    };
+    if (!body.nombre || !body.numero_empleado || !body.telefono) return aviso('empAviso','Completa nombre, número y teléfono', false);
     try {
       await api('/api/empleados', { method:'POST', body: JSON.stringify(body) });
       aviso('empAviso', 'Empleado guardado');
-      ['e-nombre','e-num','e-tel'].forEach(id => document.getElementById(id).value='');
+      ['e-nombre','e-num','e-tel','e-zona','e-turno'].forEach(id => document.getElementById(id).value='');
       cargarEmpleados();
     } catch(e) { aviso('empAviso', 'Error: ' + e.message, false); }
   }
@@ -745,10 +819,22 @@
     try {
       const { empleados } = await api('/api/empleados');
       if (!empleados.length) return box.innerHTML = '<div class="vacio">Aún no hay empleados registrados.</div>';
-      let h = `<table><tr><th>Nombre</th><th>No.</th><th>Teléfono</th><th>Estado</th><th></th><th></th></tr>`;
+
+      // Guardar los registros para poder reenviarlos completos al reasignar
+      EMPLEADOS = {};
+      empleados.forEach(e => { EMPLEADOS[e.telefono] = e; });
+
+      const sinAsignar = empleados.filter(e => e.activo && (!e.zona_default || !e.turno_default)).length;
+      let h = '';
+      if (sinAsignar) {
+        h += `<p class="aviso info" style="display:block;margin-bottom:12px">⚠ ${sinAsignar} empleado(s) sin zona o turno asignado. La página les pedirá esos datos cada vez; asígnalos aquí para que solo elijan platillo.</p>`;
+      }
+      h += `<table><tr><th>Nombre</th><th>No.</th><th>Teléfono</th><th>Zona habitual</th><th>Turno habitual</th><th>Estado</th><th></th><th></th></tr>`;
       for (const e of empleados) {
         h += `<tr>
           <td>${e.nombre}</td><td>${e.numero_empleado}</td><td>${e.telefono}</td>
+          <td>${selectAsignacion(e.telefono, 'zona_default', e.zona_default, ZONA_TXT)}</td>
+          <td>${selectAsignacion(e.telefono, 'turno_default', e.turno_default, TURNO_TXT)}</td>
           <td><span class="badge ${e.activo?'on':'off'}">${e.activo?'Activo':'Inactivo'}</span></td>
           <td><button class="accion mini ${e.activo?'peligro':'sec'}" onclick="toggleEmp('${e.telefono}',${!e.activo})">${e.activo?'Desactivar':'Activar'}</button></td>
           <td><button class="accion mini" style="background:#fff;border:1px solid var(--rojo);color:var(--rojo)" onclick="eliminarEmp('${e.telefono}','${(e.nombre||'').replace(/'/g,'')}')">Eliminar</button></td>

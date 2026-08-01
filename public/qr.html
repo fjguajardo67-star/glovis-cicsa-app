@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Lunch — QR para imprimir</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --azul: #003087; --azul-mid: #1a4ba0; --azul-light: #e8eef8; --azul-line: #c5d3ec;
+    --dorado: #c9922a; --gris-bg: #f4f6fb; --gris-line: #dde3ef;
+    --gris-text: #5a6480; --tinta: #0d1b3e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--gris-bg); color: var(--tinta); line-height: 1.5;
+  }
+
+  /* ── Barra de control (no se imprime) ── */
+  .controles {
+    background: var(--azul); color: #fff; padding: 14px 22px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .controles b { font-size: .95rem; }
+  .controles label { font-size: .78rem; color: rgba(255,255,255,.7); display: block; margin-bottom: 3px; }
+  .controles select, .controles input {
+    padding: 7px 10px; border-radius: 7px; border: none;
+    font-family: inherit; font-size: .85rem; min-width: 190px;
+  }
+  .controles input { min-width: 340px; }
+  .btn-print {
+    margin-left: auto; padding: 10px 20px; background: var(--dorado);
+    color: #fff; border: none; border-radius: 8px; font-family: inherit;
+    font-size: .9rem; font-weight: 700; cursor: pointer;
+  }
+  .btn-print:hover { background: #b07f18; }
+  .nota-uso {
+    background: #fff; border-bottom: 1px solid var(--gris-line);
+    padding: 12px 22px; font-size: .82rem; color: var(--gris-text);
+  }
+  .nota-uso b { color: var(--tinta); }
+
+  /* ── Hoja ── */
+  .hoja {
+    background: #fff; margin: 22px auto; padding: 26px;
+    max-width: 820px; border: 1px solid var(--gris-line); border-radius: 10px;
+  }
+
+  /* Cartel grande: 1 por hoja, para pared */
+  .cartel { text-align: center; padding: 20px 26px 26px; }
+  .cartel .marca {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    padding-bottom: 16px; margin-bottom: 20px; border-bottom: 2px solid var(--azul);
+  }
+  .cartel .marca img { height: 42px; object-fit: contain; }
+  .cartel .marca .sep { width: 1px; height: 40px; background: var(--gris-line); }
+  .cartel h1 {
+    font-size: 2.1rem; color: var(--azul); letter-spacing: -.02em; margin-bottom: 6px;
+  }
+  .cartel .lema { font-size: 1.05rem; color: var(--gris-text); margin-bottom: 22px; }
+  .cartel .qr-caja {
+    display: inline-block; padding: 16px; background: #fff;
+    border: 3px solid var(--azul); border-radius: 14px; margin-bottom: 20px;
+  }
+  .cartel .qr-caja canvas, .cartel .qr-caja img { display: block; }
+  .cartel .pasos {
+    display: flex; justify-content: center; gap: 26px; flex-wrap: wrap;
+    margin-bottom: 20px; text-align: left;
+  }
+  .cartel .paso { display: flex; align-items: flex-start; gap: 10px; max-width: 210px; }
+  .cartel .paso .n {
+    width: 27px; height: 27px; flex-shrink: 0; border-radius: 50%;
+    background: var(--azul); color: #fff; font-weight: 700; font-size: .9rem;
+    display: grid; place-items: center;
+  }
+  .cartel .paso .t { font-size: .88rem; line-height: 1.4; }
+  .cartel .paso .t b { display: block; color: var(--azul); }
+  .cartel .corte {
+    background: var(--azul-light); border: 1.5px solid var(--azul-line);
+    border-radius: 10px; padding: 13px; font-size: 1rem; font-weight: 700;
+    color: var(--azul); margin-bottom: 14px;
+  }
+  .cartel .url {
+    font-family: ui-monospace, Menlo, monospace; font-size: .76rem;
+    color: var(--gris-text); word-break: break-all;
+  }
+
+  /* Tarjetas chicas: 6 por hoja, para mesas */
+  .rejilla { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .tarjeta {
+    border: 2px dashed var(--azul-line); border-radius: 10px;
+    padding: 14px; text-align: center; page-break-inside: avoid;
+  }
+  .tarjeta h2 { font-size: 1rem; color: var(--azul); margin-bottom: 3px; }
+  .tarjeta .sub { font-size: .72rem; color: var(--gris-text); margin-bottom: 10px; }
+  .tarjeta .qr-caja { display: inline-block; padding: 7px; border: 2px solid var(--azul); border-radius: 8px; }
+  .tarjeta .pie { font-size: .68rem; color: var(--gris-text); margin-top: 9px; line-height: 1.4; }
+  .tarjeta .pie b { color: var(--azul); }
+
+  @media print {
+    .controles, .nota-uso { display: none; }
+    body { background: #fff; }
+    .hoja { margin: 0; padding: 0; max-width: none; border: none; border-radius: 0; page-break-after: always; }
+    .hoja:last-child { page-break-after: auto; }
+  }
+  @page { margin: 14mm; }
+</style>
+</head>
+<body>
+
+<div class="controles">
+  <b>🖨️ QR para el comedor</b>
+  <div>
+    <label>Formato</label>
+    <select id="formato" onchange="pintar()">
+      <option value="cartel">Cartel grande (1 por hoja)</option>
+      <option value="tarjetas">Tarjetas para mesa (6 por hoja)</option>
+      <option value="ambos" selected>Ambos</option>
+    </select>
+  </div>
+  <div>
+    <label>Dirección a la que apunta el QR</label>
+    <input id="url" value="https://glovis-cicsa-app-production.up.railway.app/pedido.html" onchange="pintar()">
+  </div>
+  <button class="btn-print" onclick="window.print()">Imprimir</button>
+</div>
+
+<div class="nota-uso">
+  Pega el <b>cartel</b> donde la gente ya se detiene: entrada del comedor, checador, acceso a línea.
+  Las <b>tarjetas</b> van en mesas y áreas de descanso. Verifica el QR con tu propio teléfono antes de mandar a imprimir.
+</div>
+
+<div id="salida"></div>
+
+<script>
+  const PASOS = [
+    ['Escanea', 'Apunta la cámara de tu teléfono a este código'],
+    ['Identifícate', 'Escribe el número de empleado de tu gafete'],
+    ['Elige y listo', 'Selecciona tu platillo y envía tu pedido']
+  ];
+
+  // El QR se dibuja en un <canvas>, y los píxeles de un canvas NO viajan en el
+  // HTML: hay que generarlo sobre el elemento ya insertado en la página, no
+  // copiar su marcado. Aquí solo se deja el hueco; pintarQRs() lo llena.
+  function hueco(tamano) {
+    return `<div class="qr-caja" data-qr="${tamano}"></div>`;
+  }
+
+  function pintarQRs(destino) {
+    document.querySelectorAll('[data-qr]').forEach(caja => {
+      const tamano = Number(caja.dataset.qr);
+      new QRCode(caja, {
+        text: destino,
+        width: tamano,
+        height: tamano,
+        colorDark: '#003087',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M   // tolera algo de desgaste del papel
+      });
+    });
+  }
+
+  function cartel(destino) {
+    return `
+    <div class="hoja">
+      <div class="cartel">
+        <div class="marca">
+          <img src="glovis-white.png" alt="Hyundai Glovis" style="background:#003087;padding:6px 10px;border-radius:6px" onerror="this.style.display='none'">
+          <div class="sep"></div>
+          <img src="golunch-logo.png" alt="CICSA Go Lunch" onerror="this.style.display='none'">
+        </div>
+        <h1>Pide tu comida de mañana</h1>
+        <p class="lema">Escanea con la cámara de tu teléfono. No necesitas instalar nada.</p>
+        ${hueco(300)}
+        <div class="pasos">
+          ${PASOS.map(([t, d], i) => `
+            <div class="paso">
+              <div class="n">${i + 1}</div>
+              <div class="t"><b>${t}</b>${d}</div>
+            </div>`).join('')}
+        </div>
+        <div class="corte">⏰ Los pedidos cierran todos los días a las 8:00 PM</div>
+        <p class="url">${destino}</p>
+      </div>
+    </div>`;
+  }
+
+  function tarjetas(destino) {
+    const una = `
+      <div class="tarjeta">
+        <h2>🍽️ Pide tu comida</h2>
+        <p class="sub">Comedor CICSA · Glovis</p>
+        ${hueco(132)}
+        <p class="pie">Escanea, pon tu <b>número de empleado</b> y elige platillo.<br>Cierra a las <b>8:00 PM</b>.</p>
+      </div>`;
+    return `<div class="hoja"><div class="rejilla">${una.repeat(6)}</div></div>`;
+  }
+
+  function pintar() {
+    const destino = document.getElementById('url').value.trim();
+    const formato = document.getElementById('formato').value;
+    const salida = document.getElementById('salida');
+
+    if (!destino) { salida.innerHTML = '<div class="hoja">Escribe la dirección a la que debe apuntar el QR.</div>'; return; }
+
+    let html = '';
+    if (formato === 'cartel' || formato === 'ambos') html += cartel(destino);
+    if (formato === 'tarjetas' || formato === 'ambos') html += tarjetas(destino);
+    salida.innerHTML = html;
+
+    pintarQRs(destino);   // hasta ahora los huecos ya están en la página
+  }
+
+  pintar();
+</script>
+</body>
+</html>

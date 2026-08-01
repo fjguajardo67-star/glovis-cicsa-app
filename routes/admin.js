@@ -37,11 +37,13 @@ adminRouter.get('/empleados', async (req, res) => {
 
 adminRouter.post('/empleados', async (req, res) => {
   try {
-    const { telefono, nombre, numero_empleado, activo } = req.body;
+    const { telefono, nombre, numero_empleado, activo, zona_default, turno_default } = req.body;
     if (!telefono || !nombre || !numero_empleado) {
       return res.status(400).json({ error: 'Faltan campos: telefono, nombre, numero_empleado' });
     }
-    const emp = await db.upsertEmpleado({ telefono, nombre, numero_empleado, activo });
+    const emp = await db.upsertEmpleado({
+      telefono, nombre, numero_empleado, activo, zona_default, turno_default
+    });
     res.json({ ok: true, empleado: emp });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -225,6 +227,9 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
     const pedidoPorTel = {};
     pedidos.forEach(p => { pedidoPorTel[diezDigitos(p.empleado_telefono)] = p; });
 
+    // ¿Ese día se usó WhatsApp? Define si el semáforo tiene 3 estados o 2.
+    const huboEnvios = envios.length > 0;
+
     // Construir una fila por empleado activo
     const filas = empleados
       .filter(emp => emp.activo)
@@ -232,10 +237,12 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
         const clave = diezDigitos(emp.telefono);
         const envio = envioPorTel[clave];
         const pedido = pedidoPorTel[clave];
-        // Determinar semáforo:
-        // verde = ya pidió | rojo = fallido o nunca enviado | amarillo = enviado, sin pedir aún
+        // Semáforo. Si ese día no se mandó nada por WhatsApp (operación solo
+        // web), no tiene sentido marcar en rojo a quien "no recibió" el menú:
+        // nunca hubo envío que fallara. Ahí el estado es binario.
         let estado;
         if (pedido) estado = 'pidio';
+        else if (!huboEnvios) estado = 'sin_pedir';
         else if (!envio || envio.estado === 'fallido') estado = 'fallido';
         else estado = 'pendiente';
 
@@ -251,7 +258,7 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
         };
       });
 
-    res.json({ fecha, filas });
+    res.json({ fecha, modo: huboEnvios ? 'whatsapp' : 'web', filas });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
