@@ -497,6 +497,23 @@
         <button class="accion verde" onclick="guardarEmpleado()">Guardar empleado</button>
         <div id="empAviso" class="aviso"></div>
       </div>
+      <!-- Carga masiva desde el archivo que manda RRHH -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📥</div>
+          <h3>Cargar plantilla desde Excel</h3>
+          <button class="accion mini sec" style="margin-left:auto" onclick="descargarEjemplo()">Descargar formato de ejemplo</button>
+        </div>
+        <p style="font-size:.82rem;color:var(--gris-text);margin-bottom:14px">
+          Sube el archivo de RRHH (.xlsx o .csv). Reconoce las columnas por su encabezado, así que no importa el orden.
+          Se esperan <b>Nombre</b>, <b>No. empleado</b> y <b>Teléfono</b>; <b>Zona</b> y <b>Turno</b> son opcionales pero recomendadas.
+        </p>
+        <input type="file" id="imp-archivo" accept=".xlsx,.xls,.csv" onchange="leerArchivo(this)"
+               style="padding:10px;border:1.5px dashed var(--azul-line);border-radius:9px;width:100%;background:var(--gris-bg);cursor:pointer">
+        <div id="impAviso" class="aviso"></div>
+        <div id="impPrevia"></div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <div class="card-icon">👥</div>
@@ -763,6 +780,243 @@
       h += `</table><p style="margin-top:10px;font-size:.85rem;color:var(--gris)">Total: ${r.count} pedidos</p>`;
       box.innerHTML = h;
     } catch(e) { box.innerHTML = `<div class="aviso err">Error: ${e.message}</div>`; }
+  }
+
+  // ── Carga masiva de la plantilla ──
+  // El archivo de RRHH nunca viene con los encabezados exactos que espera el
+  // sistema, así que se reconocen por aproximación en vez de exigir un formato.
+  const COLUMNAS = {
+    nombre:          ['nombre completo','nombre del empleado','nombre','empleado','trabajador'],
+    numero_empleado: ['no. empleado','no empleado','numero de empleado','numero empleado','num empleado','no.','numero','num','clave','ficha','id'],
+    telefono:        ['telefono whatsapp','telefono','celular','whatsapp','movil','tel'],
+    zona:            ['zona habitual','zona','area','área','ubicacion','ubicación','planta','linea','línea'],
+    turno:           ['turno habitual','turno','horario']
+  };
+
+  let IMPORTACION = [];   // filas ya validadas, listas para enviar
+
+  // Sin acentos ni mayúsculas: "Teléfono", "TELEFONO" y "telefono" son lo mismo
+  const normalizar = s => String(s ?? '').trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  function detectarColumnas(encabezados) {
+    const mapa = {};
+    encabezados.forEach((enc, i) => {
+      const e = normalizar(enc);
+      if (!e) return;
+      for (const [campo, alias] of Object.entries(COLUMNAS)) {
+        if (mapa[campo] !== undefined) continue;
+        // Coincidencia exacta primero; si no, que el encabezado contenga el alias
+        if (alias.includes(e) || alias.some(a => e === a)) { mapa[campo] = i; return; }
+      }
+    });
+    // Segunda pasada más laxa para lo que quedó sin encontrar
+    encabezados.forEach((enc, i) => {
+      const e = normalizar(enc);
+      if (!e || Object.values(mapa).includes(i)) return;
+      for (const [campo, alias] of Object.entries(COLUMNAS)) {
+        if (mapa[campo] !== undefined) continue;
+        if (alias.some(a => e.includes(a))) { mapa[campo] = i; return; }
+      }
+    });
+    return mapa;
+  }
+
+  function interpretarZona(v) {
+    const s = normalizar(v);
+    if (!s) return null;
+    if (s.includes('vdc')) return 'zona_vdc';
+    if (s.includes('refri')) return 'zona_refris';
+    if (s === 'zona_vdc' || s === 'zona_refris') return s;
+    return undefined;   // había algo, pero no se entendió
+  }
+
+  function interpretarTurno(v) {
+    const s = normalizar(v);
+    if (!s) return null;
+    if (s === 'turno_a' || s === 'turno_b') return s;
+    if (/\b10\b|10:00|matutino|manana/.test(s)) return 'turno_a';
+    if (/\b17\b|17:00|\b5:00\b|vespertino|tarde/.test(s)) return 'turno_b';
+    if (/(^|[^a-z])a([^a-z]|$)/.test(s)) return 'turno_a';
+    if (/(^|[^a-z])b([^a-z]|$)/.test(s)) return 'turno_b';
+    return undefined;
+  }
+
+  const soloDigitos = t => String(t ?? '').replace(/\D/g, '');
+
+  function diezDig(tel) {
+    let d = soloDigitos(tel);
+    if (d.startsWith('52')) d = d.slice(2);
+    if (d.startsWith('1') && d.length === 11) d = d.slice(1);
+    if (d.length > 10) d = d.slice(-10);
+    return d;
+  }
+
+  function leerArchivo(input) {
+    const archivo = input.files && input.files[0];
+    document.getElementById('impPrevia').innerHTML = '';
+    IMPORTACION = [];
+    if (!archivo) return;
+
+    const lector = new FileReader();
+    lector.onload = ev => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: 'array' });
+        const hoja = wb.Sheets[wb.SheetNames[0]];
+        // raw:false devuelve el texto ya formateado: evita que un teléfono
+        // largo llegue en notación científica desde Excel.
+        const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, defval: '', raw: false, blankrows: false });
+        analizarFilas(filas);
+      } catch (e) {
+        aviso('impAviso', 'No se pudo leer el archivo: ' + e.message, false);
+      }
+    };
+    lector.readAsArrayBuffer(archivo);
+  }
+
+  function analizarFilas(filas) {
+    if (!filas.length) return aviso('impAviso', 'El archivo está vacío.', false);
+
+    // El encabezado no siempre es la primera fila (suele haber título o logo)
+    let iEnc = -1, mapa = {};
+    for (let i = 0; i < Math.min(filas.length, 10); i++) {
+      const m = detectarColumnas(filas[i]);
+      if (m.nombre !== undefined && m.numero_empleado !== undefined) { iEnc = i; mapa = m; break; }
+    }
+    if (iEnc === -1) {
+      return aviso('impAviso', 'No encontré las columnas de Nombre y No. empleado. Revisa los encabezados o usa el formato de ejemplo.', false);
+    }
+
+    const vistos = { num: new Set(), tel: new Set() };
+    const filasDatos = filas.slice(iEnc + 1).filter(f => f.some(c => String(c).trim() !== ''));
+
+    IMPORTACION = filasDatos.map((f, n) => {
+      const val = campo => mapa[campo] !== undefined ? String(f[mapa[campo]] ?? '').trim() : '';
+      const nombre = val('nombre');
+      const numero = val('numero_empleado');
+      const telCrudo = val('telefono');
+      const tel10 = diezDig(telCrudo);
+      const zona = interpretarZona(val('zona'));
+      const turno = interpretarTurno(val('turno'));
+
+      const problemas = [];
+      if (!nombre) problemas.push('sin nombre');
+      if (!numero) problemas.push('sin número de empleado');
+      if (!telCrudo) problemas.push('sin teléfono');
+      else if (tel10.length !== 10) problemas.push('teléfono de ' + tel10.length + ' dígitos');
+      if (numero && vistos.num.has(normalizar(numero))) problemas.push('número repetido en el archivo');
+      if (tel10.length === 10 && vistos.tel.has(tel10)) problemas.push('teléfono repetido en el archivo');
+      if (zona === undefined) problemas.push('zona no reconocida');
+      if (turno === undefined) problemas.push('turno no reconocido');
+
+      if (numero) vistos.num.add(normalizar(numero));
+      if (tel10.length === 10) vistos.tel.add(tel10);
+
+      return {
+        linea: iEnc + 2 + n,
+        nombre, numero_empleado: numero, telefono: telCrudo,
+        zona_default: zona || null, turno_default: turno || null,
+        problemas
+      };
+    });
+
+    pintarPrevia(mapa);
+  }
+
+  function pintarPrevia(mapa) {
+    const validas = IMPORTACION.filter(r => !r.problemas.length);
+    const conProblema = IMPORTACION.filter(r => r.problemas.length);
+    const sinAsignacion = validas.filter(r => !r.zona_default || !r.turno_default).length;
+
+    const detectadas = Object.keys(COLUMNAS)
+      .map(c => (mapa[c] !== undefined ? '✓' : '✗') + ' ' + c.replace('_', ' '))
+      .join(' &nbsp;·&nbsp; ');
+
+    let h = `<p style="font-size:.78rem;color:var(--gris-text);margin:14px 0 10px">Columnas detectadas: ${detectadas}</p>`;
+    h += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">';
+    h += `<div style="flex:1;min-width:110px;background:#f0f7f0;border-radius:8px;padding:11px;text-align:center"><div style="font-size:1.4rem;font-weight:800;color:var(--verde)">${validas.length}</div><div style="font-size:.72rem;color:var(--gris-text)">Listos para cargar</div></div>`;
+    h += `<div style="flex:1;min-width:110px;background:${conProblema.length ? '#fdecec' : 'var(--gris-bg)'};border-radius:8px;padding:11px;text-align:center"><div style="font-size:1.4rem;font-weight:800;color:${conProblema.length ? 'var(--rojo)' : 'var(--gris-text)'}">${conProblema.length}</div><div style="font-size:.72rem;color:var(--gris-text)">Con problemas</div></div>`;
+    h += `<div style="flex:1;min-width:110px;background:${sinAsignacion ? '#fdf5e6' : 'var(--gris-bg)'};border-radius:8px;padding:11px;text-align:center"><div style="font-size:1.4rem;font-weight:800;color:${sinAsignacion ? 'var(--dorado)' : 'var(--gris-text)'}">${sinAsignacion}</div><div style="font-size:.72rem;color:var(--gris-text)">Sin zona o turno</div></div>`;
+    h += '</div>';
+
+    if (conProblema.length) {
+      h += '<p class="aviso err" style="display:block;margin-bottom:12px">Las filas con problemas <b>no se van a cargar</b>. Corrígelas en el Excel y vuelve a subirlo.</p>';
+    }
+
+    const muestra = IMPORTACION.slice(0, 60);
+    h += '<div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table style="min-width:660px"><tr><th>Fila</th><th>Nombre</th><th>No.</th><th>Teléfono</th><th>Zona</th><th>Turno</th><th>Estado</th></tr>';
+    muestra.forEach(r => {
+      const malo = r.problemas.length > 0;
+      h += `<tr style="background:${malo ? '#fdecec' : ''}">
+        <td style="font-size:.75rem;color:var(--gris-text)">${r.linea}</td>
+        <td>${escaparHtml(r.nombre) || '<span style="color:#aaa">—</span>'}</td>
+        <td>${escaparHtml(r.numero_empleado) || '<span style="color:#aaa">—</span>'}</td>
+        <td style="font-size:.8rem">${escaparHtml(r.telefono) || '<span style="color:#aaa">—</span>'}</td>
+        <td style="font-size:.78rem">${zonaTxt(r.zona_default)}</td>
+        <td style="font-size:.78rem">${turnoTxt(r.turno_default)}</td>
+        <td style="font-size:.75rem;color:${malo ? 'var(--rojo)' : 'var(--verde)'}">${malo ? escaparHtml(r.problemas.join(', ')) : '✓ listo'}</td>
+      </tr>`;
+    });
+    h += '</table></div>';
+    if (IMPORTACION.length > muestra.length) {
+      h += `<p style="font-size:.75rem;color:var(--gris-text);margin-top:8px">Mostrando ${muestra.length} de ${IMPORTACION.length} filas.</p>`;
+    }
+
+    if (validas.length) {
+      h += `<button class="accion verde" style="margin-top:14px;width:100%" onclick="importarPlantilla()">Cargar ${validas.length} empleado(s) a la plantilla</button>`;
+    }
+    document.getElementById('impPrevia').innerHTML = h;
+  }
+
+  async function importarPlantilla() {
+    const validas = IMPORTACION.filter(r => !r.problemas.length);
+    if (!validas.length) return;
+
+    const btn = document.querySelector('#impPrevia button');
+    if (btn) { btn.disabled = true; btn.textContent = 'Cargando…'; }
+
+    let ok = 0;
+    const errores = [];
+    for (const r of validas) {
+      try {
+        await api('/api/empleados', { method: 'POST', body: JSON.stringify({
+          nombre: r.nombre, numero_empleado: r.numero_empleado, telefono: r.telefono,
+          zona_default: r.zona_default, turno_default: r.turno_default, activo: true
+        })});
+        ok++;
+        if (btn) btn.textContent = `Cargando… ${ok}/${validas.length}`;
+      } catch (e) {
+        errores.push('Fila ' + r.linea + ' (' + r.nombre + '): ' + e.message);
+      }
+    }
+
+    if (errores.length) {
+      aviso('impAviso', `${ok} cargados, ${errores.length} con error. ${errores.slice(0, 3).join(' | ')}`, false);
+    } else {
+      aviso('impAviso', `${ok} empleado(s) cargados correctamente.`);
+    }
+    document.getElementById('impPrevia').innerHTML = '';
+    document.getElementById('imp-archivo').value = '';
+    IMPORTACION = [];
+    cargarEmpleados();
+  }
+
+  // Formato de ejemplo para pedírselo a RRHH tal cual
+  function descargarEjemplo() {
+    const filas = [
+      ['Nombre completo', 'No. empleado', 'Telefono', 'Zona', 'Turno'],
+      ['Juan Pérez López',   'EMP001', '6361037574', 'Glovis VDC',    'Turno A'],
+      ['María García Ruiz',  'EMP002', '6361037575', 'Glovis REFRIS', 'Turno B'],
+      ['Pedro Sánchez Díaz', 'EMP003', '6361037576', 'Glovis VDC',    'Turno B']
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(filas), 'Plantilla');
+    XLSX.writeFile(wb, 'CICSA_Formato_Plantilla.xlsx');
+  }
+
+  function escaparHtml(s) {
+    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   // ── Empleados ──
