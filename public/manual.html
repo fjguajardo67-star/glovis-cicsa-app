@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual de operación — Go Lunch CICSA·Glovis</title>
+<style>
+  :root {
+    --azul: #003087; --azul-mid: #1a4ba0; --azul-light: #e8eef8; --azul-line: #c5d3ec;
+    --verde: #1e7a22; --verde-light: #e6f4e6;
+    --dorado: #b8860b; --dorado-light: #fdf5e6;
+    --rojo: #c0392b; --rojo-light: #fdecec;
+    --gris-bg: #f4f6fb; --gris-line: #dde3ef; --gris-text: #5a6480; --tinta: #0d1b3e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--gris-bg); color: var(--tinta); line-height: 1.6;
+  }
+
+  .barra {
+    background: var(--azul); color: #fff; padding: 12px 20px;
+    display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .barra b { flex: 1; font-size: .95rem; }
+  .barra button {
+    padding: 8px 18px; background: var(--dorado); color: #fff; border: none;
+    border-radius: 8px; font-family: inherit; font-size: .85rem; font-weight: 700; cursor: pointer;
+  }
+
+  .doc { max-width: 780px; margin: 0 auto; padding: 28px 22px 80px; }
+
+  h1 { color: var(--azul); font-size: 1.7rem; letter-spacing: -.01em; margin-bottom: 4px; }
+  .sub { color: var(--gris-text); margin-bottom: 24px; font-size: .95rem; }
+
+  /* Índice */
+  .indice {
+    background: #fff; border: 1px solid var(--gris-line); border-radius: 12px;
+    padding: 18px 22px; margin-bottom: 30px;
+  }
+  .indice b { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--gris-text); }
+  .indice ol { margin: 8px 0 0 20px; }
+  .indice a { color: var(--azul); text-decoration: none; font-weight: 600; font-size: .93rem; }
+  .indice a:hover { text-decoration: underline; }
+
+  section { margin-bottom: 38px; scroll-margin-top: 70px; }
+  h2 {
+    color: var(--azul); font-size: 1.25rem; padding-bottom: 8px; margin-bottom: 16px;
+    border-bottom: 2px solid var(--azul);
+  }
+  h3 { font-size: 1rem; color: var(--tinta); margin: 20px 0 8px; }
+  p { margin-bottom: 12px; font-size: .94rem; }
+  ul, ol { margin: 0 0 14px 22px; font-size: .94rem; }
+  li { margin-bottom: 6px; }
+  b { color: var(--tinta); }
+
+  .rol {
+    display: inline-block; font-size: .68rem; font-weight: 800; letter-spacing: .06em;
+    text-transform: uppercase; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px;
+  }
+  .rol.emp { background: var(--verde-light); color: var(--verde); }
+  .rol.adm { background: var(--azul-light); color: var(--azul); }
+  .rol.rep { background: var(--dorado-light); color: var(--dorado); }
+
+  .caja {
+    border-radius: 10px; padding: 13px 16px; margin: 14px 0; font-size: .9rem;
+    border-left: 5px solid;
+  }
+  .caja.importante { background: var(--dorado-light); border-color: var(--dorado); }
+  .caja.peligro    { background: var(--rojo-light);   border-color: var(--rojo); }
+  .caja.tip        { background: var(--azul-light);   border-color: var(--azul); }
+
+  table {
+    width: 100%; border-collapse: collapse; background: #fff; font-size: .88rem;
+    border: 1px solid var(--gris-line); border-radius: 10px; overflow: hidden; margin: 14px 0;
+  }
+  th {
+    text-align: left; background: var(--azul-light); color: var(--azul);
+    padding: 10px 12px; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em;
+  }
+  td { padding: 10px 12px; border-top: 1px solid var(--gris-line); vertical-align: top; }
+  code {
+    font-family: ui-monospace, Menlo, monospace; font-size: .82em;
+    background: var(--azul-light); color: var(--azul); padding: 1px 6px; border-radius: 5px;
+    word-break: break-all;
+  }
+
+  .paso { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-start; }
+  .paso .n {
+    width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; margin-top: 1px;
+    background: var(--azul); color: #fff; font-weight: 700; font-size: .82rem;
+    display: grid; place-items: center;
+  }
+  .paso .t { font-size: .93rem; }
+  .paso .t b { display: block; }
+
+  .sem { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  @media print {
+    .barra { display: none; }
+    body { background: #fff; }
+    .doc { max-width: none; padding: 0; }
+    section { page-break-inside: avoid; }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="barra">
+  <b>Manual de operación · Go Lunch</b>
+  <button onclick="window.print()">Imprimir</button>
+</div>
+
+<div class="doc">
+  <h1>🍽️ Go Lunch — Manual de operación</h1>
+  <p class="sub">Sistema de pedidos del comedor CICSA · Glovis — Lázaro Cárdenas, Mich.</p>
+
+  <div class="indice">
+    <b>Contenido</b>
+    <ol>
+      <li><a href="#general">Cómo funciona el sistema</a></li>
+      <li><a href="#empleado">Para el empleado — pedir comida</a></li>
+      <li><a href="#admin">Para el administrador — el panel</a></li>
+      <li><a href="#reparto">Para el personal de reparto — entregar y escanear</a></li>
+      <li><a href="#problemas">Problemas comunes y su solución</a></li>
+      <li><a href="#direcciones">Direcciones y claves</a></li>
+    </ol>
+  </div>
+
+  <!-- ══════════════ 1. GENERAL ══════════════ -->
+  <section id="general">
+    <h2>1 · Cómo funciona el sistema</h2>
+    <p>El ciclo diario completo es este:</p>
+    <div class="paso"><div class="n">1</div><div class="t"><b>El administrador publica el menú</b> del siguiente día de servicio (idealmente, toda la semana por adelantado).</div></div>
+    <div class="paso"><div class="n">2</div><div class="t"><b>Los empleados piden</b> escaneando el QR del comedor con su teléfono, hasta las <b>8:00 PM</b>.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Después de las 8:00 PM</b> los pedidos quedan cerrados. La cocina imprime su <b>comanda</b> (cuánto preparar de cada platillo, por turno) y las <b>etiquetas</b> (una por comida).</div></div>
+    <div class="paso"><div class="n">4</div><div class="t"><b>Al día siguiente</b>, cocina prepara y etiqueta cada contenedor. El repartidor entrega en los puertos y <b>escanea el QR de cada etiqueta</b> al entregarla.</div></div>
+    <div class="paso"><div class="n">5</div><div class="t"><b>El panel registra todo</b>: quién pidió, quién no, qué se entregó y qué no se recogió.</div></div>
+
+    <div class="caja importante">
+      <b>La regla más importante de todo el sistema:</b> un día sin menú publicado es un día
+      SIN SERVICIO — nadie puede pedir para ese día. Publicar el menú a tiempo es lo único
+      que no puede fallar. El panel avisa con la tira de "Próximos 7 días".
+    </div>
+  </section>
+
+  <!-- ══════════════ 2. EMPLEADO ══════════════ -->
+  <section id="empleado">
+    <h2>2 · Para el empleado — pedir comida</h2>
+    <span class="rol emp">Empleados de planta</span>
+
+    <h3>Pedir (menos de un minuto)</h3>
+    <div class="paso"><div class="n">1</div><div class="t"><b>Escanea el QR</b> pegado en el comedor con la cámara de tu teléfono. No necesitas instalar nada ni crear cuenta.</div></div>
+    <div class="paso"><div class="n">2</div><div class="t"><b>Escribe tu número de empleado</b> — el mismo de tu gafete. Sin contraseña.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Elige tu platillo</b> y presiona <b>Enviar pedido</b>. Tu zona y turno ya vienen de tu registro; no tienes que capturarlos.</div></div>
+
+    <h3>Cosas que debes saber</h3>
+    <ul>
+      <li>La pantalla siempre dice <b>para qué día</b> es tu pedido (por ejemplo "lunes 3 de agosto"). Si mañana no hay servicio, el pedido salta solo al siguiente día que sí abre.</li>
+      <li><b>Puedes cambiar tu pedido</b> las veces que quieras hasta las 8:00 PM: vuelve a abrir la página y elige otro platillo.</li>
+      <li>Si ese día cubres <b>otro turno u otra zona</b>, toca <b>"Cambiar"</b> junto a tu entrega. Solo aplica a ese pedido; tu registro no se modifica.</li>
+      <li>Después de las <b>8:00 PM</b> ya no hay cambios: la cocina ya recibió su comanda.</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════ 3. ADMINISTRADOR ══════════════ -->
+  <section id="admin">
+    <h2>3 · Para el administrador — el panel</h2>
+    <span class="rol adm">Administración del comedor</span>
+
+    <p>Entra al panel con tu <b>clave de administrador</b> (el campo Usuario puede quedar vacío).
+    El panel tiene seis pestañas; esto es lo que se hace en cada una:</p>
+
+    <h3>📋 Menú — la tarea diaria más importante</h3>
+    <ul>
+      <li>La tira de <b>"Próximos 7 días"</b> es tu tablero: azul con ✓ = día con menú; rojo <b>"Falta"</b> = día laboral sin menú (nadie podrá pedir); gris = fin de semana. <b>Clic en un día rojo</b> precarga su fecha en el formulario.</li>
+      <li><b>Publicar menú del día:</b> fecha + las 6 opciones (3 fijas, 3 variables) → Guardar.</li>
+      <li><b>Programar menú semanal:</b> genera la tabla de la semana y captura varios días de una vez. Lo recomendable es publicar <b>toda la semana el viernes anterior</b> — así un olvido diario no deja a nadie sin comer.</li>
+      <li>Si aparece la alerta de que <b>mañana no tiene menú</b>, resuélvelo antes de las 8:00 PM de hoy.</li>
+    </ul>
+
+    <h3>👤 Empleados — la plantilla</h3>
+    <ul>
+      <li><b>Cargar plantilla desde Excel:</b> sube el archivo de RRHH tal como llega (.xlsx o .csv). El sistema reconoce las columnas aunque vengan en otro orden, muestra una <b>previa</b> con lo que va a cargar y lo que tiene problemas, y solo carga lo válido. Hay un botón para descargar el formato de ejemplo y pedírselo a RRHH.</li>
+      <li><b>Alta individual:</b> nombre, número de empleado, teléfono, y su <b>zona y turno habituales</b>.</li>
+      <li>En la tabla de plantilla puedes <b>corregir zona y turno</b> con los selectores de cada renglón. Un aviso te dice cuántos siguen sin asignación — a esos la página les preguntará zona y turno cada vez que pidan.</li>
+      <li><b>Desactivar</b> (baja temporal, conserva historial) vs <b>Eliminar</b> (borra el registro y sus pedidos). Ante la duda, desactiva.</li>
+    </ul>
+
+    <h3>📊 Dashboard — quién ha pedido</h3>
+    <p>Elige la fecha y verás una fila por empleado activo:</p>
+    <ul>
+      <li><span class="sem" style="background:#1e7a22"></span><b>Ya pidió</b> — con su platillo, zona y turno.</li>
+      <li><span class="sem" style="background:#8a96a8"></span><b>Sin pedir aún</b> — todavía no entra a la página (operación por QR).</li>
+      <li>Cuando el canal de WhatsApp esté activo, aparecen además <b>"recibió sin pedir"</b> (amarillo) y <b>"no recibió"</b> (rojo, envío fallido).</li>
+    </ul>
+
+    <h3>🍽️ Pedidos</h3>
+    <p>La lista completa de una fecha: quién, qué platillo, zona y turno. Útil para dudas puntuales ("¿sí quedó mi pedido?").</p>
+
+    <h3>🍳 Cocina — producción e impresos</h3>
+    <ul>
+      <li><b>Resumen de producción:</b> cuántas porciones de cada platillo, desglosado por turno y zona.</li>
+      <li><b>Imprimir comanda y etiquetas:</b> eliges fecha y tamaño de etiqueta, y cada botón abre la vista lista para imprimir <b>con la clave ya incluida</b>:
+        <ul>
+          <li><b>Comanda de cocina</b> — para la cocina, separada por turnos con subtotales.</li>
+          <li><b>Etiquetas (rollo)</b> — una por comida, con QR, para la impresora de etiquetas.</li>
+          <li><b>Etiquetas en papel carta</b> — la prueba para validar la medida recortando, antes de gastar rollo.</li>
+          <li><b>App de entrega</b> — abre la app del repartidor.</li>
+        </ul>
+      </li>
+    </ul>
+    <div class="caja tip">
+      <b>Rutina sugerida de cada noche (después de las 8:00 PM):</b> abrir Cocina →
+      imprimir la comanda para la cocina → imprimir las etiquetas del día siguiente.
+      Dos clics y quedó.
+    </div>
+
+    <h3>📈 Reportes</h3>
+    <ul>
+      <li><b>Excel de cocina y etiquetas</b> de una fecha.</li>
+      <li><b>Reporte de facturación</b> por rango de fechas, con costo unitario y detalle de auditoría — para el cobro al cliente corporativo.</li>
+    </ul>
+
+    <h3>Cuando Meta apruebe el negocio (WhatsApp)</h3>
+    <p>Se cambian dos variables en Railway (token permanente y número real) y el botón
+    <b>"Enviar a todos los empleados"</b> de la pestaña Menú manda el menú por WhatsApp a la
+    plantilla activa. La página del QR sigue funcionando como canal alterno: ambos escriben
+    los mismos pedidos.</p>
+  </section>
+
+  <!-- ══════════════ 4. REPARTO ══════════════ -->
+  <section id="reparto">
+    <h2>4 · Para el personal de reparto — entregar y escanear</h2>
+    <span class="rol rep">Repartidor</span>
+
+    <h3>Instalación (una sola vez por teléfono)</h3>
+    <div class="paso"><div class="n">1</div><div class="t"><b>Escanea el QR de la hoja de instalación</b> que te da el administrador (o abre la dirección de la app de entrega).</div></div>
+    <div class="paso"><div class="n">2</div><div class="t"><b>Agrégala a la pantalla de inicio:</b> iPhone: Compartir → "Agregar a pantalla de inicio" · Android: menú ⋮ → "Agregar a pantalla principal". Queda como una app normal.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Escribe la clave de reparto</b> (te la da el administrador). Se guarda en el teléfono y no la vuelve a pedir.</div></div>
+
+    <h3>El día de reparto</h3>
+    <div class="paso"><div class="n">1</div><div class="t"><b>Antes de salir, abre la app</b> (con señal). La lista del día se descarga y queda guardada en el teléfono. Arriba se ven los contadores: <b>Entregadas · Faltan · Por subir</b>.</div></div>
+    <div class="paso"><div class="n">2</div><div class="t"><b>Al entregar cada comida</b>, toca <b>"Escanear con la cámara"</b> y apunta al QR de la etiqueta. Aviso <b>verde grande</b> con el nombre = entrega registrada. El teléfono vibra al leer.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Si un QR no se deja leer</b> (etiqueta manchada o rota): escribe el número de empleado en el campo de captura y toca OK, o búscalo en la lista de Pendientes y toca <b>"Entregar"</b>.</div></div>
+    <div class="paso"><div class="n">4</div><div class="t"><b>Al terminar, revisa que "Por subir" esté en 0</b> antes de cerrar la app. Si no está en cero, espera a tener señal — baja solo.</div></div>
+
+    <h3>Qué significa cada aviso</h3>
+    <table>
+      <tr><th>Aviso</th><th>Qué significa</th><th>Qué hacer</th></tr>
+      <tr><td><b style="color:#1e7a22">Verde</b> con nombre</td><td>Entrega registrada</td><td>Nada — sigue con la siguiente</td></tr>
+      <tr><td><b style="color:#b8860b">"Ya estaba entregada"</b></td><td>Esa etiqueta ya se escaneó antes</td><td>Verifica que no estés entregando doble</td></tr>
+      <tr><td><b style="color:#c0392b">"No está en la lista"</b></td><td>Ese número no tiene pedido hoy</td><td>Revisa el número; si insiste, avisa al administrador</td></tr>
+      <tr><td><b style="color:#c0392b">"Etiqueta de otro día"</b></td><td>La etiqueta es de una fecha distinta</td><td>NO la entregues — es comida de otro día</td></tr>
+    </table>
+
+    <h3>La señal — no te preocupes por ella</h3>
+    <div class="caja tip">
+      La app <b>funciona sin señal</b>: en los puertos puedes escanear todo el reparto aunque
+      diga <b>SIN SEÑAL</b>. Cada escaneo queda guardado en el teléfono (contador "Por subir")
+      y se envía solo cuando regresa la cobertura. Las dos únicas reglas:
+      <b>abrir la app con señal antes de salir</b> (para que baje la lista) y
+      <b>no cerrar la app si "Por subir" no está en 0</b>.
+    </div>
+
+    <div class="caja peligro">
+      <b>Si el teléfono se pierde o cambia de dueño:</b> avisa de inmediato al administrador
+      para que cambie la clave de reparto. El teléfono perdido queda fuera del sistema.
+    </div>
+  </section>
+
+  <!-- ══════════════ 5. PROBLEMAS ══════════════ -->
+  <section id="problemas">
+    <h2>5 · Problemas comunes y su solución</h2>
+    <table>
+      <tr><th>Síntoma</th><th>Causa más probable</th><th>Solución</th></tr>
+      <tr>
+        <td>La página del empleado dice <b>"Aún no hay menú publicado"</b></td>
+        <td>No hay menú para ninguna fecha futura</td>
+        <td>Panel → Menú → publicar el menú del siguiente día de servicio (revisa que la fecha NO sea la de hoy)</td>
+      </tr>
+      <tr>
+        <td>Dice <b>"Los pedidos ya cerraron"</b></td>
+        <td>Son más de las 8:00 PM</td>
+        <td>Es normal: se puede pedir de nuevo al día siguiente</td>
+      </tr>
+      <tr>
+        <td>Un empleado dice <b>"No encontramos ese número"</b></td>
+        <td>No está en la plantilla, está inactivo, o teclea otro número</td>
+        <td>Panel → Empleados: verificar que exista, esté Activo y el número coincida con su gafete</td>
+      </tr>
+      <tr>
+        <td>Al empleado le pregunta <b>zona y turno</b> cada vez</td>
+        <td>Su registro no tiene asignación de RRHH</td>
+        <td>Panel → Empleados → seleccionar su zona y turno habituales en su renglón</td>
+      </tr>
+      <tr>
+        <td>La tabla del <b>menú semanal se ve vacía</b> aunque ya guardaste</td>
+        <td>La tabla se generó antes de guardar</td>
+        <td>Botón "Generar tabla" de nuevo — los días con menú salen en verde</td>
+      </tr>
+      <tr>
+        <td>El repartidor ve la app <b>vacía o con la lista de ayer</b></td>
+        <td>Abrió la app sin señal antes de que bajara la lista del día</td>
+        <td>Con señal, cerrar y volver a abrir la app; la lista se actualiza sola</td>
+      </tr>
+      <tr>
+        <td><b>"Por subir" no baja a 0</b></td>
+        <td>El teléfono sigue sin cobertura</td>
+        <td>Esperar a zona con señal; sube solo. NO borrar datos del navegador: ahí viven los escaneos pendientes</td>
+      </tr>
+      <tr>
+        <td>La comanda o las etiquetas dicen <b>"No autorizado"</b></td>
+        <td>Se abrió el enlace sin clave o con clave equivocada</td>
+        <td>Abrirlas siempre desde el panel → Cocina (los botones llevan la clave incluida)</td>
+      </tr>
+      <tr>
+        <td>El <b>bot de WhatsApp no contesta</b></td>
+        <td>Token temporal de Meta vencido (mientras el negocio no esté verificado)</td>
+        <td>Renovar el token en Meta y actualizarlo en Railway — o usar la página del QR, que no depende de Meta</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- ══════════════ 6. DIRECCIONES ══════════════ -->
+  <section id="direcciones">
+    <h2>6 · Direcciones y claves</h2>
+    <table>
+      <tr><th>Qué</th><th>Dirección</th><th>Quién la usa</th></tr>
+      <tr><td>Página para pedir</td><td><code>glovis-cicsa-app-production.up.railway.app/pedido.html</code></td><td>Empleados (vía QR del comedor)</td></tr>
+      <tr><td>Panel de administración</td><td><code>glovis.cicsacomedores.com.mx/public/admin.html</code></td><td>Administración</td></tr>
+      <tr><td>App de entrega</td><td><code>glovis-cicsa-app-production.up.railway.app/entrega.html</code></td><td>Repartidor</td></tr>
+      <tr><td>Hoja de instalación del repartidor</td><td><code>…/instalar-entrega.html</code></td><td>Administración (imprimir)</td></tr>
+      <tr><td>QR para imprimir (comedor)</td><td><code>…/qr.html</code></td><td>Administración (imprimir)</td></tr>
+      <tr><td>Este manual</td><td><code>…/manual.html</code></td><td>Todos</td></tr>
+    </table>
+
+    <h3>Las dos claves</h3>
+    <table>
+      <tr><th>Clave</th><th>Abre</th><th>Quién la tiene</th></tr>
+      <tr><td><b>Clave de administrador</b></td><td>Panel completo, comanda, etiquetas y también la app de entrega</td><td>Solo administración. No se comparte ni se manda por mensaje.</td></tr>
+      <tr><td><b>Clave de reparto</b></td><td>Únicamente la app de entrega</td><td>Repartidor. Si su teléfono se pierde, se cambia esta clave y listo.</td></tr>
+    </table>
+  </section>
+
+</div>
+</body>
+</html>
