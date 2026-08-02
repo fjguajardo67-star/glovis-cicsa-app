@@ -608,6 +608,20 @@
 
     <!-- REPORTES -->
     <section id="p-reportes" class="panel">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📈</div>
+          <h3>Reportes del periodo</h3>
+        </div>
+        <div class="row-fin">
+          <div><label>Desde</label><input type="date" id="rep-ini"></div>
+          <div><label>Hasta</label><input type="date" id="rep-fin"></div>
+          <button class="accion" onclick="verReportes()">Ver reportes</button>
+        </div>
+        <div id="reportesBox" style="margin-top:18px"></div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <div class="card-icon">📊</div>
@@ -801,57 +815,169 @@
     box.innerHTML = '<p style="color:var(--gris-text)">Cargando...</p>';
     try {
       const data = await api('/api/dashboard/' + fecha);
-      const filas = data.filas || [];
-      if (!filas.length) { box.innerHTML = '<p style="color:var(--gris-text)">No hay empleados activos.</p>'; return; }
+      const r = data.resumen, filas = data.filas || [];
+      if (!filas.length) { box.innerHTML = '<div class="vacio">No hay empleados activos.</div>'; return; }
 
-      // En modo web no hubo envíos por WhatsApp: el semáforo es binario
-      // (pidió / no ha pedido) en vez de marcar en rojo a medio mundo.
-      const modoWeb = data.modo === 'web';
+      const tarjeta = (n, etiqueta, color, fondo) =>
+        '<div style="flex:1;min-width:118px;background:' + fondo + ';border-radius:9px;padding:12px;text-align:center">' +
+        '<div style="font-size:1.6rem;font-weight:800;color:' + color + '">' + n + '</div>' +
+        '<div style="font-size:.72rem;color:var(--gris-text);font-weight:600">' + etiqueta + '</div></div>';
 
-      let pidieron = 0, pendientes = 0, fallidos = 0, sinPedir = 0;
-      filas.forEach(f => {
-        if (f.estado === 'pidio') pidieron++;
-        else if (f.estado === 'pendiente') pendientes++;
-        else if (f.estado === 'sin_pedir') sinPedir++;
-        else fallidos++;
-      });
-
-      let h = '';
-      if (modoWeb) {
-        h += '<p style="font-size:.78rem;color:var(--gris-text);margin-bottom:12px">📱 Día operado por la página web (sin envíos de WhatsApp): los pedidos llegan cuando el empleado escanea el QR.</p>';
-      }
-      h += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px">';
-      h += '<div style="flex:1;min-width:120px;background:#f0f7f0;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--verde)">' + pidieron + '</div><div style="font-size:.75rem;color:var(--gris-text)">Ya pidieron</div></div>';
-      if (modoWeb) {
-        h += '<div style="flex:1;min-width:120px;background:var(--gris-bg);border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--gris-text)">' + sinPedir + '</div><div style="font-size:.75rem;color:var(--gris-text)">Sin pedir aún</div></div>';
-      } else {
-        h += '<div style="flex:1;min-width:120px;background:#fff9e6;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:#b8860b">' + pendientes + '</div><div style="font-size:.75rem;color:var(--gris-text)">Recibieron, sin pedir</div></div>';
-        h += '<div style="flex:1;min-width:120px;background:#fdecec;border-radius:8px;padding:12px;text-align:center"><div style="font-size:1.5rem;font-weight:800;color:var(--rojo)">' + fallidos + '</div><div style="font-size:.75rem;color:var(--gris-text)">No recibieron</div></div>';
-      }
+      let h = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">';
+      h += tarjeta(r.activos,      'Empleados activos',   'var(--azul)',      'var(--azul-light)');
+      h += tarjeta(r.ordenaron,    'Ordenaron',           'var(--verde)',     '#f0f7f0');
+      h += tarjeta(r.no_ordenaron, 'No ordenaron',        'var(--gris-text)', 'var(--gris-bg)');
+      h += tarjeta(r.entregados,   'Entregados',          'var(--verde)',     '#f0f7f0');
+      h += tarjeta(r.pendientes,   'Pendientes de entrega','#b8860b',         '#fff9e6');
+      h += tarjeta(r.tardias,      'Entregas tardías',    'var(--rojo)',      '#fdecec');
       h += '</div>';
 
-      h += '<div style="overflow-x:auto"><table style="min-width:600px"><tr><th>Estado</th><th>Nombre</th><th>No.</th><th>Telefono</th><th>Opcion elegida</th><th>Zona</th><th>Turno</th></tr>';
+      const ESTADO = {
+        entregado: ['✅ Entregado',  '#f0f7f0'],
+        tardia:    ['⏱️ Tardía',     '#fff9e6'],
+        pendiente: ['⬜ Pendiente',  ''],
+        no_ordeno: ['— No ordenó',   'var(--gris-bg)']
+      };
+
+      h += '<div style="overflow-x:auto"><table style="min-width:720px"><tr>' +
+           '<th>Empleado</th><th>Platillo</th><th>Zona</th><th>Turno</th>' +
+           '<th>Hora de entrega</th><th>Estado</th></tr>';
       filas.forEach(f => {
-        let icono, bg;
-        if (f.estado === 'pidio') { icono = '✅'; bg = '#f0f7f0'; }
-        else if (f.estado === 'pendiente') { icono = '\ud83d\udfe1'; bg = '#fff9e6'; }
-        else if (f.estado === 'sin_pedir') { icono = '\u2b1c'; bg = ''; }
-        else { icono = '\ud83d\udd34'; bg = '#fdecec'; }
-        h += '<tr style="background:' + bg + '">';
-        h += '<td style="text-align:center;font-size:1.1rem">' + icono + '</td>';
-        h += '<td>' + (f.nombre||'') + '</td>';
-        h += '<td>' + (f.numero_empleado||'') + '</td>';
-        h += '<td style="font-size:.8rem">' + (f.telefono||'') + '</td>';
-        h += '<td>' + (f.opcion || '<span style="color:#aaa">—</span>') + '</td>';
-        h += '<td style="font-size:.8rem">' + (f.zona || '<span style="color:#aaa">—</span>') + '</td>';
-        h += '<td style="font-size:.8rem">' + (f.turno || '<span style="color:#aaa">—</span>') + '</td>';
-        h += '</tr>';
+        const [txt, bg] = ESTADO[f.estado] || ['—', ''];
+        const vacio = '<span style="color:#aaa">—</span>';
+        h += '<tr style="background:' + bg + '">' +
+             '<td>' + (f.nombre || '') + '</td>' +
+             '<td>' + (f.platillo || vacio) + '</td>' +
+             '<td style="font-size:.82rem">' + (f.zona ? zonaTxt(f.zona) : vacio) + '</td>' +
+             '<td style="font-size:.82rem">' + (f.turno ? turnoTxt(f.turno) : vacio) + '</td>' +
+             '<td style="font-size:.82rem;font-variant-numeric:tabular-nums">' + horaTxt(f.entregado_en) + '</td>' +
+             '<td style="font-size:.82rem;white-space:nowrap">' + txt +
+               (f.estado === 'tardia'
+                 ? '<div style="font-size:.7rem;color:var(--gris-text)">' +
+                   (f.motivo_tardia ? MOTIVO_TXT(f.motivo_tardia) : '⚠ sin motivo') + '</div>'
+                 : '') +
+             '</td></tr>';
       });
       h += '</table></div>';
       box.innerHTML = h;
     } catch(e) {
       box.innerHTML = '<p class="aviso err">Error: ' + e.message + '</p>';
     }
+  }
+
+  // ── Reportes del periodo ──
+  // Las gráficas van en SVG a mano: el proyecto corre en Railway con recursos
+  // limitados y no vale la pena una librería para cuatro vistas.
+  async function verReportes() {
+    const ini = document.getElementById('rep-ini').value;
+    const fin = document.getElementById('rep-fin').value;
+    const box = document.getElementById('reportesBox');
+    if (!ini || !fin) { box.innerHTML = '<p class="aviso err">Selecciona el periodo.</p>'; return; }
+    box.innerHTML = '<p style="color:var(--gris-text)">Cargando...</p>';
+    try {
+      const d = await api('/api/reportes?ini=' + ini + '&fin=' + fin);
+      if (!d.total) { box.innerHTML = '<div class="vacio">Sin pedidos en ese periodo.</div>'; return; }
+
+      let h = '';
+
+      // 1 · Pedidos por día
+      h += bloque('Pedidos por día', barras(
+        d.pedidos_por_dia.map(x => ({ etiqueta: x.fecha.slice(8) + '/' + x.fecha.slice(5,7), valor: x.pedidos })),
+        'var(--azul)'));
+
+      // 2 · Porciones por platillo
+      h += bloque('Porciones por platillo', barrasH(
+        d.porciones_por_platillo.map(x => ({ etiqueta: x.platillo, valor: x.porciones })),
+        'var(--verde)'));
+
+      // 3 · Rating
+      const r = d.rating, respondidos = r.si + r.tal_vez + r.no;
+      h += bloque('¿Volverías a pedirlo?',
+        respondidos
+          ? barrasH([
+              { etiqueta: 'Sí', valor: r.si },
+              { etiqueta: 'Tal vez', valor: r.tal_vez },
+              { etiqueta: 'No volvería a pedirlo', valor: r.no }
+            ], 'var(--dorado)') +
+            '<p style="font-size:.78rem;color:var(--gris-text);margin-top:8px">' +
+            respondidos + ' de ' + d.total + ' pedidos calificados · ' +
+            r.sin_responder + ' sin responder</p>'
+          : '<div class="vacio">Nadie ha calificado todavía en este periodo.</div>');
+
+      // 4 · Cumplimiento de entrega
+      const e = d.entrega;
+      h += bloque('Entregas del periodo',
+        '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+        cajita(e.entregados, 'Entregados a tiempo', 'var(--verde)', '#f0f7f0') +
+        cajita(e.tardios, 'Tardíos', '#b8860b', '#fff9e6') +
+        cajita(e.no_entregados, 'No entregados', 'var(--rojo)', '#fdecec') +
+        '</div>' +
+        (d.motivos_tardia.length
+          ? '<table style="margin-top:14px"><tr><th>Motivo del retraso</th><th>Veces</th></tr>' +
+            d.motivos_tardia.map(m => '<tr><td>' + m.motivo + '</td><td>' + m.veces + '</td></tr>').join('') +
+            '</table>'
+          : ''));
+
+      box.innerHTML = h;
+    } catch(e) {
+      box.innerHTML = '<p class="aviso err">Error: ' + e.message + '</p>';
+    }
+  }
+
+  const bloque = (titulo, contenido) =>
+    '<div style="margin-bottom:26px"><div style="font-size:.8rem;font-weight:800;letter-spacing:.06em;' +
+    'text-transform:uppercase;color:var(--azul);margin-bottom:10px">' + titulo + '</div>' + contenido + '</div>';
+
+  const cajita = (n, etiqueta, color, fondo) =>
+    '<div style="flex:1;min-width:120px;background:' + fondo + ';border-radius:9px;padding:12px;text-align:center">' +
+    '<div style="font-size:1.5rem;font-weight:800;color:' + color + '">' + n + '</div>' +
+    '<div style="font-size:.72rem;color:var(--gris-text);font-weight:600">' + etiqueta + '</div></div>';
+
+  // Barras verticales (series por día)
+  function barras(datos, color) {
+    if (!datos.length) return '<div class="vacio">Sin datos.</div>';
+    const max = Math.max(...datos.map(d => d.valor)) || 1;
+    const ancho = Math.max(datos.length * 46, 240), alto = 170, base = alto - 26;
+    let svg = '<div style="overflow-x:auto"><svg viewBox="0 0 ' + ancho + ' ' + alto + '" ' +
+              'style="width:100%;min-width:' + Math.min(ancho, 640) + 'px;height:' + alto + 'px">';
+    datos.forEach((d, i) => {
+      const h = Math.round((d.valor / max) * (base - 22));
+      const x = i * 46 + 10;
+      svg += '<rect x="' + x + '" y="' + (base - h) + '" width="28" height="' + h + '" rx="4" fill="' + color + '"/>';
+      svg += '<text x="' + (x + 14) + '" y="' + (base - h - 5) + '" text-anchor="middle" ' +
+             'font-size="11" font-weight="700" fill="var(--tinta)">' + d.valor + '</text>';
+      svg += '<text x="' + (x + 14) + '" y="' + (base + 15) + '" text-anchor="middle" ' +
+             'font-size="10" fill="var(--gris-text)">' + escaparHtml(d.etiqueta) + '</text>';
+    });
+    return svg + '</svg></div>';
+  }
+
+  // Barras horizontales (etiquetas largas: platillos, rating)
+  function barrasH(datos, color) {
+    const max = Math.max(...datos.map(d => d.valor)) || 1;
+    return datos.map(d =>
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">' +
+      '<div style="flex:0 0 42%;font-size:.84rem;text-align:right;color:var(--tinta)">' + escaparHtml(d.etiqueta) + '</div>' +
+      '<div style="flex:1;background:var(--gris-bg);border-radius:5px;height:22px;position:relative">' +
+      '<div style="width:' + Math.round((d.valor / max) * 100) + '%;background:' + color + ';height:100%;border-radius:5px;min-width:2px"></div>' +
+      '</div>' +
+      '<div style="flex:0 0 42px;font-weight:800;font-size:.9rem;color:' + color + '">' + d.valor + '</div></div>'
+    ).join('');
+  }
+
+  // Motivos de entrega tardía (deben coincidir con services/menu.js)
+  const MOTIVOS_TARDIA = {
+    acceso_puerto: 'Acceso o caseta del puerto', trafico: 'Tráfico o maniobras en ruta',
+    cliente_ausente: 'Cliente no estaba en el punto', cocina: 'Cocina entregó tarde',
+    vehiculo: 'Falla del vehículo', clima: 'Clima', otro: 'Otro'
+  };
+  const MOTIVO_TXT = id => MOTIVOS_TARDIA[id] || id;
+
+  function horaTxt(iso) {
+    if (!iso) return '<span style="color:#aaa">—</span>';
+    const d = new Date(iso);
+    return isNaN(d) ? '<span style="color:#aaa">—</span>'
+      : d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true });
   }
 
   async function verPedidos() {

@@ -222,19 +222,54 @@ export async function getPedidosPorFecha(fecha) {
 
 // Marca entregas entrando por número de empleado, que es lo que trae el QR
 // de la etiqueta. `entregadoEn` es la hora del escaneo, no la de sincronización.
-export async function marcarEntregado(fecha, numeroEmpleado, entregadoEn) {
+export async function marcarEntregado(fecha, numeroEmpleado, entregadoEn, motivoTardia = null) {
   const emp = await getEmpleadoPorNumero(numeroEmpleado);
   if (!emp) return { ok: false, motivo: 'empleado_no_encontrado' };
 
+  const cambios = { entregado_en: entregadoEn };
+  // Solo se escribe si viene: una re-sincronización sin motivo no debe
+  // borrar el que el chofer ya había elegido.
+  if (motivoTardia) cambios.motivo_tardia = motivoTardia;
+
   const { data, error } = await supabase
     .from('pedidos')
-    .update({ entregado_en: entregadoEn })
+    .update(cambios)
     .eq('fecha_menu', fecha)
     .eq('empleado_telefono', emp.telefono)
     .select('*, empleados(nombre, numero_empleado)');
   if (error) throw error;
   if (!data || !data.length) return { ok: false, motivo: 'sin_pedido' };
   return { ok: true, pedido: data[0] };
+}
+
+// Guarda la calificación. Solo aplica a pedidos ya ENTREGADOS: calificar algo
+// que nunca se recibió no diría nada del platillo.
+export async function calificarPedido(fecha, telefono, rating) {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .update({ rating })
+    .eq('fecha_menu', fecha)
+    .eq('empleado_telefono', telefono)
+    .not('entregado_en', 'is', null)
+    .select('id');
+  if (error) throw error;
+  return !!(data && data.length);
+}
+
+// Último pedido entregado y sin calificar de un empleado, para preguntarle
+// al volver. Se limita a días recientes: calificar algo de hace un mes no sirve.
+export async function pedidoPorCalificar(telefono, desdeFecha) {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select('fecha_menu, opcion_texto')
+    .eq('empleado_telefono', telefono)
+    .gte('fecha_menu', desdeFecha)
+    .not('entregado_en', 'is', null)
+    .is('rating', null)
+    .order('fecha_menu', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] || null;
 }
 
 export async function getPedidosRango(fechaIni, fechaFin) {

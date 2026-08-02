@@ -56,6 +56,14 @@ ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS turno VARCHAR;
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS entregado_en TIMESTAMP WITH TIME ZONE;
 CREATE INDEX IF NOT EXISTS idx_pedidos_entrega ON pedidos (fecha_menu, entregado_en);
 
+-- Motivo que elige el chofer cuando la entrega sale tardía (solo entonces).
+-- Se guarda el id del catálogo MOTIVOS_TARDIA de services/menu.js.
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS motivo_tardia VARCHAR;
+
+-- Calificación del platillo. La captura el empleado en la página de pedidos
+-- cuando vuelve y su pedido anterior ya fue entregado: si | tal_vez | no
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS rating VARCHAR;
+
 -- Envíos del menú (registro de a quién se le mandó y su estado)
 CREATE TABLE IF NOT EXISTS envios (
     id             BIGSERIAL PRIMARY KEY,

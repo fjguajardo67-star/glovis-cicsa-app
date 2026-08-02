@@ -3,7 +3,7 @@ import express from 'express';
 import { DateTime } from 'luxon';
 import * as db from '../services/supabase.js';
 import * as wa from '../services/whatsapp.js';
-import { construirListMessage } from '../services/menu.js';
+import { construirListMessage, esEntregaTardia, MOTIVOS_TARDIA } from '../services/menu.js';
 import { diezDigitos } from '../services/telefono.js';
 import { resumenCocina } from '../services/cocina.js';
 import { fechaServicio } from '../services/pedidos.js';
@@ -152,6 +152,56 @@ adminRouter.get('/resumen-cocina/:fecha', async (req, res) => {
   }
 });
 
+// ── Reportes por periodo ────────────────────────────────────────
+// Un solo endpoint alimenta las cuatro vistas: pedidos por día, porciones
+// por platillo, rating y cumplimiento de entrega.
+adminRouter.get('/reportes', async (req, res) => {
+  try {
+    const { ini, fin } = req.query;
+    if (!ini || !fin) return res.status(400).json({ error: 'Se requieren ini y fin (YYYY-MM-DD)' });
+
+    const pedidos = await db.getPedidosRango(ini, fin);
+
+    const porDia = {}, porPlatillo = {}, rating = { si: 0, tal_vez: 0, no: 0, sin_responder: 0 };
+    let entregados = 0, tardios = 0, noEntregados = 0;
+    const motivos = {};
+
+    for (const p of pedidos) {
+      porDia[p.fecha_menu] = (porDia[p.fecha_menu] || 0) + 1;
+
+      const plat = p.opcion_texto || p.opcion_id;
+      porPlatillo[plat] = (porPlatillo[plat] || 0) + 1;
+
+      if (['si', 'tal_vez', 'no'].includes(p.rating)) rating[p.rating]++;
+      else rating.sin_responder++;
+
+      if (!p.entregado_en) { noEntregados++; continue; }
+      if (esEntregaTardia(p.fecha_menu, p.turno, p.entregado_en)) {
+        tardios++;
+        const m = p.motivo_tardia || 'sin_motivo';
+        motivos[m] = (motivos[m] || 0) + 1;
+      } else {
+        entregados++;
+      }
+    }
+
+    res.json({
+      ini, fin, total: pedidos.length,
+      // Ordenados para graficar sin que el cliente tenga que hacerlo
+      pedidos_por_dia: Object.entries(porDia).sort().map(([fecha, n]) => ({ fecha, pedidos: n })),
+      porciones_por_platillo: Object.entries(porPlatillo)
+        .sort((a, b) => b[1] - a[1]).map(([platillo, n]) => ({ platillo, porciones: n })),
+      rating,
+      entrega: { entregados, tardios, no_entregados: noEntregados },
+      motivos_tardia: Object.entries(motivos)
+        .sort((a, b) => b[1] - a[1])
+        .map(([id, n]) => ({ motivo: MOTIVOS_TARDIA[id] || 'Sin motivo indicado', veces: n }))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Envío masivo del menú a todos los empleados activos ──────────
 
 adminRouter.post('/enviar-menu', async (req, res) => {
@@ -216,49 +266,49 @@ adminRouter.post('/enviar-menu', async (req, res) => {
 adminRouter.get('/dashboard/:fecha', async (req, res) => {
   try {
     const fecha = req.params.fecha;
-    const [empleados, envios, pedidos] = await Promise.all([
-      db.listEmpleados(),
-      db.getEnviosPorFecha(fecha),
+    const [empleados, pedidos] = await Promise.all([
+      db.listEmpleadosActivos(),
       db.getPedidosPorFecha(fecha)
     ]);
 
-    const envioPorTel = {};
-    envios.forEach(e => { envioPorTel[diezDigitos(e.telefono)] = e; });
     const pedidoPorTel = {};
     pedidos.forEach(p => { pedidoPorTel[diezDigitos(p.empleado_telefono)] = p; });
 
-    // ¿Ese día se usó WhatsApp? Define si el semáforo tiene 3 estados o 2.
-    const huboEnvios = envios.length > 0;
+    // Una fila por empleado activo. El estado sale de un solo hecho: el
+    // escaneo del QR al entregar (entregado_en). No hay estados intermedios.
+    const filas = empleados.map(emp => {
+      const p = pedidoPorTel[diezDigitos(emp.telefono)];
+      if (!p) {
+        return { nombre: emp.nombre, numero_empleado: emp.numero_empleado,
+                 platillo: null, zona: null, turno: null,
+                 entregado_en: null, motivo_tardia: null, estado: 'no_ordeno' };
+      }
+      const tardia = esEntregaTardia(fecha, p.turno, p.entregado_en);
+      return {
+        nombre: emp.nombre,
+        numero_empleado: emp.numero_empleado,
+        platillo: p.opcion_texto || p.opcion_id,
+        zona: p.zona,
+        turno: p.turno,
+        entregado_en: p.entregado_en || null,
+        motivo_tardia: p.motivo_tardia || null,
+        estado: !p.entregado_en ? 'pendiente' : (tardia ? 'tardia' : 'entregado')
+      };
+    });
 
-    // Construir una fila por empleado activo
-    const filas = empleados
-      .filter(emp => emp.activo)
-      .map(emp => {
-        const clave = diezDigitos(emp.telefono);
-        const envio = envioPorTel[clave];
-        const pedido = pedidoPorTel[clave];
-        // Semáforo. Si ese día no se mandó nada por WhatsApp (operación solo
-        // web), no tiene sentido marcar en rojo a quien "no recibió" el menú:
-        // nunca hubo envío que fallara. Ahí el estado es binario.
-        let estado;
-        if (pedido) estado = 'pidio';
-        else if (!huboEnvios) estado = 'sin_pedir';
-        else if (!envio || envio.estado === 'fallido') estado = 'fallido';
-        else estado = 'pendiente';
-
-        return {
-          nombre: emp.nombre,
-          telefono: emp.telefono,
-          numero_empleado: emp.numero_empleado,
-          opcion: pedido ? (pedido.opcion_texto || pedido.opcion_id) : null,
-          zona: pedido ? pedido.zona : null,
-          turno: pedido ? pedido.turno : null,
-          estado,
-          estado_envio: envio ? envio.estado : 'no_enviado'
-        };
-      });
-
-    res.json({ fecha, modo: huboEnvios ? 'whatsapp' : 'web', filas });
+    const cuenta = e => filas.filter(f => f.estado === e).length;
+    res.json({
+      fecha,
+      resumen: {
+        activos:     filas.length,
+        ordenaron:   filas.filter(f => f.estado !== 'no_ordeno').length,
+        no_ordenaron: cuenta('no_ordeno'),
+        entregados:  cuenta('entregado') + cuenta('tardia'),
+        pendientes:  cuenta('pendiente'),
+        tardias:     cuenta('tardia')
+      },
+      filas
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

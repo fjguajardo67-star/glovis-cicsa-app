@@ -30,6 +30,43 @@ export const TURNOS = {
 };
 export const TURNOS_VALIDOS = Object.keys(TURNOS);
 
+// ── Puntualidad de la entrega ─────────────────────────────────
+// Hora programada de cada turno y la tolerancia acordada. La ruta tarda en
+// recorrer sus puntos, así que sin tolerancia el final del recorrido saldría
+// tardío aunque vaya en tiempo. 15 min es acuerdo interno, no contractual.
+export const TURNO_HORA = { turno_a: '10:00', turno_b: '17:00' };
+export const TOLERANCIA_TARDIA_MIN = 15;
+
+// Momento a partir del cual una entrega de ese turno cuenta como tardía
+export function limiteEntrega(fechaISO, turno) {
+  const hora = TURNO_HORA[turno];
+  if (!hora || !fechaISO) return null;
+  const d = DateTime.fromISO(`${fechaISO}T${hora}`, { zone: ZONA });
+  return d.isValid ? d.plus({ minutes: TOLERANCIA_TARDIA_MIN }) : null;
+}
+
+// ¿La entrega fue tardía? null si no hay datos para saberlo.
+export function esEntregaTardia(fechaISO, turno, entregadoEn) {
+  if (!entregadoEn) return null;
+  const limite = limiteEntrega(fechaISO, turno);
+  if (!limite) return null;
+  const e = DateTime.fromISO(entregadoEn, { zone: ZONA });
+  return e.isValid ? e > limite : null;
+}
+
+// Motivos que puede elegir el chofer cuando la entrega sale tardía.
+// El id se guarda en la base; el texto es lo que ve y lo que se reporta.
+export const MOTIVOS_TARDIA = {
+  acceso_puerto:  'Acceso o caseta del puerto',
+  trafico:        'Tráfico o maniobras en ruta',
+  cliente_ausente:'Cliente no estaba en el punto',
+  cocina:         'Cocina entregó tarde',
+  vehiculo:       'Falla del vehículo',
+  clima:          'Clima',
+  otro:           'Otro'
+};
+export const MOTIVOS_TARDIA_VALIDOS = Object.keys(MOTIVOS_TARDIA);
+
 // Fecha de hoy en la zona del comedor (YYYY-MM-DD)
 export function hoy() {
   return DateTime.now().setZone(ZONA).toISODate();

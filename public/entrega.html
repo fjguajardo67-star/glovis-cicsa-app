@@ -115,6 +115,34 @@
   .modo-lector input { width: 20px; height: 20px; flex: none; accent-color: var(--verde); }
   .modo-lector b { color: var(--tinta); }
 
+  /* ── Motivo de entrega tardía ──
+     Se pide solo cuando hay retraso. La entrega YA quedó registrada antes de
+     abrir esto: si el chofer cierra la app, no se pierde nada — queda tardía
+     sin motivo y el panel lo muestra así. */
+  .motivo-fondo {
+    position: fixed; inset: 0; background: rgba(13,27,62,.72);
+    display: none; align-items: flex-end; z-index: 60;
+  }
+  .motivo-fondo.ver { display: flex; }
+  .motivo-caja {
+    background: #fff; width: 100%; max-height: 88vh; overflow-y: auto;
+    border-radius: 18px 18px 0 0; padding: 18px 16px 24px;
+  }
+  .motivo-caja h2 { font-size: 1.15rem; color: var(--dorado); margin-bottom: 3px; }
+  .motivo-caja .quien { font-size: .9rem; color: var(--gris-text); margin-bottom: 4px; }
+  .motivo-caja .reloj {
+    font-size: .82rem; font-weight: 700; color: var(--dorado);
+    background: var(--dorado-light); border-radius: 8px;
+    padding: 8px 11px; margin-bottom: 14px;
+  }
+  .motivo-caja button.op {
+    display: block; width: 100%; text-align: left; margin-bottom: 8px;
+    padding: 15px 14px; font-family: inherit; font-size: 1rem; font-weight: 700;
+    background: #fff; color: var(--tinta);
+    border: 2px solid var(--gris-line); border-radius: 12px; cursor: pointer;
+  }
+  .motivo-caja button.op:active { background: var(--azul-light); border-color: var(--azul); }
+
   /* ── Lista ── */
   .titulo {
     font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
@@ -135,6 +163,10 @@
     flex: none; font-size: .78rem; font-weight: 800; color: var(--verde);
     font-variant-numeric: tabular-nums; white-space: nowrap;
   }
+  .fila .hora.tarde { color: var(--dorado); }
+  .fila.tardia { background: var(--dorado-light); border-color: #e8d5a3; }
+  .fila .motivo { display: block; font-size: .72rem; font-weight: 700; color: var(--dorado); margin-top: 2px; }
+  .fila .btn-e.alerta { border-color: var(--dorado); color: var(--dorado); }
   .fila .btn-e {
     flex: none; padding: 9px 13px; border-radius: 9px; border: 2px solid var(--azul-line);
     background: #fff; color: var(--azul); font-family: inherit; font-weight: 800;
@@ -209,6 +241,16 @@
   </main>
 </div>
 
+<!-- Motivo de entrega tardía -->
+<div class="motivo-fondo" id="motivo-fondo">
+  <div class="motivo-caja">
+    <h2>⏱️ Entrega tardía</h2>
+    <p class="quien" id="motivo-quien">—</p>
+    <p class="reloj" id="motivo-reloj">—</p>
+    <div id="motivo-opciones"></div>
+  </div>
+</div>
+
 <script>
   const API_BASE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
     ? location.origin
@@ -228,6 +270,11 @@
   let FECHA = '';
   let COLA = [];
   let CLAVE = '';
+  // Horarios y motivos: llegan del servidor con la lista del día y se guardan
+  // en caché, porque el retraso se detecta y se justifica SIN señal.
+  let TURNO_HORA = { turno_a: '10:00', turno_b: '17:00' };
+  let TOLERANCIA_MIN = 15;
+  let MOTIVOS = {};
   let escaneando = false, stream = null, ultimoCodigo = '', ultimoTs = 0;
   // Declarada aquí y no junto a sus funciones: el arranque corre antes de que
   // el script termine de parsear, y un `let` más abajo la dejaría en zona
@@ -257,7 +304,14 @@
     // Primero lo guardado: la app abre y sirve aunque no haya señal
     const cache = leerLS(LS.datos, null);
     COLA = leerLS(LS.cola, []);
-    if (cache) { FECHA = cache.fecha; PEDIDOS = cache.pedidos; pintar(); }
+    if (cache) {
+      FECHA = cache.fecha; PEDIDOS = cache.pedidos;
+      // Sin señal el retraso se juzga con lo último que se descargó
+      if (cache.turno_hora) TURNO_HORA = cache.turno_hora;
+      if (cache.tolerancia_min != null) TOLERANCIA_MIN = cache.tolerancia_min;
+      if (cache.motivos) MOTIVOS = cache.motivos;
+      pintar();
+    }
 
     // El modo lector se recuerda: se configura una vez por equipo
     $('chk-lector').checked = leerLS(LS.lector, false);
@@ -347,7 +401,13 @@
         !p.entregado_en && enCola.has(p.numero_empleado)
           ? { ...p, entregado_en: enCola.get(p.numero_empleado) }
           : p);
-      guardar(LS.datos, { fecha: FECHA, pedidos: PEDIDOS });
+      if (d.turno_hora) TURNO_HORA = d.turno_hora;
+      if (d.tolerancia_min != null) TOLERANCIA_MIN = d.tolerancia_min;
+      if (d.motivos_tardia) MOTIVOS = d.motivos_tardia;
+      guardar(LS.datos, {
+        fecha: FECHA, pedidos: PEDIDOS,
+        turno_hora: TURNO_HORA, tolerancia_min: TOLERANCIA_MIN, motivos: MOTIVOS
+      });
       pintar();
     } catch {}
   }
@@ -392,13 +452,85 @@
     COLA.push({ numero_empleado: p.numero_empleado, entregado_en: p.entregado_en, fecha: FECHA });
     guardar(LS.cola, COLA);
 
-    flash('ok', p.nombre, p.platillo + ' · ' + (TURNO_TXT[p.turno] || '') + ' · ' + (ZONA_TXT[p.zona] || ''));
+    const tardia = esTardia(p);
+    flash(tardia ? 'dup' : 'ok', p.nombre,
+      p.platillo + ' · ' + (TURNO_TXT[p.turno] || '') + ' · ' + (ZONA_TXT[p.zona] || ''));
     pintar();
     if (navigator.onLine) sincronizar();
+
+    // La entrega ya quedó guardada y en cola ANTES de pedir el motivo: si el
+    // chofer cierra la app aquí, no se pierde — queda tardía sin motivo.
+    if (tardia) { pedirMotivo(p); return; }
     enfocarLector();   // dejar el campo armado para el siguiente escaneo
   }
 
   function entregarManual() { entregar($('manual').value, 'manual'); }
+
+  // ── Entrega tardía ────────────────────────────────────────
+  // Se calcula en el equipo, con los horarios descargados, para que funcione
+  // en el puerto sin señal.
+  function limiteDelTurno(turno) {
+    const hora = TURNO_HORA[turno];
+    if (!hora || !FECHA) return null;
+    const [a, m, d] = FECHA.split('-').map(Number);
+    const [hh, mm] = hora.split(':').map(Number);
+    const limite = new Date(a, m - 1, d, hh, mm, 0, 0);
+    limite.setMinutes(limite.getMinutes() + TOLERANCIA_MIN);
+    return limite;
+  }
+
+  function esTardia(p) {
+    if (!p.entregado_en) return false;
+    const limite = limiteDelTurno(p.turno);
+    return limite ? new Date(p.entregado_en) > limite : false;
+  }
+
+  let pedidoEnMotivo = null;
+
+  // Para retomar una tardía que quedó sin motivo (la app se cerró a media)
+  function pedirMotivoPorNumero(num) {
+    const p = PEDIDOS.find(x => String(x.numero_empleado) === String(num));
+    if (p) pedirMotivo(p);
+  }
+
+  function pedirMotivo(p) {
+    pedidoEnMotivo = p;
+    const limite = limiteDelTurno(p.turno);
+    $('motivo-quien').textContent = p.nombre + ' · ' + (TURNO_TXT[p.turno] || '');
+    $('motivo-reloj').textContent =
+      'Entregada ' + horaLocal(p.entregado_en) +
+      (limite ? ' · el límite era ' + horaLocal(limite.toISOString()) : '');
+
+    const opciones = Object.keys(MOTIVOS).length
+      ? MOTIVOS
+      : { acceso_puerto:'Acceso o caseta del puerto', trafico:'Tráfico o maniobras en ruta',
+          cliente_ausente:'Cliente no estaba en el punto', cocina:'Cocina entregó tarde',
+          vehiculo:'Falla del vehículo', clima:'Clima', otro:'Otro' };
+
+    $('motivo-opciones').innerHTML = Object.entries(opciones)
+      .map(([id, txt]) => `<button class="op" onclick="elegirMotivo('${esc(id)}')">${esc(txt)}</button>`)
+      .join('');
+    $('motivo-fondo').classList.add('ver');
+  }
+
+  function elegirMotivo(id) {
+    if (pedidoEnMotivo) {
+      pedidoEnMotivo.motivo_tardia = id;
+      // Adjuntarlo al escaneo que ya está en la cola, para que suba con él
+      const enCola = COLA.find(e => e.numero_empleado === pedidoEnMotivo.numero_empleado);
+      if (enCola) enCola.motivo_tardia = id;
+      guardar(LS.cola, COLA);
+      guardar(LS.datos, {
+        fecha: FECHA, pedidos: PEDIDOS,
+        turno_hora: TURNO_HORA, tolerancia_min: TOLERANCIA_MIN, motivos: MOTIVOS
+      });
+    }
+    pedidoEnMotivo = null;
+    $('motivo-fondo').classList.remove('ver');
+    pintar();
+    if (navigator.onLine) sincronizar();
+    enfocarLector();
+  }
 
   // ── Modo lector: pistola Bluetooth o tablet con escáner integrado ──
   // Esos lectores se comportan como teclado: teclean el código en el campo que
@@ -495,17 +627,26 @@
     $('n-cola').textContent = COLA.length;
     $('caja-cola').classList.toggle('vacia', COLA.length === 0);
 
-    const fila = (p, hecho) => `
-      <div class="fila ${hecho ? 'hecho' : ''}">
-        <span class="ic">${hecho ? '✅' : '⬜'}</span>
+    const fila = (p, hecho) => {
+      const tardia = hecho && esTardia(p);
+      const faltaMotivo = tardia && !p.motivo_tardia;
+      return `
+      <div class="fila ${hecho ? 'hecho' : ''} ${tardia ? 'tardia' : ''}">
+        <span class="ic">${hecho ? (tardia ? '⏱️' : '✅') : '⬜'}</span>
         <div class="d">
           <b>${esc(p.nombre || '—')}</b>
           <span>${esc(p.platillo || '')} · ${esc(TURNO_TXT[p.turno] || '')} · ${esc(ZONA_TXT[p.zona] || '')}</span>
+          ${tardia ? `<span class="motivo">${faltaMotivo
+              ? '⚠ Tardía — falta indicar el motivo'
+              : 'Tardía · ' + esc(MOTIVOS[p.motivo_tardia] || p.motivo_tardia)}</span>` : ''}
         </div>
         ${hecho
-          ? `<span class="hora">${horaLocal(p.entregado_en)}</span>`
+          ? (faltaMotivo
+              ? `<button class="btn-e alerta" onclick="pedirMotivoPorNumero('${esc(p.numero_empleado)}')">Motivo</button>`
+              : `<span class="hora ${tardia ? 'tarde' : ''}">${horaLocal(p.entregado_en)}</span>`)
           : `<button class="btn-e" onclick="entregar('${esc(p.numero_empleado)}','lista')">Entregar</button>`}
       </div>`;
+    };
 
     $('lista-pendientes').innerHTML = faltan.length
       ? faltan.map(p => fila(p, false)).join('')

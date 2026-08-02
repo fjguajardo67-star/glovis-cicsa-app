@@ -7,6 +7,10 @@
 
 import express from 'express';
 import * as db from '../services/supabase.js';
+import {
+  MOTIVOS_TARDIA, MOTIVOS_TARDIA_VALIDOS,
+  TURNO_HORA, TOLERANCIA_TARDIA_MIN
+} from '../services/menu.js';
 
 export const entregaRouter = express.Router();
 
@@ -30,13 +34,19 @@ entregaRouter.get('/:fecha', async (req, res) => {
       fecha: req.params.fecha,
       total: pedidos.length,
       entregados: pedidos.filter(p => p.entregado_en).length,
+      // La app las necesita para decidir si una entrega salió tardía y pedir
+      // el motivo estando SIN SEÑAL, sin volver a preguntarle al servidor.
+      turno_hora: TURNO_HORA,
+      tolerancia_min: TOLERANCIA_TARDIA_MIN,
+      motivos_tardia: MOTIVOS_TARDIA,
       pedidos: pedidos.map(p => ({
         numero_empleado: p.empleados?.numero_empleado || null,
         nombre:          p.empleados?.nombre || null,
         platillo:        p.opcion_texto,
         zona:            p.zona,
         turno:           p.turno,
-        entregado_en:    p.entregado_en || null
+        entregado_en:    p.entregado_en || null,
+        motivo_tardia:   p.motivo_tardia || null
       }))
     });
   } catch (err) {
@@ -58,8 +68,10 @@ entregaRouter.post('/', async (req, res) => {
     for (const e of entregas) {
       const numero = e?.numero_empleado;
       if (!numero) { resultados.push({ numero_empleado: null, ok: false, motivo: 'sin_numero' }); continue; }
+      // Un motivo inventado no se guarda: solo los del catálogo
+      const motivo = MOTIVOS_TARDIA_VALIDOS.includes(e?.motivo_tardia) ? e.motivo_tardia : null;
       try {
-        const r = await db.marcarEntregado(fecha, numero, e.entregado_en || new Date().toISOString());
+        const r = await db.marcarEntregado(fecha, numero, e.entregado_en || new Date().toISOString(), motivo);
         resultados.push({
           numero_empleado: numero,
           ok: r.ok,

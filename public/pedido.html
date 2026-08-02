@@ -259,6 +259,24 @@
       <button class="btn" id="btn-id" onclick="identificar()">Continuar</button>
     </section>
 
+    <!-- 1b. Calificar el pedido anterior (solo si quedó uno sin calificar) -->
+    <section class="vista card" id="v-rating">
+      <h1>¿Qué tal estuvo?</h1>
+      <p class="sub" id="rating-que">—</p>
+      <div id="rating-ops">
+        <button class="opt" onclick="calificar('si')">
+          <div class="tx"><b>Sí, lo volvería a pedir</b></div><div class="rd"></div>
+        </button>
+        <button class="opt" onclick="calificar('tal_vez')">
+          <div class="tx"><b>Tal vez</b></div><div class="rd"></div>
+        </button>
+        <button class="opt" onclick="calificar('no')">
+          <div class="tx"><b>No lo volvería a pedir</b></div><div class="rd"></div>
+        </button>
+      </div>
+      <button class="btn sec" onclick="saltarRating()">Ahora no, ir al menú</button>
+    </section>
+
     <!-- 2. Elegir platillo -->
     <section class="vista card" id="v-menu">
       <h1 id="saludo">Hola</h1>
@@ -444,8 +462,38 @@
       mostrarAviso('Tu registro no tiene zona y turno asignados. Indícalos para continuar.', 'info');
       return ir('v-ajustar');
     }
+
+    // Si dejó un platillo entregado sin calificar, se le pregunta una vez.
+    // Es opcional y de un toque: nunca debe estorbar para pedir.
+    PENDIENTE_RATING = empleado.por_calificar || null;
+    if (PENDIENTE_RATING) {
+      $('rating-que').textContent = PENDIENTE_RATING.opcion_texto;
+      return ir('v-rating');
+    }
     ir('v-menu');
   }
+
+  // ── Calificación del platillo anterior ──────────────────────
+  let PENDIENTE_RATING = null;
+
+  async function calificar(valor) {
+    const p = PENDIENTE_RATING;
+    saltarRating();                    // no hacerlo esperar por la red
+    if (!p) return;
+    try {
+      await fetch(API_BASE + '/pedido/rating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numero_empleado: empleado.empleado.numero_empleado,
+          fecha: p.fecha_menu,
+          rating: valor
+        })
+      });
+    } catch { /* si falla, simplemente se le vuelve a preguntar mañana */ }
+  }
+
+  function saltarRating() { PENDIENTE_RATING = null; ir('v-menu'); }
 
   // ── Pintado de opciones ─────────────────────────────────────
   function pintarPlatillos() {

@@ -48,6 +48,13 @@ pedidoRouter.post('/identificar', async (req, res) => {
       pedidoActual = delDia.find(p => p.empleado_telefono === empleado.telefono) || null;
     }
 
+    // ¿Trae algo entregado sin calificar de los últimos días?
+    let porCalificar = null;
+    try {
+      const hace7 = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+      porCalificar = await db.pedidoPorCalificar(empleado.telefono, hace7);
+    } catch { /* calificar es opcional: nunca debe impedir pedir */ }
+
     res.json({
       empleado: {
         nombre:          empleado.nombre,
@@ -55,11 +62,32 @@ pedidoRouter.post('/identificar', async (req, res) => {
         zona_default:    empleado.zona_default,
         turno_default:   empleado.turno_default
       },
-      pedido_actual: pedidoActual
+      pedido_actual: pedidoActual,
+      por_calificar: porCalificar
     });
   } catch (err) {
     console.error('[Pedido] Error identificando empleado:', err);
     res.status(500).json({ error: 'No se pudo verificar tu número. Intenta de nuevo.' });
+  }
+});
+
+// Calificar un pedido ya entregado. Se le pregunta al empleado cuando vuelve
+// a la página, antes de mostrarle el menú del día.
+pedidoRouter.post('/rating', async (req, res) => {
+  try {
+    const { numero_empleado, fecha, rating } = req.body || {};
+    if (!numero_empleado || !fecha || !['si', 'tal_vez', 'no'].includes(rating)) {
+      return res.status(400).json({ error: 'Datos incompletos para calificar.' });
+    }
+    const empleado = await db.getEmpleadoPorNumero(numero_empleado);
+    if (!empleado) return res.status(404).json({ error: 'Empleado no encontrado.' });
+
+    const ok = await db.calificarPedido(fecha, empleado.telefono, rating);
+    if (!ok) return res.status(404).json({ error: 'No hay pedido entregado para calificar.' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[Pedido] Error guardando rating:', err);
+    res.status(500).json({ error: 'No se pudo guardar tu respuesta.' });
   }
 });
 
