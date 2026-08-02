@@ -92,14 +92,28 @@
   .btn:disabled { opacity: .45; }
 
   /* ── Captura manual / pistola bluetooth ── */
-  .manual { display: flex; gap: 8px; margin-bottom: 12px; }
+  .manual { display: flex; gap: 8px; margin-bottom: 8px; }
   .manual input {
     flex: 1; padding: 15px 13px; border: 2px solid var(--gris-line); border-radius: 12px;
     font-size: 1.15rem; font-weight: 700; font-family: ui-monospace, Menlo, monospace;
     text-transform: uppercase; background: #fff; color: var(--tinta); min-width: 0;
   }
   .manual input:focus { outline: none; border-color: var(--azul); }
+  /* Con el lector activo el campo se ve armado y listo, aunque nadie lo toque */
+  .manual input.lector {
+    border-color: var(--verde); background: var(--verde-light);
+    box-shadow: 0 0 0 3px rgba(30,122,34,.12);
+  }
   .manual button { flex: none; padding: 0 18px; }
+
+  .modo-lector {
+    display: flex; align-items: center; gap: 9px; margin-bottom: 14px;
+    font-size: .82rem; color: var(--gris-text); cursor: pointer; user-select: none;
+    padding: 9px 11px; border: 1px solid var(--gris-line); border-radius: 10px;
+    background: #fff;
+  }
+  .modo-lector input { width: 20px; height: 20px; flex: none; accent-color: var(--verde); }
+  .modo-lector b { color: var(--tinta); }
 
   /* ── Lista ── */
   .titulo {
@@ -176,9 +190,15 @@
 
     <div class="manual">
       <input id="manual" placeholder="O captura el número" autocomplete="off"
-             onkeydown="if(event.key==='Enter')entregarManual()">
+             onkeydown="if(event.key==='Enter')entregarManual()"
+             onblur="setTimeout(devolverFocoLector, 150)">
       <button class="btn" style="margin:0" onclick="entregarManual()">OK</button>
     </div>
+
+    <label class="modo-lector">
+      <input type="checkbox" id="chk-lector" onchange="alternarModoLector(this.checked)">
+      <span><b>Modo lector</b> — para pistola o tablet con escáner integrado</span>
+    </label>
 
     <div id="avisoSync"></div>
 
@@ -198,9 +218,10 @@
   const TURNO_TXT = { turno_a: 'Turno A', turno_b: 'Turno B' };
 
   const LS = {
-    clave: 'cicsa_entrega_clave',
-    datos: 'cicsa_entrega_datos',   // { fecha, pedidos: [...] }
-    cola:  'cicsa_entrega_cola'     // [{ numero_empleado, entregado_en }]
+    clave:  'cicsa_entrega_clave',
+    datos:  'cicsa_entrega_datos',   // { fecha, pedidos: [...] }
+    cola:   'cicsa_entrega_cola',    // [{ numero_empleado, entregado_en }]
+    lector: 'cicsa_entrega_lector'   // modo pistola/escáner integrado
   };
 
   let PEDIDOS = [];
@@ -208,6 +229,10 @@
   let COLA = [];
   let CLAVE = '';
   let escaneando = false, stream = null, ultimoCodigo = '', ultimoTs = 0;
+  // Declarada aquí y no junto a sus funciones: el arranque corre antes de que
+  // el script termine de parsear, y un `let` más abajo la dejaría en zona
+  // muerta — la excepción mataba iniciar() en silencio antes de sincronizar.
+  let MODO_LECTOR = false;
 
   const $ = id => document.getElementById(id);
   const leerLS  = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } };
@@ -234,6 +259,10 @@
     COLA = leerLS(LS.cola, []);
     if (cache) { FECHA = cache.fecha; PEDIDOS = cache.pedidos; pintar(); }
 
+    // El modo lector se recuerda: se configura una vez por equipo
+    $('chk-lector').checked = leerLS(LS.lector, false);
+    alternarModoLector($('chk-lector').checked);
+
     window.addEventListener('online',  estadoConexion);
     window.addEventListener('offline', estadoConexion);
     estadoConexion();
@@ -253,15 +282,24 @@
   async function sincronizar() {
     if (!navigator.onLine) return;
 
-    // 1) Subir la cola. Solo se quita lo que el servidor confirma.
+    // 1) Subir la cola, AGRUPADA POR FECHA: cada escaneo lleva la fecha en que
+    //    ocurrió, y si el reparto se escaneó ayer y la app se abre hoy, esos
+    //    escaneos deben registrarse en el día de ayer, no en el de hoy.
     if (COLA.length) {
-      try {
-        const r = await fetch(API_BASE + '/api/entrega', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-admin-key': CLAVE },
-          body: JSON.stringify({ fecha: FECHA, entregas: COLA })
-        });
-        if (r.ok) {
+      const porFecha = {};
+      COLA.forEach(e => {
+        const f = e.fecha || FECHA;   // escaneos viejos sin fecha: la de la app
+        (porFecha[f] = porFecha[f] || []).push(e);
+      });
+
+      for (const [fechaLote, lote] of Object.entries(porFecha)) {
+        try {
+          const r = await fetch(API_BASE + '/api/entrega', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-admin-key': CLAVE },
+            body: JSON.stringify({ fecha: fechaLote, entregas: lote })
+          });
+          if (!r.ok) continue;
           const d = await r.json();
           // Solo dos cosas sacan un escaneo de la cola: que el servidor lo
           // CONFIRME, o que lo rechace por regla de negocio (ese pedido no
@@ -272,21 +310,31 @@
           const rechazados = d.resultados.filter(x => !x.ok && RECHAZO_DEFINITIVO.includes(x.motivo));
           const definitivos = new Set(rechazados.map(x => x.numero_empleado));
 
-          COLA = COLA.filter(e => !confirmados.has(e.numero_empleado) && !definitivos.has(e.numero_empleado));
+          COLA = COLA.filter(e => {
+            const f = e.fecha || FECHA;
+            if (f !== fechaLote) return true;   // otro lote: no tocar
+            return !confirmados.has(e.numero_empleado) && !definitivos.has(e.numero_empleado);
+          });
           guardar(LS.cola, COLA);
           if (rechazados.length) {
             mostrarAviso('avisoSync',
               rechazados.length + ' escaneo(s) no se pudieron registrar: ' +
               rechazados.map(x => x.numero_empleado + ' (' + x.motivo + ')').join(', '), 'err');
           }
-        }
-      } catch {}
+        } catch {}
+      }
     }
 
-    // 2) Bajar el estado del día
+    // 2) Bajar el estado del día.
+    //    La fecha se le pregunta SIEMPRE al servidor: usar la de la caché
+    //    dejaba la app clavada en el día anterior al reabrirla al siguiente.
+    //    La caché queda solo como respaldo si la consulta falla.
     try {
-      const fechaObjetivo = FECHA || (await fechaDeServicio());
+      const fechaObjetivo = (await fechaDeServicio()) || FECHA;
       if (!fechaObjetivo) return;
+
+      // Si el día avanzó, lo de ayer ya no aplica: se limpia antes de pintar
+      if (FECHA && fechaObjetivo !== FECHA) { PEDIDOS = []; }
       const r = await fetch(API_BASE + '/api/entrega/' + fechaObjetivo, { headers: { 'x-admin-key': CLAVE } });
       if (r.status === 401) return mostrarAviso('avisoSync', 'Clave incorrecta. Bórrala y vuelve a entrar.', 'err');
       if (!r.ok) return;
@@ -314,6 +362,9 @@
 
   // ── Registrar una entrega ─────────────────────────────────
   function entregar(numero, origen) {
+    // El campo se limpia SIEMPRE, no solo al acertar: con un lector, un rechazo
+    // que dejara el texto haría que el siguiente escaneo se pegara al anterior.
+    if (origen === 'manual') { $('manual').value = ''; enfocarLector(); }
     numero = String(numero || '').trim().toUpperCase();
     if (!numero) return;
 
@@ -336,16 +387,53 @@
     p.entregado_en = new Date().toISOString();
     guardar(LS.datos, { fecha: FECHA, pedidos: PEDIDOS });
 
-    COLA.push({ numero_empleado: p.numero_empleado, entregado_en: p.entregado_en });
+    // Cada escaneo lleva SU fecha: si queda atorado en la cola y la app se
+    // reabre al día siguiente, debe subirse al día en que ocurrió, no al de hoy.
+    COLA.push({ numero_empleado: p.numero_empleado, entregado_en: p.entregado_en, fecha: FECHA });
     guardar(LS.cola, COLA);
 
     flash('ok', p.nombre, p.platillo + ' · ' + (TURNO_TXT[p.turno] || '') + ' · ' + (ZONA_TXT[p.zona] || ''));
     pintar();
     if (navigator.onLine) sincronizar();
-    if (origen === 'manual') $('manual').value = '';
+    enfocarLector();   // dejar el campo armado para el siguiente escaneo
   }
 
   function entregarManual() { entregar($('manual').value, 'manual'); }
+
+  // ── Modo lector: pistola Bluetooth o tablet con escáner integrado ──
+  // Esos lectores se comportan como teclado: teclean el código en el campo que
+  // tenga el foco. Sin esto habría que tocar el campo antes de cada escaneo,
+  // que es justo lo que estorba en una ruta. Queda como interruptor y no
+  // automático porque en un teléfono sin lector el auto-foco solo lograría
+  // levantar el teclado en pantalla y tapar la lista.
+  function alternarModoLector(activo) {
+    MODO_LECTOR = !!activo;
+    guardar(LS.lector, MODO_LECTOR);
+    const campo = $('manual');
+    campo.classList.toggle('lector', MODO_LECTOR);
+    if (MODO_LECTOR) {
+      // El lector teclea solo: el teclado en pantalla sobra y taparía la lista
+      campo.setAttribute('inputmode', 'none');
+      campo.placeholder = 'Listo para escanear…';
+      enfocarLector();
+    } else {
+      campo.removeAttribute('inputmode');
+      campo.placeholder = 'O captura el número';
+      campo.blur();
+    }
+  }
+
+  function enfocarLector() {
+    if (!MODO_LECTOR || escaneando) return;   // con la cámara abierta no estorbar
+    const campo = $('manual');
+    if (document.activeElement !== campo) campo.focus();
+  }
+
+  // Al tocar un botón el foco se va. Se devuelve solo si no quedó en otro
+  // control, para no impedir que el operador use el resto de la pantalla.
+  function devolverFocoLector() {
+    if (document.activeElement === document.body) enfocarLector();
+  }
 
   // ── Cámara ────────────────────────────────────────────────
   async function alternarCamara() {
@@ -372,6 +460,7 @@
     $('camara').classList.add('oculta');
     $('btn-camara').textContent = '📷 Escanear con la cámara';
     $('btn-camara').classList.remove('alta');
+    enfocarLector();   // al cerrar la cámara, el lector vuelve a quedar armado
   }
 
   const lienzo = document.createElement('canvas');
