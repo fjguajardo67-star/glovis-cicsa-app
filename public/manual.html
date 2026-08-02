@@ -329,12 +329,12 @@
     <h2>6 · Direcciones y claves</h2>
     <table>
       <tr><th>Qué</th><th>Dirección</th><th>Quién la usa</th></tr>
-      <tr><td>Página para pedir</td><td><code>glovis-cicsa-app-production.up.railway.app/pedido.html</code></td><td>Empleados (vía QR del comedor)</td></tr>
-      <tr><td>Panel de administración</td><td><code>glovis.cicsacomedores.com.mx/public/admin.html</code></td><td>Administración</td></tr>
-      <tr><td>App de entrega</td><td><code>glovis-cicsa-app-production.up.railway.app/entrega.html</code></td><td>Repartidor</td></tr>
-      <tr><td>Hoja de instalación del repartidor</td><td><code>…/instalar-entrega.html</code></td><td>Administración (imprimir)</td></tr>
-      <tr><td>QR para imprimir (comedor)</td><td><code>…/qr.html</code></td><td>Administración (imprimir)</td></tr>
-      <tr><td>Este manual</td><td><code>…/manual.html</code></td><td>Todos</td></tr>
+      <tr><td>Página para pedir</td><td><code class="url-app" data-ruta="/pedido.html">—</code></td><td>Empleados (vía QR del comedor)</td></tr>
+      <tr><td>Panel de administración</td><td><code class="url-app" data-ruta="/admin.html">—</code></td><td>Administración</td></tr>
+      <tr><td>App de entrega</td><td><code class="url-app" data-ruta="/entrega.html">—</code></td><td>Repartidor</td></tr>
+      <tr><td>Hoja de instalación del repartidor</td><td><code class="url-app" data-ruta="/instalar-entrega.html">—</code></td><td>Administración (imprimir)</td></tr>
+      <tr><td>QR para imprimir (comedor)</td><td><code class="url-app" data-ruta="/qr.html">—</code></td><td>Administración (imprimir)</td></tr>
+      <tr><td>Este manual</td><td><code class="url-app" data-ruta="/manual.html">—</code></td><td>Todos</td></tr>
     </table>
 
     <h3>Las dos claves</h3>
@@ -346,5 +346,13 @@
   </section>
 
 </div>
+
+<script>
+  // Las direcciones del directorio salen del origen donde se abre el manual,
+  // así no quedan desactualizadas al cambiar de dominio.
+  document.querySelectorAll('.url-app').forEach(function (el) {
+    el.textContent = location.host + el.dataset.ruta;
+  });
+</script>
 </body>
 </html>

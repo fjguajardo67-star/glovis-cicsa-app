@@ -109,7 +109,9 @@
 </div>
 
 <script>
-  var URL_APP = 'https://glovis-cicsa-app-production.up.railway.app/entrega.html';
+  // Del origen donde vive esta hoja: al cambiar el dominio, el QR de
+  // instalación queda correcto sin tocar código.
+  var URL_APP = location.origin + '/entrega.html';
   // El QR se genera sobre el elemento ya insertado en la página:
   // los píxeles de un canvas no viajan en el HTML.
   new QRCode(document.getElementById('qr'), {

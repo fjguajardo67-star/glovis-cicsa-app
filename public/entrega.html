@@ -252,9 +252,9 @@
 </div>
 
 <script>
-  const API_BASE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
-    ? location.origin
-    : 'https://glovis-cicsa-app-production.up.railway.app';
+  // Mismo origen que la página: el backend sirve estas páginas, así que la
+  // dirección nunca se escribe a mano. Cambiar de dominio es solo DNS.
+  const API_BASE = '';
 
   const ZONA_TXT  = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
   const TURNO_TXT = { turno_a: 'Turno A', turno_b: 'Turno B' };

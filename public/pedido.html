@@ -339,9 +339,9 @@
 <script>
   // Servida desde GitHub Pages apunta a Railway; servida por el propio
   // backend (o en local) usa su mismo origen.
-  const API_BASE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
-    ? location.origin
-    : 'https://glovis-cicsa-app-production.up.railway.app';
+  // Mismo origen que la página: el backend sirve estas páginas, así que la
+  // dirección nunca se escribe a mano. Cambiar de dominio es solo DNS.
+  const API_BASE = '';
 
   // Deben coincidir con services/menu.js
   const ZONAS  = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };

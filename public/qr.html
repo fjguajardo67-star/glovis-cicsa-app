@@ -124,7 +124,7 @@
   </div>
   <div>
     <label>Dirección a la que apunta el QR</label>
-    <input id="url" value="https://glovis-cicsa-app-production.up.railway.app/pedido.html" onchange="pintar()">
+    <input id="url" onchange="pintar()">
   </div>
   <button class="btn-print" onclick="window.print()">Imprimir</button>
 </div>
@@ -195,6 +195,12 @@
       </div>`;
     return `<div class="hoja"><div class="rejilla">${una.repeat(6)}</div></div>`;
   }
+
+  // La dirección se toma del origen donde vive esta página: al mover el
+  // dominio, los QR nuevos apuntan solos al correcto. Sigue siendo editable
+  // por si se quiere generar para otro sitio.
+  const campoUrl = document.getElementById('url');
+  if (!campoUrl.value) campoUrl.value = location.origin + '/pedido.html';
 
   function pintar() {
     const destino = document.getElementById('url').value.trim();
