@@ -53,26 +53,26 @@
   }
 
   /* Cartel grande: 1 por hoja, para pared */
-  .cartel { text-align: center; padding: 20px 26px 26px; }
+  .cartel { text-align: center; padding: 14px 26px 18px; }
   .cartel .marca {
     display: flex; align-items: center; justify-content: center; gap: 14px;
-    padding-bottom: 14px; margin-bottom: 20px; border-bottom: 2px solid var(--azul);
+    padding-bottom: 10px; margin-bottom: 14px; border-bottom: 2px solid var(--azul);
   }
   /* El logo lleva sus propios llamados ("Pide fácilmente desde tu celular"),
      por eso el cartel ya no necesita encabezado propio. */
-  .cartel .marca img.golunch { width: 340px; max-width: 100%; object-fit: contain; }
+  .cartel .marca img.golunch { width: 248px; max-width: 100%; object-fit: contain; }
   .cartel h1 {
     font-size: 2.1rem; color: var(--azul); letter-spacing: -.02em; margin-bottom: 6px;
   }
-  .cartel .lema { font-size: 1.05rem; color: var(--gris-text); margin-bottom: 22px; }
+  .cartel .lema { font-size: .98rem; color: var(--gris-text); margin-bottom: 16px; }
   .cartel .qr-caja {
     display: inline-block; padding: 16px; background: #fff;
-    border: 3px solid var(--azul); border-radius: 14px; margin-bottom: 20px;
+    border: 3px solid var(--azul); border-radius: 14px; margin-bottom: 16px;
   }
   .cartel .qr-caja canvas, .cartel .qr-caja img { display: block; }
   .cartel .pasos {
     display: flex; justify-content: center; gap: 26px; flex-wrap: wrap;
-    margin-bottom: 20px; text-align: left;
+    margin-bottom: 14px; text-align: left;
   }
   .cartel .paso { display: flex; align-items: flex-start; gap: 10px; max-width: 210px; }
   .cartel .paso .n {
@@ -85,11 +85,36 @@
   .cartel .corte {
     background: var(--azul-light); border: 1.5px solid var(--azul-line);
     border-radius: 10px; padding: 13px; font-size: 1rem; font-weight: 700;
-    color: var(--azul); margin-bottom: 14px;
+    color: var(--azul); margin-bottom: 12px;
   }
   .cartel .url {
     font-family: ui-monospace, Menlo, monospace; font-size: .76rem;
     color: var(--gris-text); word-break: break-all;
+  }
+
+  /* Instalación: secundaria al QR, por eso más discreta y abajo */
+  .cartel .instalar {
+    border: 1.5px dashed var(--azul-line); border-radius: 12px;
+    padding: 11px 14px 9px; margin: 0 0 12px; text-align: left;
+  }
+  .cartel .instalar-tit {
+    font-size: .92rem; font-weight: 700; color: var(--azul);
+    text-align: center; margin-bottom: 9px;
+  }
+  .cartel .instalar-cols { display: flex; gap: 18px; }
+  .cartel .so { flex: 1; min-width: 0; }
+  .cartel .so > b {
+    display: block; font-size: .8rem; color: var(--azul);
+    text-transform: uppercase; letter-spacing: .06em;
+    padding-bottom: 4px; margin-bottom: 6px;
+    border-bottom: 1px solid var(--gris-line);
+  }
+  .cartel .so ol { margin: 0; padding-left: 17px; }
+  .cartel .so li { font-size: .78rem; line-height: 1.4; margin-bottom: 2px; }
+  .cartel .so .ico { font-size: .9em; }
+  .cartel .instalar-pie {
+    font-size: .76rem; color: var(--gris-text);
+    text-align: center; margin-top: 10px;
   }
 
   /* Tarjetas chicas: 6 por hoja, para mesas */
@@ -173,10 +198,11 @@
     <div class="hoja">
       <div class="cartel">
         <div class="marca">
-          <img class="golunch" src="golunch-print.png" alt="CICSA GoLunch" onerror="this.style.display='none'">
+          <img class="golunch" src="golunch-compacto.png" alt="CICSA GoLunch" onerror="this.style.display='none'">
         </div>
-        <p class="lema">Escanea con la cámara de tu teléfono. No necesitas instalar nada.</p>
-        ${hueco(300)}
+        <!-- Sin lema: decía lo mismo que el paso 1 ("apunta la cámara"), y
+             ese renglón de más sacaba el cartel de la hoja. -->
+        ${hueco(212)}
         <div class="pasos">
           ${PASOS.map(([t, d], i) => `
             <div class="paso">
@@ -185,6 +211,30 @@
             </div>`).join('')}
         </div>
         <div class="corte">⏰ Pide antes de las 8:00 PM · Tu comida es para el día siguiente</div>
+
+        <div class="instalar">
+          <div class="instalar-tit">📲 Guárdala en tu teléfono y no vuelvas a escanear</div>
+          <div class="instalar-cols">
+            <div class="so">
+              <b>iPhone</b>
+              <ol>
+                <li>Abre el código con <b>Safari</b></li>
+                <li>Toca <b>Compartir</b> <span class="ico">⬆️</span> abajo</li>
+                <li>Elige <b>"Agregar a pantalla de inicio"</b></li>
+              </ol>
+            </div>
+            <div class="so">
+              <b>Android</b>
+              <ol>
+                <li>Abre el código con <b>Chrome</b></li>
+                <li>Toca el menú <b>⋮</b> arriba a la derecha</li>
+                <li>Elige <b>"Instalar aplicación"</b> o <b>"Agregar a pantalla principal"</b></li>
+              </ol>
+            </div>
+          </div>
+          <p class="instalar-pie">Queda un ícono de Go Lunch como cualquier otra app.</p>
+        </div>
+
         <p class="url">${destino}</p>
       </div>
     </div>`;
