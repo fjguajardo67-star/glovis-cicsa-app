@@ -64,6 +64,14 @@
     margin-left: auto; font-size: .72rem; color: rgba(255,255,255,.6);
     font-variant-numeric: tabular-nums;
   }
+  header .salir {
+    padding: 7px 14px; background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.28); border-radius: 8px;
+    color: #fff; font-family: inherit; font-size: .78rem; font-weight: 700;
+    cursor: pointer; flex-shrink: 0;
+  }
+  header .salir:active { background: rgba(255,255,255,.26); }
+  header .salir[hidden] { display: none; }
 
   main { flex: 1; width: 100%; max-width: 520px; margin: 0 auto; padding: 16px 18px 24px; }
 
@@ -238,6 +246,9 @@
   <img src="glovis-white.png" alt="Hyundai Glovis" onerror="this.style.display='none'">
   <div class="t"><span>Comedor</span><b>Go Lunch</b></div>
   <span class="paso" id="paso"></span>
+  <!-- Aparece solo al identificarse: sin esto, quien tecleaba mal su número
+       quedaba dentro de la sesión de otro y podía cambiarle el pedido. -->
+  <button class="salir" id="btn-salir" onclick="salir()" hidden>Salir</button>
 </header>
 
 <main>
@@ -600,7 +611,26 @@
     document.querySelectorAll('.vista').forEach(v => v.classList.toggle('activa', v.id === vista));
     const pasos = { 'v-id': '1 de 2', 'v-menu': '2 de 2', 'v-ajustar': 'Ajustar' };
     $('paso').textContent = pasos[vista] || '';
+    // El botón de salir solo tiene sentido con alguien identificado
+    $('btn-salir').hidden = (vista === 'v-id' || vista === 'v-cerrado');
     window.scrollTo(0, 0);
+  }
+
+  // Vuelve a la pantalla de identificación borrando TODO lo del empleado
+  // anterior. Sin limpiar el estado, el siguiente heredaría su zona, su turno
+  // y su platillo, y podría terminar cambiándole el pedido sin darse cuenta.
+  function salir() {
+    empleado = null;
+    PENDIENTE_RATING = null;
+    sel = { opcion_id: null, zona: null, turno: null };
+    $('num').value = '';
+    $('platillos').innerHTML = '';
+    $('asig-txt').textContent = '—';
+    $('btn-enviar').disabled = true;
+    limpiarAviso();
+    if (estado) pintarFecha();          // la barra de fecha se restaura
+    ir('v-id');
+    $('num').focus();
   }
 
   function mostrarAviso(msg, tipo) {
