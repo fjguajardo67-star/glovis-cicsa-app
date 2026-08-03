@@ -83,6 +83,9 @@ export function htmlComanda({ fecha, total, resumen }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Comanda ${esc(fecha)}</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/icono-180.png">
+
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -189,6 +192,9 @@ export function htmlEtiquetas({ fecha, ancho, alto, modo, qr = true, pedidos }) 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Etiquetas ${esc(fecha)}</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/icono-180.png">
+
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #e9ecf1; font-family: 'Segoe UI', system-ui, sans-serif; color: #000; }
