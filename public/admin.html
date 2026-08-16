@@ -1312,7 +1312,8 @@
       h += `<table><tr><th>Nombre</th><th>No.</th><th>Teléfono</th><th>Zona habitual</th><th>Turno habitual</th><th>Estado</th><th></th><th></th></tr>`;
       for (const e of empleados) {
         h += `<tr>
-          <td>${e.nombre}</td><td>${e.numero_empleado}</td><td>${e.telefono}</td>
+          <td>${e.nombre}</td><td>${e.numero_empleado}</td>
+          <td>${e.telefono}<button onclick="editarTel('${e.telefono}')" style="background:none;border:1px solid #003087;color:#003087;border-radius:4px;font-size:.65rem;padding:1px 5px;cursor:pointer;margin-left:6px">Editar</button></td>
           <td>${selectAsignacion(e.telefono, 'zona_default', e.zona_default, ZONA_TXT)}</td>
           <td>${selectAsignacion(e.telefono, 'turno_default', e.turno_default, TURNO_TXT)}</td>
           <td><span class="badge ${e.activo?'on':'off'}">${e.activo?'Activo':'Inactivo'}</span></td>
@@ -1327,6 +1328,30 @@
   async function toggleEmp(tel, activo) {
     try { await api(`/api/empleados/${tel}/activo`, { method:'PUT', body: JSON.stringify({activo}) }); cargarEmpleados(); }
     catch(e) { alert('Error: ' + e.message); }
+  }
+
+  // Corregir el teléfono sin borrar y recapturar (eso perdería sus pedidos)
+  async function editarTel(tel) {
+    const e = EMPLEADOS[tel] || {};
+    const actual = String(tel).replace(/\D/g,'').slice(-10);
+    const capturado = prompt(
+      'Nuevo teléfono de ' + (e.nombre || 'este empleado') + ' (10 dígitos).\n\n' +
+      'Sus pedidos anteriores se conservan.', actual);
+    if (capturado === null) return;
+
+    const d = capturado.replace(/\D/g,'').slice(-10);
+    if (d.length !== 10) return alert('El teléfono debe tener 10 dígitos.');
+    if (d === actual) return;
+
+    try {
+      const r = await api('/api/empleados/' + tel + '/telefono', {
+        method: 'PUT', body: JSON.stringify({ telefono_nuevo: d })
+      });
+      if (r.aviso_envios) {
+        alert('Teléfono cambiado. Nota: la bitácora de envíos no se pudo actualizar (' + r.aviso_envios + ').');
+      }
+      cargarEmpleados();
+    } catch(e) { alert('Error: ' + e.message); }
   }
 
   async function eliminarEmp(tel, nombre) {

@@ -50,6 +50,32 @@ CREATE TABLE IF NOT EXISTS pedidos (
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS zona  VARCHAR;
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS turno VARCHAR;
 
+-- El teléfono es la llave primaria del empleado y a veces hay que corregirlo
+-- (dedo al capturar, cambio de número). Con ON UPDATE CASCADE los pedidos
+-- siguen al empleado solos y se conserva su historial; sin esto la única
+-- salida sería borrarlo y recrearlo, y el ON DELETE CASCADE se llevaría todos
+-- sus pedidos. Idempotente: se puede volver a correr sin romper nada.
+DO $$
+DECLARE nombre_fk TEXT;
+BEGIN
+  FOR nombre_fk IN
+    SELECT DISTINCT con.conname
+      FROM pg_constraint con
+      JOIN pg_attribute  att ON att.attrelid = con.conrelid
+                            AND att.attnum   = ANY (con.conkey)
+     WHERE con.conrelid = 'pedidos'::regclass
+       AND con.contype  = 'f'
+       AND att.attname  = 'empleado_telefono'
+  LOOP
+    EXECUTE format('ALTER TABLE pedidos DROP CONSTRAINT %I', nombre_fk);
+  END LOOP;
+
+  ALTER TABLE pedidos
+    ADD CONSTRAINT pedidos_empleado_telefono_fkey
+    FOREIGN KEY (empleado_telefono) REFERENCES empleados(telefono)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+END $$;
+
 -- Confirmación de entrega (se escanea el QR de la etiqueta al entregar).
 -- entregado_en guarda la hora REAL del escaneo, no la de sincronización:
 -- el reparto ocurre sin señal y los datos suben después.

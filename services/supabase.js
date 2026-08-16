@@ -94,6 +94,86 @@ export async function deleteEmpleado(telefono) {
   if (error) throw error;
 }
 
+// Corrige el teléfono de un empleado SIN perder su historial.
+// El teléfono es la llave primaria: dar de alta al empleado otra vez con el
+// número bueno crearía un duplicado, y borrar el viejo se llevaría sus pedidos
+// por el ON DELETE CASCADE. Aquí se actualiza la llave en su lugar y los
+// pedidos viajan con ella gracias al ON UPDATE CASCADE (ver schema.sql).
+export async function cambiarTelefonoEmpleado(telefonoActual, telefonoNuevo) {
+  const nuevo = formatoCanonico(telefonoNuevo);
+
+  // A quién estamos editando. Sin filtrar por activo: un empleado dado de baja
+  // sigue ocupando la llave y su historial también importa.
+  const { data: encontrados, error: errBusca } = await supabase
+    .from('empleados')
+    .select('*')
+    .in('telefono', variantesTelefono(telefonoActual))
+    .limit(1);
+  if (errBusca) throw errBusca;
+
+  const empleado = encontrados?.[0];
+  if (!empleado) {
+    const err = new Error('No existe un empleado con ese teléfono');
+    err.status = 404;
+    throw err;
+  }
+  if (empleado.telefono === nuevo) {
+    return { empleado, sin_cambio: true, envios_movidos: 0 };
+  }
+
+  // Que no lo traiga ya alguien más, en ninguna de sus variantes (52 / 521 / 10
+  // dígitos): el teléfono es único y la carga masiva ya rechazó duplicados así.
+  const { data: ocupantes, error: errDup } = await supabase
+    .from('empleados')
+    .select('telefono, nombre, numero_empleado')
+    .in('telefono', variantesTelefono(nuevo));
+  if (errDup) throw errDup;
+
+  const ocupante = (ocupantes || []).find(o => o.telefono !== empleado.telefono);
+  if (ocupante) {
+    const err = new Error(
+      `Ese teléfono ya es de ${ocupante.nombre} (No. ${ocupante.numero_empleado})`
+    );
+    err.status = 409;
+    throw err;
+  }
+
+  const { data, error } = await supabase
+    .from('empleados')
+    .update({ telefono: nuevo })
+    .eq('telefono', empleado.telefono)
+    .select()
+    .single();
+  if (error) {
+    // 23503 = la FK de pedidos todavía no tiene ON UPDATE CASCADE, así que la
+    // base no deja mover la llave. Se arregla corriendo schema.sql en Supabase.
+    if (error.code === '23503') {
+      const err = new Error(
+        'La base aún no permite mover el teléfono: falta correr la migración ' +
+        'de schema.sql (ON UPDATE CASCADE en pedidos). No se cambió nada.'
+      );
+      err.status = 409;
+      throw err;
+    }
+    throw error;
+  }
+
+  // La bitácora de envíos de WhatsApp guarda el teléfono suelto, sin llave
+  // foránea, así que se mueve aparte. Si falla no se tumba la operación: lo que
+  // de verdad importa —el empleado y sus pedidos— ya quedó bien.
+  let envios_movidos = 0;
+  let aviso_envios = null;
+  const { data: movidos, error: errEnvios } = await supabase
+    .from('envios')
+    .update({ telefono: nuevo })
+    .eq('telefono', empleado.telefono)
+    .select('id');
+  if (errEnvios) aviso_envios = errEnvios.message;
+  else envios_movidos = movidos?.length || 0;
+
+  return { empleado: data, anterior: empleado.telefono, envios_movidos, aviso_envios };
+}
+
 // ── Envíos (registro de quién recibió el menú) ──────────────────
 
 export async function registrarEnvio(envio) {

@@ -60,6 +60,22 @@ adminRouter.put('/empleados/:telefono/activo', async (req, res) => {
   }
 });
 
+// Corregir el teléfono conservando el historial de pedidos.
+// Va aparte del POST de alta porque ese hace upsert por teléfono: capturar el
+// número bueno ahí no edita al empleado, da de alta uno nuevo.
+adminRouter.put('/empleados/:telefono/telefono', async (req, res) => {
+  try {
+    const nuevo = req.body?.telefono_nuevo;
+    if (diezDigitos(nuevo).length !== 10) {
+      return res.status(400).json({ error: 'El teléfono debe tener 10 dígitos' });
+    }
+    const r = await db.cambiarTelefonoEmpleado(req.params.telefono, nuevo);
+    res.json({ ok: true, ...r });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 adminRouter.delete('/empleados/:telefono', async (req, res) => {
   try {
     await db.deleteEmpleado(req.params.telefono);
