@@ -34,16 +34,18 @@
     border: 1px solid var(--gris-line); border-radius: 12px;
   }
   h1 { color: var(--azul); font-size: 1.5rem; margin-bottom: 4px; }
-  .sub { color: var(--gris-text); font-size: .92rem; margin-bottom: 26px; }
-  .centro { text-align: center; margin: 22px 0; }
+  .sub { color: var(--gris-text); font-size: .92rem; margin-bottom: 18px; }
+  .centro { text-align: center; margin: 14px 0; }
   .qr-caja {
     display: inline-block; padding: 14px; border: 3px solid var(--azul); border-radius: 14px;
   }
   .url {
     font-family: ui-monospace, Menlo, monospace; font-size: .74rem;
-    color: var(--gris-text); word-break: break-all; text-align: center; margin: 10px 0 26px;
+    color: var(--gris-text); word-break: break-all; text-align: center; margin: 10px 0 16px;
   }
-  .paso { display: flex; gap: 14px; margin-bottom: 18px; align-items: flex-start; }
+  /* 14px y no 18: la hoja tiene que caber en UNA carta y el aviso de instalar
+     con señal consumió el margen que quedaba. */
+  .paso { display: flex; gap: 14px; margin-bottom: 14px; align-items: flex-start; }
   .paso .n {
     width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
     background: var(--azul); color: #fff; font-weight: 700;
@@ -54,7 +56,7 @@
   .paso .t small { color: var(--gris-text); }
   .nota {
     background: var(--azul-light); border: 1px solid var(--azul-line);
-    border-radius: 10px; padding: 14px 16px; font-size: .87rem; margin-top: 24px;
+    border-radius: 10px; padding: 12px 16px; font-size: .87rem; margin-top: 16px;
   }
   .nota b { color: var(--azul); }
   @media print {
@@ -81,6 +83,8 @@
   <div class="paso"><div class="n">1</div><div class="t">
     <b>Escanea el código con la cámara del teléfono</b>
     Se abre la página de entrega en el navegador.
+    <small><b>Instala en el comedor, con señal:</b> aquí la app se copia al teléfono, y por
+    eso después abre en los puertos sin cobertura. Instalada sin señal, no abrirá en la ruta.</small>
   </div></div>
 
   <div class="paso"><div class="n">2</div><div class="t">
@@ -100,7 +104,7 @@
     <b>Listo — así se usa cada día</b>
     Abre la app antes de salir (con señal) para que cargue la lista.
     En el puerto, escanea el QR de cada etiqueta al entregar.
-    <small>Funciona sin señal: el contador "Por subir" baja a cero solo
+    <small>Funciona <b>y abre</b> sin señal: el contador "Por subir" baja a cero solo
     cuando el teléfono recupera cobertura. No cierres la app si ese
     número no está en cero.</small>
   </div></div>
@@ -119,7 +123,9 @@
   // El QR se genera sobre el elemento ya insertado en la página:
   // los píxeles de un canvas no viajan en el HTML.
   new QRCode(document.getElementById('qr'), {
-    text: URL_APP, width: 240, height: 240,
+    // 190 y no 240: la hoja tiene que caber en UNA carta. Impreso son ~50 mm,
+    // de sobra para escanear una dirección corta a un palmo de distancia.
+    text: URL_APP, width: 190, height: 190,
     colorDark: '#003087', colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.M
   });

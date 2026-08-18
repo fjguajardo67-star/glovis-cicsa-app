@@ -162,6 +162,7 @@
 
     <h3>Cosas que debes saber</h3>
     <ul>
+      <li><b>Puedes guardarla en tu teléfono y no volver a escanear.</b> El cartel del comedor trae los pasos para iPhone y para Android; queda un ícono de Go Lunch como cualquier otra app. También puedes teclear la dirección del comedor directamente y llegas igual.</li>
       <li>La pantalla siempre dice <b>para qué día</b> es tu pedido (por ejemplo "lunes 3 de agosto"). Si mañana no hay servicio, el pedido salta solo al siguiente día que sí abre.</li>
       <li><b>Puedes cambiar tu pedido</b> las veces que quieras hasta las 8:00 PM: vuelve a abrir la página y elige otro platillo.</li>
       <li>Si ese día cubres <b>otro turno u otra zona</b>, toca <b>"Cambiar"</b> junto a tu entrega. Solo aplica a ese pedido; tu registro no se modifica.</li>
@@ -190,6 +191,7 @@
       <li><b>Cargar plantilla desde Excel:</b> sube el archivo de RRHH tal como llega (.xlsx o .csv). El sistema reconoce las columnas aunque vengan en otro orden, muestra una <b>previa</b> con lo que va a cargar y lo que tiene problemas, y solo carga lo válido. Hay un botón para descargar el formato de ejemplo y pedírselo a RRHH.</li>
       <li><b>Alta individual:</b> nombre, número de empleado, teléfono, y su <b>zona y turno habituales</b>.</li>
       <li>En la tabla de plantilla puedes <b>corregir zona y turno</b> con los selectores de cada renglón. Un aviso te dice cuántos siguen sin asignación — a esos la página les preguntará zona y turno cada vez que pidan.</li>
+      <li><b>Corregir un teléfono mal capturado:</b> botón <b>Editar</b> junto al número, en el renglón del empleado. Se conserva todo su historial de pedidos. <b>No lo des de alta otra vez con el número bueno</b>: eso no lo corrige, crea un empleado duplicado. Si el número nuevo ya lo trae otro empleado, el sistema te dice de quién es y no deja el cambio — dos personas no pueden compartir teléfono.</li>
       <li><b>Desactivar</b> (baja temporal, conserva historial) vs <b>Eliminar</b> (borra el registro y sus pedidos). Ante la duda, desactiva.</li>
     </ul>
 
@@ -223,8 +225,23 @@
     </div>
 
     <h3>📈 Reportes</h3>
+    <p>Eliges un periodo y <b>"Ver reportes"</b> te muestra en pantalla: pedidos por día,
+    porciones por platillo, las calificaciones, el cumplimiento de entrega y —lo que sirve
+    para operar— estos tres:</p>
+    <ul>
+      <li><b>Quién no recoge su pedido:</b> lista por empleado con cuántas veces pidió y cuántas no recogió, ordenada por reincidencia. Es la conversación con el supervisor.</li>
+      <li><b>Merma:</b> comida que se preparó y nadie recogió, desglosada por turno y por zona. Te dice dónde se está tirando dinero.</li>
+      <li><b>Tiempos de ruta:</b> a qué hora se entregó la primera y la última comida de cada turno, cuánto duró la ruta, y el promedio del periodo.</li>
+    </ul>
+    <div class="caja tip">
+      <b>Cómo se cuenta la merma:</b> un pedido sin entregar <b>no</b> cuenta como merma si su
+      hora de entrega todavía no llega. Por eso un reporte que corras a media mañana no acusa
+      de "no recogió" a todo el turno de la tarde: esos aparecen aparte, como pendientes.
+    </div>
+    <p>Y tres descargas de Excel:</p>
     <ul>
       <li><b>Excel de cocina y etiquetas</b> de una fecha.</li>
+      <li><b>Reporte de operación</b> por rango de fechas: una hoja por tema (sin recoger, merma, tiempos de ruta) más una de resumen que explica de dónde salen los números.</li>
       <li><b>Reporte de facturación</b> por rango de fechas, con costo unitario y detalle de auditoría — para el cobro al cliente corporativo.</li>
     </ul>
 
@@ -245,6 +262,13 @@
     <div class="paso"><div class="n">2</div><div class="t"><b>Agrégala a la pantalla de inicio:</b> iPhone: Compartir → "Agregar a pantalla de inicio" · Android: menú ⋮ → "Agregar a pantalla principal". Queda como una app normal.</div></div>
     <div class="paso"><div class="n">3</div><div class="t"><b>Escribe la clave de reparto</b> (te la da el administrador). Se guarda en el teléfono y no la vuelve a pedir.</div></div>
 
+    <div class="caja peligro">
+      <b>La instalación tiene que hacerse CON señal.</b> En esa primera vez la app se copia
+      completa al teléfono, y por eso después abre aunque no haya cobertura. Si el teléfono
+      nunca la abrió conectado, el día del reparto no va a abrir en el puerto y no hay forma
+      de saber por qué desde ahí. Instálala en el comedor, no en la ruta.
+    </div>
+
     <h3>El día de reparto</h3>
     <div class="paso"><div class="n">1</div><div class="t"><b>Antes de salir, abre la app</b> (con señal). La lista del día se descarga y queda guardada en el teléfono. Arriba se ven los contadores: <b>Entregadas · Faltan · Por subir</b>.</div></div>
     <div class="paso"><div class="n">2</div><div class="t"><b>Al entregar cada comida</b>, toca <b>"Escanear con la cámara"</b> y apunta al QR de la etiqueta. Aviso <b>verde grande</b> con el nombre = entrega registrada. El teléfono vibra al leer.</div></div>
@@ -264,8 +288,10 @@
     <div class="caja tip">
       La app <b>funciona sin señal</b>: en los puertos puedes escanear todo el reparto aunque
       diga <b>SIN SEÑAL</b>. Cada escaneo queda guardado en el teléfono (contador "Por subir")
-      y se envía solo cuando regresa la cobertura. Las dos únicas reglas:
-      <b>abrir la app con señal antes de salir</b> (para que baje la lista) y
+      y se envía solo cuando regresa la cobertura. <b>También abre sin señal</b>, así que si
+      la cierras por error a media ruta —o se reinicia el teléfono— la vuelves a abrir desde
+      su ícono y ahí sigue todo, con lo que ya escaneaste. Las dos únicas reglas:
+      <b>abrir la app con señal antes de salir</b> (para que baje la lista del día) y
       <b>no cerrar la app si "Por subir" no está en 0</b>.
     </div>
 
@@ -306,9 +332,19 @@
         <td>Botón "Generar tabla" de nuevo — los días con menú salen en verde</td>
       </tr>
       <tr>
+        <td>Dos empleados <b>traen el mismo teléfono</b> en la plantilla de RRHH</td>
+        <td>El teléfono es la llave del registro: no lo pueden compartir</td>
+        <td>Cargar a uno con su teléfono real y al otro corregirlo con <b>Editar</b> en su renglón. En la página el empleado entra con su número de gafete, así que ambos piden bien</td>
+      </tr>
+      <tr>
         <td>El repartidor ve la app <b>vacía o con la lista de ayer</b></td>
         <td>Abrió la app sin señal antes de que bajara la lista del día</td>
         <td>Con señal, cerrar y volver a abrir la app; la lista se actualiza sola</td>
+      </tr>
+      <tr>
+        <td>La app de entrega <b>no abre en el puerto</b> (pantalla de error del navegador)</td>
+        <td>Ese teléfono nunca abrió la app estando con señal, así que nunca se copió al aparato</td>
+        <td>Volver a zona con cobertura, abrirla una vez y dejarla cargar completa. A partir de ahí abre sin señal. Instalar siempre en el comedor, no en la ruta</td>
       </tr>
       <tr>
         <td><b>"Por subir" no baja a 0</b></td>
@@ -333,6 +369,7 @@
     <h2>6 · Direcciones y claves</h2>
     <table>
       <tr><th>Qué</th><th>Dirección</th><th>Quién la usa</th></tr>
+      <tr><td>Dirección corta (lleva a pedir)</td><td><code class="url-app" data-ruta="">—</code></td><td>La que se puede dictar de boca</td></tr>
       <tr><td>Página para pedir</td><td><code class="url-app" data-ruta="/pedido.html">—</code></td><td>Empleados (vía QR del comedor)</td></tr>
       <tr><td>Panel de administración</td><td><code class="url-app" data-ruta="/admin.html">—</code></td><td>Administración</td></tr>
       <tr><td>App de entrega</td><td><code class="url-app" data-ruta="/entrega.html">—</code></td><td>Repartidor</td></tr>
