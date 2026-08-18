@@ -74,7 +74,11 @@ self.addEventListener('activate', evento => {
 async function redPrimero(peticion) {
   try {
     const respuesta = await fetch(peticion);
-    if (respuesta && respuesta.ok) {
+    // Las redirecciones no se guardan: la raíz manda a /pedido.html, y una
+    // respuesta con bandera de redirigido, servida después desde caché para
+    // una navegación, el navegador la rechaza y la pantalla queda en blanco.
+    // La página destino sí se cachea cuando se pide directo.
+    if (respuesta && respuesta.ok && !respuesta.redirected) {
       const cache = await caches.open(CACHE);
       cache.put(peticion, respuesta.clone());
     }

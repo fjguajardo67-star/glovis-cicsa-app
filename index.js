@@ -25,9 +25,16 @@ app.use(express.json({
 }));
 app.disable('x-powered-by');
 
-// Páginas estáticas (panel admin y página del empleado). GitHub Pages sigue
-// siendo el hosting principal; esto permite servirlas también desde Railway.
+// Páginas estáticas: el panel, la página del empleado y la app de entrega.
+// Railway es el hosting: el subdominio del cliente apunta aquí y esto se sirve
+// en la raíz, así que las direcciones NO llevan /public/.
 app.use(express.static('public'));
+
+// La raíz manda a pedir. Es la dirección que alguien teclea cuando se la
+// dictan de boca, y de las ~115 personas que la tocarían, 112 son empleados
+// que van a pedir; el panel y la app de entrega tienen su propia dirección y
+// vienen documentadas en el manual. Antes esto caía en un 404 en crudo.
+app.get('/', (req, res) => res.redirect(302, '/pedido.html'));
 
 // Health check
 app.get('/health', (req, res) => {
