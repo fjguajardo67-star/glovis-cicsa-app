@@ -9,7 +9,7 @@
 // Al cambiar los archivos de /public hay que subirle el número a VERSION: eso
 // tira el caché viejo. Las páginas van por red primero, así que se actualizan
 // solas; el número importa sobre todo para íconos y librerías.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'golunch-' + VERSION;
 
 // jsQR viene de un CDN y es lo que lee los códigos con la cámara: sin él la
@@ -27,7 +27,7 @@ const PRECARGA = [
   '/icono-180.png',
   '/icono-192.png',
   '/icono-512.png',
-  '/glovis-white.png',
+  '/golunch-mark.png',
   JSQR
 ];
 

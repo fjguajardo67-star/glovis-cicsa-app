@@ -53,16 +53,30 @@
     gap: 12px;
     box-shadow: 0 2px 12px rgba(0,48,135,.18);
   }
-  header img { height: 26px; object-fit: contain; }
-  header .t { display: flex; flex-direction: column; line-height: 1.25; }
-  header .t b { font-size: .95rem; color: #fff; letter-spacing: -.01em; }
+  /* La marca va en una placa blanca: el logotipo nace sobre blanco y sobre el
+     azul del encabezado necesita su propio lienzo para no ensuciarse. El
+     redondeo recorta las esquinas del ícono original. */
+  header .marca {
+    width: 38px; height: 38px; flex-shrink: 0;
+    border-radius: 11px; background: #fff; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.22);
+  }
+  header .marca img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  header .t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  header .t b {
+    font-size: 1.06rem; font-weight: 800; color: #fff;
+    letter-spacing: -.015em; line-height: 1.15;
+  }
+  /* Tintado del propio azul y no gris ni blanco translúcido: así el crédito
+     al cliente se lee de verdad (5.5:1) en vez de desaparecer. */
   header .t span {
-    font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
-    color: rgba(255,255,255,.55); font-weight: 700;
+    font-size: .64rem; letter-spacing: .13em; text-transform: uppercase;
+    color: #9db2dd; font-weight: 700; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   header .paso {
-    margin-left: auto; font-size: .72rem; color: rgba(255,255,255,.6);
-    font-variant-numeric: tabular-nums;
+    margin-left: auto; font-size: .72rem; color: #a9bee4; font-weight: 600;
+    font-variant-numeric: tabular-nums; flex-shrink: 0;
   }
   header .salir {
     padding: 7px 14px; background: rgba(255,255,255,.14);
@@ -72,14 +86,23 @@
   }
   header .salir:active { background: rgba(255,255,255,.26); }
   header .salir[hidden] { display: none; }
+  /* En un teléfono de 320 px el encabezado lleva marca, crédito, paso y el
+     botón de salir a la vez, y el crédito se cortaba. Se recupera el espacio
+     de los márgenes y del interletrado, no del texto. */
+  @media (max-width: 360px) {
+    header { padding: 12px 12px; gap: 10px; }
+    header .t span { letter-spacing: .08em; }
+  }
 
   main { flex: 1; width: 100%; max-width: 520px; margin: 0 auto; padding: 16px 18px 24px; }
 
   /* ── Barra de fecha de servicio ── */
   .fechabar {
     display: flex; align-items: center; gap: 12px;
+    /* Sin el filo azul de 4px a la izquierda: el color ya lo ancla el chip
+       del calendario, y esa barra lateral no aportaba jerarquía, solo el
+       acento decorativo que hacía ver la pantalla genérica. */
     background: var(--blanco); border: 1.5px solid var(--azul-line);
-    border-left: 4px solid var(--azul);
     border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
   }
   .fechabar .cal {
@@ -225,10 +248,19 @@
   .nota-edit { font-size: .78rem; color: var(--gris-text); line-height: 1.55; }
 
   /* ── Estado vacío / cerrado ── */
-  .vacio { text-align: center; padding: 18px 6px; }
-  .vacio .em { font-size: 2.6rem; margin-bottom: 12px; }
-  .vacio h1 { margin-bottom: 8px; }
-  .vacio p { font-size: .87rem; color: var(--gris-text); max-width: 30ch; margin: 0 auto; }
+  /* Sin emoji: un glifo del teclado no es un sistema de iconos y le quitaba
+     seriedad a la única pantalla que ve quien llega y no puede pedir. El
+     mensaje se sostiene con tipografía. */
+  .vacio { text-align: center; padding: 26px 10px; }
+  .vacio h1 { margin-bottom: 10px; letter-spacing: -.02em; text-wrap: balance; }
+  .vacio p {
+    font-size: .92rem; color: var(--gris-text); max-width: 32ch;
+    margin: 0 auto; line-height: 1.55; text-wrap: pretty;
+  }
+  /* Esta vista es lo único en pantalla. Se baja a la zona óptica en vez de
+     quedar pegada al encabezado; sin estirar la tarjeta, que dejaría el
+     mensaje flotando en un hueco blanco. */
+  #v-cerrado.activa { margin-top: 11vh; }
 
   .cargando { text-align: center; padding: 40px 0; color: var(--gris-text); font-size: .87rem; }
 
@@ -243,8 +275,15 @@
 <body>
 
 <header>
-  <img src="glovis-white.png" alt="Hyundai Glovis" onerror="this.style.display='none'">
-  <div class="t"><span>Comedor</span><b>Go Lunch</b></div>
+  <!-- alt vacío: la marca ya se nombra en el texto de al lado, repetirla solo
+       hace que el lector de pantalla la diga dos veces. -->
+  <div class="marca"><img src="golunch-mark.png" alt="" width="160" height="160"
+       onerror="this.closest('.marca').style.display='none'"></div>
+  <!-- "Glovis" y no "Hyundai Glovis": con el indicador de paso y el botón de
+       salir, la cadena larga se cortaba a media palabra en un teléfono de
+       375 px. Es además como se nombra la planta aquí y en las zonas de
+       entrega ("Glovis VDC"). -->
+  <div class="t"><span>Comedor · Glovis</span><b>Go Lunch</b></div>
   <span class="paso" id="paso"></span>
   <!-- Aparece solo al identificarse: sin esto, quien tecleaba mal su número
        quedaba dentro de la sesión de otro y podía cambiarle el pedido. -->
@@ -345,7 +384,6 @@
     <!-- Cerrado / sin menú -->
     <section class="vista card" id="v-cerrado">
       <div class="vacio">
-        <div class="em" id="cerrado-em">🌙</div>
         <h1 id="cerrado-titulo">Los pedidos ya cerraron</h1>
         <p id="cerrado-texto">Vuelve mañana para pedir el siguiente día de servicio.</p>
       </div>
@@ -396,7 +434,6 @@
     $('contenido').style.display = 'block';
 
     if (!estado.fecha) {
-      $('cerrado-em').textContent = '📋';
       $('cerrado-titulo').textContent = 'Aún no hay menú publicado';
       $('cerrado-texto').textContent = 'El comedor todavía no publica el menú del próximo día. Intenta más tarde.';
       return ir('v-cerrado');
