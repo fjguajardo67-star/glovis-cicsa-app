@@ -3,7 +3,7 @@ import express from 'express';
 import { DateTime } from 'luxon';
 import * as db from '../services/supabase.js';
 import * as wa from '../services/whatsapp.js';
-import { construirListMessage, esEntregaTardia, MOTIVOS_TARDIA } from '../services/menu.js';
+import { construirListMessage, esEntregaTardia, MOTIVOS_TARDIA, limiteEntrega, hoy } from '../services/menu.js';
 import { diezDigitos } from '../services/telefono.js';
 import { resumenCocina } from '../services/cocina.js';
 import { fechaServicio } from '../services/pedidos.js';
@@ -169,8 +169,9 @@ adminRouter.get('/resumen-cocina/:fecha', async (req, res) => {
 });
 
 // ── Reportes por periodo ────────────────────────────────────────
-// Un solo endpoint alimenta las cuatro vistas: pedidos por día, porciones
-// por platillo, rating y cumplimiento de entrega.
+// Un solo endpoint alimenta todas las vistas: pedidos por día, porciones por
+// platillo, rating, cumplimiento de entrega y las tres preguntas de operación
+// (quién no recoge, merma por turno y zona, tiempos de ruta).
 adminRouter.get('/reportes', async (req, res) => {
   try {
     const { ini, fin } = req.query;
@@ -179,8 +180,20 @@ adminRouter.get('/reportes', async (req, res) => {
     const pedidos = await db.getPedidosRango(ini, fin);
 
     const porDia = {}, porPlatillo = {}, rating = { si: 0, tal_vez: 0, no: 0, sin_responder: 0 };
-    let entregados = 0, tardios = 0, noEntregados = 0;
+    let entregados = 0, tardios = 0, noEntregados = 0, pendientes = 0;
     const motivos = {};
+
+    // Merma y recurrencia solo cuentan pedidos que YA se pudieron recoger. Un
+    // pedido de hoy a las 9 am no es merma: todavía no le toca. Se usa el mismo
+    // límite que marca las entregas tardías (hora del turno + tolerancia).
+    const hoyISO = hoy();
+    const porEmpleado = {}, mermaTurno = {}, mermaZona = {}, rutas = {};
+
+    const acumula = (mapa, clave, seEntrego) => {
+      const c = mapa[clave] || (mapa[clave] = { evaluables: 0, entregados: 0, no_recogidos: 0 });
+      c.evaluables++;
+      if (seEntrego) c.entregados++; else c.no_recogidos++;
+    };
 
     for (const p of pedidos) {
       porDia[p.fecha_menu] = (porDia[p.fecha_menu] || 0) + 1;
@@ -191,7 +204,45 @@ adminRouter.get('/reportes', async (req, res) => {
       if (['si', 'tal_vez', 'no'].includes(p.rating)) rating[p.rating]++;
       else rating.sin_responder++;
 
+      // Sin turno no hay hora de entrega que vencer (pedidos viejos de
+      // WhatsApp): se da por vencido cuando el día ya pasó.
+      const limite = limiteEntrega(p.fecha_menu, p.turno);
+      const yaVencio = limite ? DateTime.now() > limite : p.fecha_menu < hoyISO;
+
+      if (yaVencio) {
+        acumula(mermaTurno, p.turno || 'sin_turno', !!p.entregado_en);
+        acumula(mermaZona,  p.zona  || 'sin_zona',  !!p.entregado_en);
+
+        const emp = p.empleados || {};
+        const clave = emp.numero_empleado || p.empleado_telefono;
+        const e = porEmpleado[clave] || (porEmpleado[clave] = {
+          numero_empleado: emp.numero_empleado || '',
+          nombre: emp.nombre || '(empleado dado de baja)',
+          pedidos: 0, no_recogidos: 0
+        });
+        e.pedidos++;
+        if (!p.entregado_en) e.no_recogidos++;
+      } else if (!p.entregado_en) {
+        pendientes++;
+      }
+
       if (!p.entregado_en) { noEntregados++; continue; }
+
+      // Tiempos de ruta: la primera y la última entrega de cada turno de cada
+      // día. No hay marca de "salió el vehículo", así que la ruta se mide entre
+      // escaneos, que es lo que de verdad se registra.
+      const t = DateTime.fromISO(p.entregado_en);
+      if (t.isValid) {
+        const k = p.fecha_menu + '|' + (p.turno || 'sin_turno');
+        const r = rutas[k] || (rutas[k] = {
+          fecha: p.fecha_menu, turno: p.turno || 'sin_turno',
+          entregas: 0, primera: t, ultima: t
+        });
+        r.entregas++;
+        if (t < r.primera) r.primera = t;
+        if (t > r.ultima)  r.ultima  = t;
+      }
+
       if (esEntregaTardia(p.fecha_menu, p.turno, p.entregado_en)) {
         tardios++;
         const m = p.motivo_tardia || 'sin_motivo';
@@ -201,6 +252,31 @@ adminRouter.get('/reportes', async (req, res) => {
       }
     }
 
+    const pct = (parte, total) => total ? Math.round((parte / total) * 1000) / 10 : 0;
+    const hhmm = d => d.setZone('America/Mexico_City').toFormat('HH:mm');
+
+    const filasMerma = mapa => Object.entries(mapa)
+      .map(([clave, c]) => ({ clave, ...c, pct_merma: pct(c.no_recogidos, c.evaluables) }))
+      .sort((a, b) => b.no_recogidos - a.no_recogidos);
+
+    const rutaPorDia = Object.values(rutas)
+      .map(r => ({
+        fecha: r.fecha, turno: r.turno, entregas: r.entregas,
+        primera: hhmm(r.primera), ultima: hhmm(r.ultima),
+        minutos: Math.round(r.ultima.diff(r.primera, 'minutes').minutes)
+      }))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.turno.localeCompare(b.turno));
+
+    // Promedio de duración por turno. Un día con una sola entrega dura 0
+    // minutos y aplanaría el promedio, así que no cuenta como ruta.
+    const acumTurno = {};
+    for (const r of rutaPorDia) {
+      if (r.entregas < 2) continue;
+      const a = acumTurno[r.turno] || (acumTurno[r.turno] = { dias: 0, minutos: 0 });
+      a.dias++;
+      a.minutos += r.minutos;
+    }
+
     res.json({
       ini, fin, total: pedidos.length,
       // Ordenados para graficar sin que el cliente tenga que hacerlo
@@ -208,10 +284,27 @@ adminRouter.get('/reportes', async (req, res) => {
       porciones_por_platillo: Object.entries(porPlatillo)
         .sort((a, b) => b[1] - a[1]).map(([platillo, n]) => ({ platillo, porciones: n })),
       rating,
-      entrega: { entregados, tardios, no_entregados: noEntregados },
+      // pendientes = ya pedidos pero cuya hora de entrega aún no llega; van
+      // dentro de no_entregados y por eso se informan aparte.
+      entrega: { entregados, tardios, no_entregados: noEntregados, pendientes },
       motivos_tardia: Object.entries(motivos)
         .sort((a, b) => b[1] - a[1])
-        .map(([id, n]) => ({ motivo: MOTIVOS_TARDIA[id] || 'Sin motivo indicado', veces: n }))
+        .map(([id, n]) => ({ motivo: MOTIVOS_TARDIA[id] || 'Sin motivo indicado', veces: n })),
+
+      sin_recoger: Object.values(porEmpleado)
+        .filter(e => e.no_recogidos > 0)
+        .map(e => ({ ...e, pct: pct(e.no_recogidos, e.pedidos) }))
+        .sort((a, b) => b.no_recogidos - a.no_recogidos || b.pct - a.pct),
+      merma: {
+        por_turno: filasMerma(mermaTurno).map(f => ({ turno: f.clave, ...f, clave: undefined })),
+        por_zona:  filasMerma(mermaZona).map(f  => ({ zona:  f.clave, ...f, clave: undefined }))
+      },
+      ruta: {
+        por_dia: rutaPorDia,
+        promedio_por_turno: Object.entries(acumTurno)
+          .map(([turno, a]) => ({ turno, dias: a.dias, minutos_promedio: Math.round(a.minutos / a.dias) }))
+          .sort((a, b) => a.turno.localeCompare(b.turno))
+      }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -639,6 +639,21 @@
       </div>
       <div class="card">
         <div class="card-header">
+          <div class="card-icon">🚚</div>
+          <h3>Reporte de operación</h3>
+        </div>
+        <p style="font-size:.82rem;color:var(--gris-text);margin:-4px 0 12px">
+          Quién no recoge, merma por turno y zona, y tiempos de ruta. Una hoja por tema.
+        </p>
+        <div class="row-fin">
+          <div><label>Desde</label><input type="date" id="op-ini"></div>
+          <div><label>Hasta</label><input type="date" id="op-fin"></div>
+          <button class="accion" onclick="excelOperacion()">Descargar Excel</button>
+        </div>
+        <div id="repOpAviso" class="aviso"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
           <div class="card-icon">💼</div>
           <h3>Reporte de facturación</h3>
         </div>
@@ -667,6 +682,10 @@
   const TURNO_TXT = { turno_a: 'Turno A (10:00 am)', turno_b: 'Turno B (5:00 pm)' };
   const zonaTxt  = z => ZONA_TXT[z]  || z || '—';
   const turnoTxt = t => TURNO_TXT[t] || t || '—';
+  // En reportes los pedidos viejos sin asignar se agrupan bajo una clave
+  // propia, que hay que nombrar en español y no mostrar tal cual.
+  const etiquetaTurno = t => t === 'sin_turno' ? 'Sin turno' : turnoTxt(t);
+  const etiquetaZona  = z => z === 'sin_zona'  ? 'Sin zona'  : zonaTxt(z);
 
   let ADMIN_KEY = '';
 
@@ -916,11 +935,68 @@
         cajita(e.tardios, 'Tardíos', '#b8860b', '#fff9e6') +
         cajita(e.no_entregados, 'No entregados', 'var(--rojo)', '#fdecec') +
         '</div>' +
+        (e.pendientes
+          ? '<p style="font-size:.78rem;color:var(--gris-text);margin-top:10px">De los ' +
+            e.no_entregados + ' no entregados, <strong>' + e.pendientes +
+            '</strong> todavía no vencen su hora de entrega: no cuentan como merma.</p>'
+          : '') +
         (d.motivos_tardia.length
           ? '<table style="margin-top:14px"><tr><th>Motivo del retraso</th><th>Veces</th></tr>' +
             d.motivos_tardia.map(m => '<tr><td>' + m.motivo + '</td><td>' + m.veces + '</td></tr>').join('') +
             '</table>'
           : ''));
+
+      // 5 · Quién no recoge. Solo cuenta pedidos cuya hora de entrega ya pasó,
+      // para no acusar a nadie por un pedido que todavía no le toca recoger.
+      h += bloque('Quién no recoge su pedido',
+        d.sin_recoger.length
+          ? '<table><tr><th>Empleado</th><th>No.</th><th>Pedidos</th><th>No recogidos</th><th>%</th></tr>' +
+            d.sin_recoger.map(x =>
+              '<tr><td>' + x.nombre + '</td><td>' + x.numero_empleado + '</td><td>' + x.pedidos + '</td>' +
+              '<td><strong>' + x.no_recogidos + '</strong></td>' +
+              '<td style="color:' + (x.pct >= 50 ? 'var(--rojo)' : x.pct >= 25 ? '#b8860b' : 'var(--gris-text)') +
+              ';font-weight:700">' + x.pct + '%</td></tr>').join('') +
+            '</table>' +
+            '<p style="font-size:.78rem;color:var(--gris-text);margin-top:10px">' +
+            'Ordenado por cuántas veces no recogió. Solo aparecen pedidos cuya hora de entrega ya pasó.</p>'
+          : '<div class="vacio">Todos recogieron lo que pidieron en este periodo.</div>');
+
+      // 6 · Merma: comida que se preparó y nadie recogió
+      const filaMerma = (etiqueta, m) =>
+        '<tr><td>' + etiqueta + '</td><td>' + m.evaluables + '</td><td>' + m.entregados + '</td>' +
+        '<td><strong>' + m.no_recogidos + '</strong></td>' +
+        '<td style="color:' + (m.pct_merma >= 10 ? 'var(--rojo)' : 'var(--gris-text)') +
+        ';font-weight:700">' + m.pct_merma + '%</td></tr>';
+      const tablaMerma = (titulo, filas) =>
+        '<table style="margin-bottom:14px"><tr><th>' + titulo + '</th><th>Evaluables</th>' +
+        '<th>Entregados</th><th>No recogidos</th><th>Merma</th></tr>' + filas + '</table>';
+
+      h += bloque('Merma — comida preparada que nadie recogió',
+        d.merma.por_turno.length
+          ? tablaMerma('Turno', d.merma.por_turno.map(m => filaMerma(etiquetaTurno(m.turno), m)).join('')) +
+            tablaMerma('Zona',  d.merma.por_zona.map(m  => filaMerma(etiquetaZona(m.zona), m)).join(''))
+          : '<div class="vacio">Todavía no hay entregas vencidas que evaluar.</div>');
+
+      // 7 · Tiempos de ruta: entre el primer y el último escaneo de cada turno
+      h += bloque('Tiempos de ruta',
+        d.ruta.por_dia.length
+          ? (d.ruta.promedio_por_turno.length
+              ? '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+                d.ruta.promedio_por_turno.map(t =>
+                  cajita(t.minutos_promedio + ' min', etiquetaTurno(t.turno) + ' · promedio de ' + t.dias + ' día(s)',
+                         'var(--azul)', '#eef2fa')).join('') +
+                '</div>'
+              : '') +
+            '<table><tr><th>Fecha</th><th>Turno</th><th>Entregas</th><th>Primera</th><th>Última</th><th>Duración</th></tr>' +
+            d.ruta.por_dia.map(r =>
+              '<tr><td>' + r.fecha + '</td><td>' + etiquetaTurno(r.turno) + '</td><td>' + r.entregas + '</td>' +
+              '<td>' + r.primera + '</td><td>' + r.ultima + '</td>' +
+              '<td>' + (r.entregas < 2 ? '—' : r.minutos + ' min') + '</td></tr>').join('') +
+            '</table>' +
+            '<p style="font-size:.78rem;color:var(--gris-text);margin-top:10px">' +
+            'Medido entre el primer y el último escaneo de ese turno. Un día con una sola entrega no ' +
+            'cuenta como ruta y no entra al promedio.</p>'
+          : '<div class="vacio">Sin entregas escaneadas en este periodo.</div>');
 
       box.innerHTML = h;
     } catch(e) {
@@ -1508,6 +1584,73 @@
       XLSX.writeFile(wb, `CICSA_Cocina_${f}.xlsx`);
       aviso('repCocinaAviso', `Reporte generado: ${ped.count} pedidos`);
     } catch (e) { aviso('repCocinaAviso', 'Error: ' + e.message, false); }
+  }
+
+  async function excelOperacion() {
+    const ini = val('op-ini'), fin = val('op-fin');
+    if (!ini || !fin) return aviso('repOpAviso', 'Selecciona el rango de fechas', false);
+    try {
+      const d = await api('/api/reportes?ini=' + ini + '&fin=' + fin);
+      if (!d.total) return aviso('repOpAviso', 'Sin pedidos en ese rango', false);
+      XLSX.writeFile(buildWorkbookOperacion(d), `CICSA_Operacion_${ini}_a_${fin}.xlsx`);
+      aviso('repOpAviso', `Reporte generado: ${d.total} pedidos del periodo`);
+    } catch (e) { aviso('repOpAviso', 'Error: ' + e.message, false); }
+  }
+
+  function buildWorkbookOperacion(d) {
+    const wb = XLSX.utils.book_new();
+    const hoja = (nombre, filas, anchos) => {
+      const ws = XLSX.utils.aoa_to_sheet(filas);
+      ws['!cols'] = anchos.map(wch => ({ wch }));
+      XLSX.utils.book_append_sheet(wb, ws, nombre);
+    };
+
+    // Hoja 1 — quién no recoge, que es la que se revisa con el supervisor
+    const f1 = [['No_Empleado', 'Nombre', 'Pedidos', 'No_Recogidos', 'Porcentaje']];
+    d.sin_recoger.forEach(x => f1.push([x.numero_empleado, x.nombre, x.pedidos, x.no_recogidos, x.pct / 100]));
+    const ws1 = XLSX.utils.aoa_to_sheet(f1);
+    for (let i = 0; i < d.sin_recoger.length; i++) {
+      const c = ws1['E' + (i + 2)];
+      if (c) c.z = '0.0%';
+    }
+    ws1['!cols'] = [14, 32, 12, 16, 14].map(wch => ({ wch }));
+    XLSX.utils.book_append_sheet(wb, ws1, 'Sin_Recoger');
+
+    // Hoja 2 — merma, turno y zona en la misma hoja para compararlas de un ojo
+    const f2 = [['MERMA POR TURNO'], ['Turno', 'Evaluables', 'Entregados', 'No_Recogidos', 'Merma_%']];
+    d.merma.por_turno.forEach(m => f2.push([etiquetaTurno(m.turno), m.evaluables, m.entregados, m.no_recogidos, m.pct_merma]));
+    f2.push([], ['MERMA POR ZONA'], ['Zona', 'Evaluables', 'Entregados', 'No_Recogidos', 'Merma_%']);
+    d.merma.por_zona.forEach(m => f2.push([etiquetaZona(m.zona), m.evaluables, m.entregados, m.no_recogidos, m.pct_merma]));
+    hoja('Merma', f2, [26, 14, 14, 16, 12]);
+
+    // Hoja 3 — ruta día por día, más el promedio por turno al final
+    const f3 = [['Fecha', 'Turno', 'Entregas', 'Primera', 'Ultima', 'Duracion_Min']];
+    d.ruta.por_dia.forEach(r => f3.push([
+      r.fecha, etiquetaTurno(r.turno), r.entregas, r.primera, r.ultima,
+      r.entregas < 2 ? '' : r.minutos
+    ]));
+    if (d.ruta.promedio_por_turno.length) {
+      f3.push([], ['PROMEDIO POR TURNO'], ['Turno', 'Dias_Con_Ruta', 'Minutos_Promedio']);
+      d.ruta.promedio_por_turno.forEach(t => f3.push([etiquetaTurno(t.turno), t.dias, t.minutos_promedio]));
+    }
+    hoja('Tiempos_Ruta', f3, [14, 26, 12, 12, 12, 16]);
+
+    // Hoja 4 — de dónde salen los números, para que el reporte se explique solo
+    hoja('Resumen', [
+      ['Periodo', d.ini + ' a ' + d.fin],
+      ['Pedidos del periodo', d.total],
+      ['Entregados a tiempo', d.entrega.entregados],
+      ['Entregados tarde', d.entrega.tardios],
+      ['No entregados', d.entrega.no_entregados],
+      ['— de esos, aún no vence su hora', d.entrega.pendientes],
+      [],
+      ['Nota', 'La merma y el conteo de "no recogidos" solo incluyen pedidos cuya hora de'],
+      ['', 'entrega ya pasó (hora del turno + 15 min de tolerancia). Un pedido del día en'],
+      ['', 'curso que todavía no vence no cuenta como merma.'],
+      ['', 'La duración de ruta se mide entre el primer y el último escaneo de ese turno.']
+    ], [34, 70]);
+
+    return wb;
   }
 
   async function excelFacturacion() {
