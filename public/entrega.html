@@ -696,5 +696,17 @@
     if (COLA.length) { e.preventDefault(); e.returnValue = ''; }
   });
 </script>
+
+<!-- Bloque aparte a propósito: el arranque de la app corre antes de que se
+     termine de parsear el script de arriba, y no queremos que un cambio aquí
+     pueda tocar sus variables. Esto es lo que hace que la app abra sin señal. -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .catch(err => console.warn('[SW] No se registró:', err.message));
+    });
+  }
+</script>
 </body>
 </html>

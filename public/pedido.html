@@ -645,5 +645,17 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 </script>
+
+<script>
+  // Aquí el service worker solo sirve para que la pantalla abra sin señal y
+  // diga qué pasa: pedir siempre necesita red, y si no hay, el envío falla a
+  // la vista como siempre.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .catch(err => console.warn('[SW] No se registró:', err.message));
+    });
+  }
+</script>
 </body>
 </html>
