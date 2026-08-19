@@ -229,6 +229,253 @@
   .aviso.err { display: block; background: var(--rojo-light); color: var(--rojo); border: 1px solid #f0c8c2; }
   .aviso.info { display: block; background: var(--dorado-light); color: #8a6318; border: 1px solid #f0dcae; }
 
+  /* ── Encuesta del último platillo ───────────────────────────
+     Interrumpe una sola vez y de forma opcional antes del menú. La vista deja
+     explícito qué se está calificando y resuelve la respuesta en un toque. */
+  body.rating-active {
+    overflow-x: hidden;
+    background: #eef3fb;
+  }
+  body.rating-active > header,
+  body.rating-active > footer { display: none; }
+  body.rating-active main {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  body.rating-active #fechabar,
+  body.rating-active #aviso { display: none !important; }
+
+  .rating-view {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    min-height: 100svh;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #f5f8fd;
+    color: var(--login-azul-oscuro);
+    font-family: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  }
+  .rating-view.activa { display: block; }
+  .rating-hero {
+    position: relative;
+    isolation: isolate;
+    min-height: 235px;
+    padding: 30px 24px 64px;
+    overflow: hidden;
+    background: var(--login-cobalto);
+    color: #fff;
+  }
+  .rating-hero::before {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    inset: 0;
+    opacity: .14;
+    background-image:
+      linear-gradient(rgba(255,255,255,.48) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.48) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: linear-gradient(120deg, #000 0%, transparent 76%);
+  }
+  .rating-hero::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 225px;
+    height: 225px;
+    right: -112px;
+    bottom: -145px;
+    border: 29px solid rgba(255,255,255,.12);
+    border-radius: 50%;
+  }
+  .rating-hero h1 {
+    max-width: 430px;
+    margin: 0;
+    color: #fff;
+    font-size: clamp(2rem, 9vw, 2.65rem);
+    font-weight: 600;
+    letter-spacing: -.035em;
+    line-height: 1.07;
+    text-wrap: balance;
+  }
+  .rating-hero h1 strong { font-weight: 800; }
+  .rating-hero h1:focus { outline: none; }
+  .rating-hero-copy {
+    max-width: 390px;
+    margin-top: 10px;
+    color: #dbeafe;
+    font-size: .87rem;
+    line-height: 1.52;
+    text-wrap: balance;
+  }
+  .rating-quick-note {
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 18px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255,255,255,.32);
+    border-radius: 12px;
+    background: rgba(4, 35, 90, .28);
+    color: #fff;
+    font-size: .69rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .rating-quick-note svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    color: #bfdbfe;
+  }
+  .rating-body {
+    position: relative;
+    z-index: 2;
+    margin-top: -38px;
+    padding: 0 20px 34px;
+  }
+  .rating-last-meal {
+    padding: 17px;
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    align-items: center;
+    gap: 13px;
+    border: 1px solid #d7e2f0;
+    border-radius: 17px;
+    background: #fff;
+    box-shadow: 0 13px 30px rgba(15, 48, 93, .11);
+  }
+  .rating-meal-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: #eaf2fd;
+    color: var(--login-cobalto);
+  }
+  .rating-meal-icon svg { width: 28px; height: 28px; }
+  .rating-label {
+    display: block;
+    color: #718198;
+    font-size: .59rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .rating-last-meal h2 {
+    margin-top: 3px;
+    color: var(--login-azul-oscuro);
+    font-size: .98rem;
+    font-weight: 700;
+    letter-spacing: -.015em;
+    line-height: 1.35;
+  }
+  .rating-question { margin: 29px 0 15px; }
+  .rating-question h2 {
+    color: var(--login-azul-oscuro);
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -.025em;
+    line-height: 1.18;
+  }
+  .rating-question p {
+    margin-top: 6px;
+    color: #5f7189;
+    font-size: .8rem;
+    line-height: 1.48;
+  }
+  .rating-choice {
+    width: 100%;
+    min-height: 72px;
+    margin-bottom: 9px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 43px minmax(0, 1fr) 22px;
+    align-items: center;
+    gap: 12px;
+    border: 1.5px solid #d8e1ee;
+    border-radius: 15px;
+    background: #fff;
+    color: var(--login-azul-oscuro);
+    box-shadow: 0 5px 15px rgba(31, 61, 104, .045);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease,
+                transform .18s cubic-bezier(.16, 1, .3, 1), box-shadow .18s ease;
+  }
+  .rating-choice:hover {
+    border-color: #a9c2e7;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(31, 61, 104, .08);
+  }
+  .rating-choice:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .22);
+    outline-offset: 2px;
+  }
+  .rating-choice-icon {
+    width: 43px;
+    height: 43px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: #edf3fb;
+    color: var(--login-cobalto);
+  }
+  .rating-choice.yes .rating-choice-icon { background: #e6f5ef; color: #08795b; }
+  .rating-choice.maybe .rating-choice-icon { background: #fff5dc; color: #9a6813; }
+  .rating-choice.no .rating-choice-icon { background: #f1f4f8; color: #53667e; }
+  .rating-choice-icon svg { width: 23px; height: 23px; }
+  .rating-choice b {
+    min-width: 0;
+    color: inherit;
+    font-size: .88rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .rating-choice-arrow {
+    width: 22px;
+    height: 22px;
+    color: #9aacc2;
+  }
+  .rating-skip {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 9px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--login-cobalto);
+    font: inherit;
+    font-size: .79rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .rating-skip:hover { background: #eaf2fd; }
+  .rating-skip:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .22);
+    outline-offset: 2px;
+  }
+  .rating-footnote {
+    margin: 10px auto 0;
+    max-width: 330px;
+    color: #718198;
+    font-size: .68rem;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  @media (max-width: 360px) {
+    .rating-hero { padding-left: 19px; padding-right: 19px; }
+    .rating-body { padding-left: 14px; padding-right: 14px; }
+  }
+
+
   /* ── Confirmación ───────────────────────────────────────────
      Cierra el mismo pase de servicio que abre el menú: primero confirma el
      resultado y después deja visibles los datos que el empleado verificará. */
@@ -1591,7 +1838,9 @@
     .empty-refresh { transition-duration: .01ms; }
     .menu-choice,
     .menu-submit-button,
-    .confirm-change { transition-duration: .01ms; }
+    .confirm-change,
+    .rating-choice,
+    .rating-skip { transition-duration: .01ms; }
   }
 </style>
 </head>
@@ -1694,22 +1943,73 @@
       </svg>
     </section>
 
-    <!-- 1b. Calificar el pedido anterior (solo si quedó uno sin calificar) -->
-    <section class="vista card" id="v-rating">
-      <h1>¿Qué tal estuvo?</h1>
-      <p class="sub" id="rating-que">—</p>
-      <div id="rating-ops">
-        <button class="opt" onclick="calificar('si')">
-          <div class="tx"><b>Sí, lo volvería a pedir</b></div><div class="rd"></div>
-        </button>
-        <button class="opt" onclick="calificar('tal_vez')">
-          <div class="tx"><b>Tal vez</b></div><div class="rd"></div>
-        </button>
-        <button class="opt" onclick="calificar('no')">
-          <div class="tx"><b>No lo volvería a pedir</b></div><div class="rd"></div>
+    <!-- 1b. Calificar el último pedido entregado (solo si quedó sin calificar) -->
+    <section class="vista rating-view" id="v-rating">
+      <div class="menu-brandbar rating-brandbar">
+        <img class="menu-golunch" src="golunch-compacto.png" alt="CICSA GoLunch"
+             width="1328" height="698">
+        <div class="menu-client">
+          <span>Servicio para</span>
+          <img src="glovis-logo.png" alt="Hyundai Glovis" width="220" height="56">
+        </div>
+        <button class="menu-exit" type="button" onclick="salir()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4M14 8l4 4-4 4M9 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Salir</span>
         </button>
       </div>
-      <button class="btn sec" onclick="saltarRating()">Ahora no, ir al menú</button>
+
+      <div class="rating-hero">
+        <h1>Hola, <strong id="rating-nombre">bienvenido</strong>.</h1>
+        <p class="rating-hero-copy">Antes de elegir tu comida, cuéntanos qué te pareció el último platillo que recibiste.</p>
+        <div class="rating-quick-note">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Es opcional y toma un solo toque.
+        </div>
+      </div>
+
+      <div class="rating-body">
+        <section class="rating-last-meal" aria-labelledby="rating-que">
+          <span class="rating-meal-icon" aria-hidden="true">
+            <svg viewBox="0 0 28 28" fill="none"><path d="M4 18h20M6 18a8 8 0 0 1 16 0M14 8V5M5 23h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <div>
+            <span class="rating-label">Tu último platillo entregado</span>
+            <h2 id="rating-que">—</h2>
+          </div>
+        </section>
+
+        <div class="rating-question">
+          <h2>¿Qué te pareció ese platillo?</h2>
+          <p>Evalúa únicamente lo que recibiste; todavía no estás eligiendo tu comida de hoy.</p>
+        </div>
+
+        <div id="rating-ops" role="group" aria-label="Califica tu último platillo">
+          <button class="rating-choice yes" type="button" onclick="calificar('si')">
+            <span class="rating-choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <b>Me gustó mucho</b>
+            <svg class="rating-choice-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="rating-choice maybe" type="button" onclick="calificar('tal_vez')">
+            <span class="rating-choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M9.5 9a2.7 2.7 0 1 1 4 2.35c-.95.55-1.5 1.15-1.5 2.15M12 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <b>Estuvo bien</b>
+            <svg class="rating-choice-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="rating-choice no" type="button" onclick="calificar('no')">
+            <span class="rating-choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <b>No me gustó</b>
+            <svg class="rating-choice-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <button class="rating-skip" type="button" onclick="saltarRating()">Ahora no, continuar al menú</button>
+        <p class="rating-footnote">Tu opinión ayuda a mejorar próximos menús. Este platillo no se agrega a las opciones de hoy.</p>
+      </div>
     </section>
 
     <!-- 2. Elegir platillo -->
@@ -2089,6 +2389,7 @@
     sel.opcion_id = previo?.opcion_id || null;
 
     $('saludo-nombre').textContent = nombreParaSaludo(emp.nombre);
+    $('rating-nombre').textContent = nombreParaSaludo(emp.nombre);
     $('menu-sub').textContent = previo
       ? 'Tu pedido ya está guardado. Puedes cambiarlo antes del corte.'
       : 'Elige tu platillo para el próximo servicio.';
@@ -2292,6 +2593,7 @@
     document.body.classList.toggle('empty-active', vista === 'v-cerrado');
     document.body.classList.toggle('menu-active', vista === 'v-menu');
     document.body.classList.toggle('confirm-active', vista === 'v-listo');
+    document.body.classList.toggle('rating-active', vista === 'v-rating');
     const pasos = { 'v-id': '1 de 2', 'v-menu': '2 de 2', 'v-ajustar': 'Ajustar' };
     $('paso').textContent = pasos[vista] || '';
     // El botón de salir solo tiene sentido con alguien identificado
