@@ -543,6 +543,466 @@
     .empty-refresh { margin-top: 18px; }
   }
 
+  /* ── Menú personalizado ─────────────────────────────────────
+     La composición funciona como un pase de servicio: identifica a la
+     persona, fija fecha/ruta y deja la elección como única tarea pendiente. */
+  body.menu-active {
+    overflow-x: hidden;
+    background: #eef3fb;
+  }
+  body.menu-active > header,
+  body.menu-active > footer { display: none; }
+  body.menu-active main {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  body.menu-active #fechabar,
+  body.menu-active #aviso { display: none !important; }
+
+  .menu-view {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    min-height: 100svh;
+    margin: 0 auto;
+    padding-bottom: 124px;
+    overflow: hidden;
+    background: #f5f8fd;
+    color: var(--login-azul-oscuro);
+    font-family: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  }
+  .menu-view.activa { display: block; }
+  .menu-brandbar {
+    min-height: 92px;
+    padding: max(15px, env(safe-area-inset-top)) 20px 15px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid var(--login-linea);
+    background: #fff;
+  }
+  .menu-golunch {
+    display: block;
+    width: 100%;
+    max-width: 150px;
+    height: auto;
+  }
+  .menu-client {
+    min-width: 0;
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+  }
+  .menu-client span {
+    color: var(--login-texto);
+    font-size: .53rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .menu-client img {
+    display: block;
+    width: 86px;
+    max-width: 100%;
+    height: auto;
+  }
+  .menu-exit {
+    min-width: 48px;
+    min-height: 42px;
+    padding: 7px 8px;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 2px;
+    border: 0;
+    border-radius: 10px;
+    background: #f0f5fc;
+    color: var(--login-cobalto);
+    font: inherit;
+    font-size: .61rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .menu-exit svg { width: 17px; height: 17px; }
+  .menu-exit:hover { background: #e4edfa; }
+  .menu-exit:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .24);
+    outline-offset: 2px;
+  }
+
+  .menu-hero {
+    position: relative;
+    isolation: isolate;
+    min-height: 242px;
+    padding: 29px 24px 56px;
+    overflow: hidden;
+    background: var(--login-cobalto);
+    color: #fff;
+  }
+  .menu-hero::before {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    inset: 0;
+    opacity: .14;
+    background-image:
+      linear-gradient(rgba(255,255,255,.48) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.48) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: linear-gradient(115deg, #000 0%, transparent 72%);
+  }
+  .menu-hero::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 240px;
+    height: 240px;
+    right: -112px;
+    top: -116px;
+    border: 31px solid rgba(255,255,255,.13);
+    border-radius: 50%;
+  }
+  .menu-hero h1 {
+    max-width: 430px;
+    margin: 0;
+    color: #fff;
+    font-size: clamp(2rem, 9vw, 2.75rem);
+    font-weight: 600;
+    letter-spacing: -.035em;
+    line-height: 1.06;
+    text-wrap: balance;
+  }
+  .menu-hero h1 strong { font-weight: 800; }
+  .menu-hero h1:focus { outline: none; }
+  .menu-hero-copy {
+    max-width: 380px;
+    margin-top: 10px;
+    color: #dbeafe;
+    font-size: .9rem;
+    line-height: 1.5;
+    text-wrap: balance;
+  }
+  .menu-service-pass {
+    width: 100%;
+    max-width: 390px;
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) 1px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    padding: 13px 15px;
+    border: 1px solid rgba(255,255,255,.32);
+    border-radius: 14px;
+    background: rgba(4, 35, 90, .28);
+    box-shadow: 0 9px 24px rgba(4, 28, 70, .16);
+  }
+  .menu-service-date,
+  .menu-service-cutoff {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .menu-service-date svg,
+  .menu-service-cutoff svg {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    color: #bfdbfe;
+  }
+  .menu-service-pass span {
+    display: block;
+    color: #bfdbfe;
+    font-size: .57rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .menu-service-pass b {
+    display: block;
+    margin-top: 1px;
+    overflow: hidden;
+    color: #fff;
+    font-size: .74rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .menu-service-divider {
+    width: 1px;
+    height: 35px;
+    background: rgba(255,255,255,.3);
+  }
+
+  .menu-body {
+    position: relative;
+    padding: 0 20px 30px;
+  }
+  .menu-route {
+    position: relative;
+    z-index: 2;
+    margin-top: -32px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    border: 1px solid #d7e2f0;
+    border-radius: 17px;
+    background: #fff;
+    box-shadow: 0 13px 30px rgba(15, 48, 93, .11);
+  }
+  .menu-route-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--login-cobalto);
+    font-size: .72rem;
+    font-weight: 700;
+  }
+  .menu-route-title svg { width: 18px; height: 18px; }
+  .menu-route-grid {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .menu-route-divider { background: #e3eaf4; }
+  .menu-route-item span {
+    display: block;
+    color: var(--login-texto);
+    font-size: .57rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .menu-route-item b {
+    display: block;
+    margin-top: 2px;
+    color: var(--login-azul-oscuro);
+    font-size: .82rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .menu-route-item small {
+    display: block;
+    margin-top: 2px;
+    color: #63748b;
+    font-size: .65rem;
+    line-height: 1.35;
+  }
+  .menu-route-change {
+    align-self: start;
+    min-height: 40px;
+    padding: 8px 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #c8d8ed;
+    border-radius: 10px;
+    background: #f5f8fd;
+    color: var(--login-cobalto);
+    font: inherit;
+    font-size: .7rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .menu-route-change svg { width: 15px; height: 15px; }
+  .menu-route-change:hover { border-color: var(--login-azul); background: #eff6ff; }
+  .menu-route-change:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .2);
+    outline-offset: 2px;
+  }
+
+  .menu-alert {
+    margin: 16px 0 0;
+    padding: 11px 13px;
+    border: 1px solid #fecaca;
+    border-radius: 11px;
+    background: #fef2f2;
+    color: #a61b1b;
+    font-size: .8rem;
+    line-height: 1.45;
+  }
+  .menu-alert[hidden] { display: none; }
+  .menu-heading {
+    margin: 29px 0 17px;
+  }
+  .menu-heading h2 {
+    color: var(--login-azul-oscuro);
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -.025em;
+    line-height: 1.15;
+  }
+  .menu-heading p {
+    margin-top: 5px;
+    color: #5f7189;
+    font-size: .82rem;
+    line-height: 1.45;
+  }
+  .menu-group + .menu-group { margin-top: 27px; }
+  .menu-group-head {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .menu-group-head h3 {
+    color: #294260;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+  }
+  .menu-group-head span {
+    color: #718198;
+    font-size: .67rem;
+  }
+  .menu-choice {
+    position: relative;
+    width: 100%;
+    min-height: 74px;
+    margin-bottom: 9px;
+    padding: 13px 14px;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 25px;
+    align-items: center;
+    gap: 12px;
+    overflow: hidden;
+    border: 1.5px solid #d8e1ee;
+    border-radius: 15px;
+    background: #fff;
+    color: var(--login-azul-oscuro);
+    box-shadow: 0 5px 15px rgba(31, 61, 104, .045);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease,
+                transform .18s cubic-bezier(.16, 1, .3, 1), box-shadow .18s ease;
+  }
+  .menu-choice:hover {
+    border-color: #a9c2e7;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(31, 61, 104, .08);
+  }
+  .menu-choice:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .22);
+    outline-offset: 2px;
+  }
+  .menu-choice.sel {
+    border-color: var(--login-azul);
+    background: #eff6ff;
+    box-shadow: 0 8px 22px rgba(37, 99, 235, .12);
+  }
+  .menu-choice-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: #edf3fb;
+    color: var(--login-cobalto);
+  }
+  .menu-choice.sel .menu-choice-icon { background: #dbeafe; color: var(--login-azul); }
+  .menu-choice-icon svg { width: 24px; height: 24px; }
+  .menu-choice b {
+    min-width: 0;
+    color: inherit;
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .menu-choice-radio {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #c7d4e6;
+    border-radius: 50%;
+    color: transparent;
+    transition: background .18s ease, border-color .18s ease, color .18s ease;
+  }
+  .menu-choice-radio svg { width: 14px; height: 14px; }
+  .menu-choice.sel .menu-choice-radio {
+    border-color: var(--login-azul);
+    background: var(--login-azul);
+    color: #fff;
+  }
+
+  .menu-submit {
+    position: fixed;
+    z-index: 20;
+    left: 50%;
+    bottom: 0;
+    width: min(100%, 520px);
+    padding: 11px 20px calc(12px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    border-top: 1px solid #d9e3f0;
+    background: rgba(255,255,255,.97);
+    box-shadow: 0 -12px 30px rgba(20, 47, 86, .1);
+  }
+  .menu-selection {
+    min-height: 18px;
+    margin-bottom: 7px;
+    color: #53667e;
+    font-size: .7rem;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+  }
+  .menu-submit-button {
+    width: 100%;
+    min-height: 54px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 0;
+    border-radius: 15px;
+    background: var(--login-cobalto);
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(13, 71, 161, .22);
+    font: inherit;
+    font-size: .98rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .16s cubic-bezier(.16, 1, .3, 1),
+                background .16s ease, box-shadow .16s ease;
+  }
+  .menu-submit-button svg { width: 20px; height: 20px; }
+  .menu-submit-button:hover:not(:disabled) {
+    background: var(--login-azul);
+    transform: translateY(-1px);
+    box-shadow: 0 13px 26px rgba(13, 71, 161, .27);
+  }
+  .menu-submit-button:active:not(:disabled) { transform: translateY(1px) scale(.995); }
+  .menu-submit-button:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .24);
+    outline-offset: 2px;
+  }
+  .menu-submit-button:disabled {
+    background: #dfe6f0;
+    color: #75869d;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 360px) {
+    .menu-brandbar { padding-left: 14px; padding-right: 14px; gap: 10px; }
+    .menu-golunch { max-width: 132px; }
+    .menu-client img { width: 76px; }
+    .menu-hero { padding-left: 19px; padding-right: 19px; }
+    .menu-body { padding-left: 14px; padding-right: 14px; }
+    .menu-route { padding: 14px; gap: 10px; }
+    .menu-route-grid { gap: 8px; }
+    .menu-submit { padding-left: 14px; padding-right: 14px; }
+  }
+
   .cargando {
     text-align: center; padding: 40px 0; color: var(--gris-text); font-size: .87rem;
     flex-direction: column; justify-content: center; gap: 14px;
@@ -885,6 +1345,8 @@
     .empty-steam,
     .empty-refresh.revisando svg { animation: none; }
     .empty-refresh { transition-duration: .01ms; }
+    .menu-choice,
+    .menu-submit-button { transition-duration: .01ms; }
   }
 </style>
 </head>
@@ -1006,20 +1468,76 @@
     </section>
 
     <!-- 2. Elegir platillo -->
-    <section class="vista card" id="v-menu">
-      <h1 id="saludo">Hola</h1>
-      <p class="sub" id="menu-sub">Elige tu platillo.</p>
-
-      <div class="asign">
-        <div class="info">
-          <div class="k">Tu entrega</div>
-          <div class="v" id="asig-txt">—</div>
+    <section class="vista menu-view" id="v-menu">
+      <div class="menu-brandbar">
+        <img class="menu-golunch" src="golunch-compacto.png" alt="CICSA GoLunch"
+             width="1328" height="698">
+        <div class="menu-client">
+          <span>Servicio para</span>
+          <img src="glovis-logo.png" alt="Hyundai Glovis" width="220" height="56">
         </div>
-        <button onclick="ir('v-ajustar')">Cambiar</button>
+        <button class="menu-exit" type="button" onclick="salir()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4M14 8l4 4-4 4M9 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Salir</span>
+        </button>
       </div>
 
-      <div id="platillos"></div>
-      <button class="btn" id="btn-enviar" onclick="enviar()" disabled>Enviar pedido</button>
+      <div class="menu-hero">
+        <h1 id="saludo">Hola, <strong id="saludo-nombre">bienvenido</strong>.</h1>
+        <p class="menu-hero-copy" id="menu-sub">Elige tu platillo para el próximo servicio.</p>
+
+        <div class="menu-service-pass">
+          <div class="menu-service-date">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div><span>Tu pedido es para</span><b id="menu-fecha">—</b></div>
+          </div>
+          <span class="menu-service-divider" aria-hidden="true"></span>
+          <div class="menu-service-cutoff">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div><span>Disponible hasta</span><b id="menu-corte">—</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-body">
+        <section class="menu-route" aria-labelledby="menu-route-title">
+          <div>
+            <div class="menu-route-title" id="menu-route-title">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 17h14M7 17l1.5 3h7L17 17M6 14h12l-1.5-6h-9L6 14Zm6-6V5m-2 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Tu entrega
+            </div>
+            <div class="menu-route-grid">
+              <div class="menu-route-item">
+                <span>Turno</span><b id="asig-turno">—</b><small id="asig-hora">—</small>
+              </div>
+              <span class="menu-route-divider" aria-hidden="true"></span>
+              <div class="menu-route-item">
+                <span>Zona</span><b id="asig-zona">—</b><small id="asig-zona-desc">—</small>
+              </div>
+            </div>
+          </div>
+          <button class="menu-route-change" type="button" onclick="ir('v-ajustar')">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 16-.8 4 4-.8L18 8.4 15.6 6 4 16Zm10-9 2.4 2.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Cambiar
+          </button>
+        </section>
+
+        <div class="menu-alert" id="menu-alert" role="alert" hidden></div>
+
+        <div class="menu-heading">
+          <h2>Elige tu platillo</h2>
+          <p>Selecciona una opción para completar tu pedido.</p>
+        </div>
+        <div id="platillos"></div>
+      </div>
+
+      <div class="menu-submit">
+        <div class="menu-selection" id="menu-selected-label" aria-live="polite">Selecciona un platillo</div>
+        <button class="menu-submit-button" id="btn-enviar" type="button" onclick="enviar()" disabled>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="btn-enviar-label">Confirmar pedido</span>
+        </button>
+      </div>
     </section>
 
     <!-- 3. Ajustar entrega -->
@@ -1221,6 +1739,8 @@
     $('cal-m').textContent = MESES[m - 1];
     $('cal-d').textContent = String(d);
     $('fecha-val').textContent = estado.fecha_legible || estado.fecha;
+    $('menu-fecha').textContent = estado.fecha_legible || estado.fecha;
+    $('menu-corte').textContent = estado.corte || '8:00 PM';
     $('fechabar').style.display = 'flex';
     $('fechabar').classList.toggle('cerrado', !estado.abierto);
     $('fecha-lbl').textContent = estado.abierto ? 'Tu pedido es para' : 'Pedidos cerrados para';
@@ -1273,10 +1793,10 @@
     sel.turno    = previo?.turno || emp.turno_default || null;
     sel.opcion_id = previo?.opcion_id || null;
 
-    $('saludo').textContent = 'Hola, ' + emp.nombre.split(' ')[0] + ' 👋';
+    $('saludo-nombre').textContent = nombreParaSaludo(emp.nombre);
     $('menu-sub').textContent = previo
-      ? 'Ya tienes un pedido registrado. Puedes cambiarlo aquí.'
-      : 'Elige tu platillo. Ya sabemos dónde y a qué hora lo recibes.';
+      ? 'Tu pedido ya está guardado. Puedes cambiarlo antes del corte.'
+      : 'Elige tu platillo para el próximo servicio.';
 
     pintarPlatillos();
     pintarAjustes();
@@ -1284,8 +1804,9 @@
 
     // Sin asignación de RRHH: hay que preguntarla antes de pedir
     if (!sel.zona || !sel.turno) {
+      ir('v-ajustar');
       mostrarAviso('Tu registro no tiene zona y turno asignados. Indícalos para continuar.', 'info');
-      return ir('v-ajustar');
+      return;
     }
 
     // Si dejó un platillo entregado sin calificar, se le pregunta una vez.
@@ -1322,10 +1843,33 @@
 
   // ── Pintado de opciones ─────────────────────────────────────
   function pintarPlatillos() {
-    $('platillos').innerHTML = OPCIONES.map(g => `
-      <div class="grupo">${g.grupo}</div>
-      ${g.ids.map(id => opcionHTML(id, estado.menu[id], '', 'opcion_id')).join('')}
-    `).join('');
+    $('platillos').innerHTML = OPCIONES.map(g => {
+      const disponibles = g.ids.filter(id => estado.menu && estado.menu[id]);
+      if (!disponibles.length) return '';
+      return `<section class="menu-group" aria-labelledby="grupo-${g.ids[0]}">
+        <div class="menu-group-head">
+          <h3 id="grupo-${g.ids[0]}">${esc(g.grupo)}</h3>
+          <span>${disponibles.length} opciones</span>
+        </div>
+        ${disponibles.map(id => platilloHTML(id, estado.menu[id])).join('')}
+      </section>`;
+    }).join('');
+    actualizarResumenPlatillo();
+  }
+
+  function platilloHTML(id, titulo) {
+    const activa = sel.opcion_id === id;
+    return `<button class="menu-choice${activa ? ' sel' : ''}" type="button"
+      data-campo="opcion_id" data-id="${id}" aria-pressed="${activa}"
+      onclick="elegir('opcion_id','${id}')">
+      <span class="menu-choice-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 15h16M6 15a6 6 0 0 1 12 0M12 7V5M5 19h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <b>${esc(titulo)}</b>
+      <span class="menu-choice-radio" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none"><path d="m3 8 3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </button>`;
   }
 
   function pintarAjustes() {
@@ -1336,8 +1880,9 @@
   }
 
   function opcionHTML(id, titulo, desc, campo) {
-    const activa = sel[campo] === id ? ' sel' : '';
-    return `<button class="opt${activa}" data-campo="${campo}" data-id="${id}" onclick="elegir('${campo}','${id}')">
+    const activa = sel[campo] === id;
+    return `<button class="opt${activa ? ' sel' : ''}" type="button" data-campo="${campo}" data-id="${id}"
+      aria-pressed="${activa}" onclick="elegir('${campo}','${id}')">
       <div class="tx"><b>${esc(titulo)}</b>${desc ? `<small>${esc(desc)}</small>` : ''}</div>
       <div class="rd"></div>
     </button>`;
@@ -1346,18 +1891,29 @@
   function elegir(campo, id) {
     sel[campo] = id;
     // Limpiar solo las opciones del mismo campo (los platillos viven en dos grupos)
-    document.querySelectorAll(`.opt[data-campo="${campo}"]`).forEach(o => {
-      o.classList.toggle('sel', o.dataset.id === id);
+    document.querySelectorAll(`.opt[data-campo="${campo}"], .menu-choice[data-campo="${campo}"]`).forEach(o => {
+      const activa = o.dataset.id === id;
+      o.classList.toggle('sel', activa);
+      o.setAttribute('aria-pressed', String(activa));
     });
-    if (campo === 'opcion_id') $('btn-enviar').disabled = false;
+    if (campo === 'opcion_id') actualizarResumenPlatillo();
     if (campo === 'zona' || campo === 'turno') refrescarAsignacion();
   }
 
   function refrescarAsignacion() {
-    const t = TURNOS[sel.turno] ? TURNOS[sel.turno] + ' · ' + TURNO_DESC[sel.turno].replace('Entrega ', '') : 'Sin turno';
-    const z = ZONAS[sel.zona] || 'Sin zona';
-    $('asig-txt').textContent = t + ' — ' + z;
+    $('asig-turno').textContent = TURNOS[sel.turno] || 'Sin turno';
+    $('asig-hora').textContent = TURNO_DESC[sel.turno] || 'Selecciona un horario';
+    $('asig-zona').textContent = ZONAS[sel.zona] || 'Sin zona';
+    $('asig-zona-desc').textContent = ZONA_DESC[sel.zona] || 'Selecciona un punto';
     $('btn-enviar').disabled = !sel.opcion_id;
+  }
+
+  function actualizarResumenPlatillo() {
+    const texto = sel.opcion_id && estado.menu ? estado.menu[sel.opcion_id] : '';
+    $('menu-selected-label').textContent = texto
+      ? 'Seleccionaste: ' + texto
+      : 'Selecciona un platillo';
+    $('btn-enviar').disabled = !texto;
   }
 
   function guardarAjuste() {
@@ -1372,7 +1928,8 @@
   // ── Envío ───────────────────────────────────────────────────
   async function enviar() {
     $('btn-enviar').disabled = true;
-    $('btn-enviar').textContent = 'Enviando…';
+    $('btn-enviar').setAttribute('aria-busy', 'true');
+    $('btn-enviar-label').textContent = 'Confirmando…';
     limpiarAviso();
 
     try {
@@ -1401,14 +1958,15 @@
     } catch (e) {
       mostrarAviso(e.message, 'err');
     } finally {
-      $('btn-enviar').disabled = false;
-      $('btn-enviar').textContent = 'Enviar pedido';
+      $('btn-enviar').disabled = !sel.opcion_id;
+      $('btn-enviar').setAttribute('aria-busy', 'false');
+      $('btn-enviar-label').textContent = 'Confirmar pedido';
     }
   }
 
   function volverAlMenu() {
     $('fechabar').style.display = 'flex';
-    $('menu-sub').textContent = 'Ya tienes un pedido registrado. Puedes cambiarlo aquí.';
+    $('menu-sub').textContent = 'Tu pedido ya está guardado. Puedes cambiarlo antes del corte.';
     ir('v-menu');
   }
 
@@ -1421,10 +1979,22 @@
     }
   }
 
+  function nombreParaSaludo(nombre) {
+    const completo = String(nombre || '').trim();
+    const parteNombre = completo.includes(',')
+      ? completo.split(',').slice(1).join(',').trim()
+      : completo;
+    const primero = parteNombre.split(/\s+/)[0];
+    if (!primero) return 'bienvenido';
+    return primero.charAt(0).toLocaleUpperCase('es-MX') +
+      primero.slice(1).toLocaleLowerCase('es-MX');
+  }
+
   function ir(vista) {
     document.querySelectorAll('.vista').forEach(v => v.classList.toggle('activa', v.id === vista));
     document.body.classList.toggle('login-active', vista === 'v-id');
     document.body.classList.toggle('empty-active', vista === 'v-cerrado');
+    document.body.classList.toggle('menu-active', vista === 'v-menu');
     const pasos = { 'v-id': '1 de 2', 'v-menu': '2 de 2', 'v-ajustar': 'Ajustar' };
     $('paso').textContent = pasos[vista] || '';
     // El botón de salir solo tiene sentido con alguien identificado
@@ -1448,7 +2018,11 @@
     sel = { opcion_id: null, zona: null, turno: null };
     $('num').value = '';
     $('platillos').innerHTML = '';
-    $('asig-txt').textContent = '—';
+    $('asig-turno').textContent = '—';
+    $('asig-hora').textContent = '—';
+    $('asig-zona').textContent = '—';
+    $('asig-zona-desc').textContent = '—';
+    $('menu-selected-label').textContent = 'Selecciona un platillo';
     $('btn-enviar').disabled = true;
     limpiarAviso();
     if (estado) pintarFecha();          // la barra de fecha se restaura
@@ -1464,6 +2038,12 @@
       $('num').setAttribute('aria-invalid', 'true');
       return;
     }
+    if (document.body.classList.contains('menu-active')) {
+      const menuAlert = $('menu-alert');
+      menuAlert.textContent = msg;
+      menuAlert.hidden = false;
+      return;
+    }
     const a = $('aviso');
     a.className = 'aviso ' + tipo;
     a.textContent = msg;
@@ -1474,6 +2054,9 @@
     loginError.textContent = '';
     loginError.hidden = true;
     $('num').setAttribute('aria-invalid', 'false');
+    const menuAlert = $('menu-alert');
+    menuAlert.textContent = '';
+    menuAlert.hidden = true;
   }
 
   function esc(s) {
