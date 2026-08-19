@@ -229,30 +229,274 @@
   .aviso.err { display: block; background: var(--rojo-light); color: var(--rojo); border: 1px solid #f0c8c2; }
   .aviso.info { display: block; background: var(--dorado-light); color: #8a6318; border: 1px solid #f0dcae; }
 
-  /* ── Confirmación ── */
-  .listo { text-align: center; }
-  .listo .tick {
-    width: 62px; height: 62px; border-radius: 50%; margin: 4px auto 16px;
-    background: var(--verde-light); display: grid; place-items: center;
-    font-size: 1.9rem; color: var(--verde);
+  /* ── Confirmación ───────────────────────────────────────────
+     Cierra el mismo pase de servicio que abre el menú: primero confirma el
+     resultado y después deja visibles los datos que el empleado verificará. */
+  body.confirm-active {
+    overflow-x: hidden;
+    background: #eef3fb;
   }
-  .listo h1 { color: var(--verde); }
-  .recibo {
-    text-align: left; background: var(--gris-bg); border: 1px solid var(--gris-line);
-    border-radius: 10px; padding: 4px 15px; margin: 16px 0 14px;
+  body.confirm-active > header,
+  body.confirm-active > footer { display: none; }
+  body.confirm-active main {
+    max-width: none;
+    margin: 0;
+    padding: 0;
   }
-  .recibo .fila {
-    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-    padding: 11px 0; border-bottom: 1px dashed var(--gris-line);
+  body.confirm-active #fechabar,
+  body.confirm-active #aviso { display: none !important; }
+
+  .confirm-view {
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    max-width: 520px;
+    min-height: 100svh;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #f5f8fd;
+    color: var(--login-azul-oscuro);
+    font-family: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   }
-  .recibo .fila:last-child { border-bottom: none; }
-  .recibo .fila .k {
-    font-size: .68rem; letter-spacing: .06em; text-transform: uppercase;
-    color: var(--gris-text); font-weight: 700; flex-shrink: 0;
+  .confirm-view.activa {
+    display: flex;
+    flex-direction: column;
   }
-  .recibo .fila .v { font-size: .9rem; font-weight: 700; text-align: right; display: inline-block; }
-  .recibo .fila .v::first-letter { text-transform: uppercase; }
-  .nota-edit { font-size: .78rem; color: var(--gris-text); line-height: 1.55; }
+  .confirm-hero {
+    position: relative;
+    isolation: isolate;
+    padding: 34px 24px 72px;
+    overflow: hidden;
+    background: var(--login-cobalto);
+    color: #fff;
+    text-align: center;
+  }
+  .confirm-hero::before {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    inset: 0;
+    opacity: .13;
+    background-image:
+      linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: radial-gradient(circle at 50% 38%, #000 0%, transparent 72%);
+  }
+  .confirm-hero::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 220px;
+    height: 220px;
+    right: -118px;
+    bottom: -148px;
+    border: 28px solid rgba(255,255,255,.12);
+    border-radius: 50%;
+  }
+  .confirm-check {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 17px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.72);
+    border-radius: 50%;
+    background: #fff;
+    color: #08795b;
+    box-shadow: 0 14px 28px rgba(4, 28, 70, .24);
+  }
+  .confirm-check svg { width: 39px; height: 39px; }
+  .confirm-hero h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(2rem, 9vw, 2.6rem);
+    font-weight: 600;
+    letter-spacing: -.035em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+  .confirm-hero h1 strong { font-weight: 800; }
+  .confirm-hero h1:focus { outline: none; }
+  .confirm-hero p {
+    max-width: 350px;
+    margin: 10px auto 0;
+    color: #dbeafe;
+    font-size: .88rem;
+    line-height: 1.5;
+    text-wrap: balance;
+  }
+  .confirm-body {
+    position: relative;
+    z-index: 2;
+    margin-top: -42px;
+    padding: 0 20px 32px;
+  }
+  .confirm-ticket {
+    padding: 20px;
+    border: 1px solid #d7e2f0;
+    border-radius: 19px;
+    background: #fff;
+    box-shadow: 0 14px 32px rgba(15, 48, 93, .12);
+  }
+  .confirm-ticket-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+  }
+  .confirm-ticket-head h2 {
+    color: var(--login-azul-oscuro);
+    font-size: 1.22rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+  }
+  .confirm-status {
+    margin-top: 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #08795b;
+    font-size: .7rem;
+    font-weight: 700;
+  }
+  .confirm-status svg { width: 15px; height: 15px; }
+  .confirm-date {
+    max-width: 155px;
+    color: #53667e;
+    font-size: .73rem;
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: right;
+  }
+  .confirm-date::first-letter { text-transform: uppercase; }
+  .confirm-meal {
+    margin-top: 18px;
+    padding: 18px 0;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-items: center;
+    gap: 13px;
+    border-top: 1px solid #e1e8f2;
+    border-bottom: 1px solid #e1e8f2;
+  }
+  .confirm-meal-icon {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    background: #eaf2fd;
+    color: var(--login-cobalto);
+  }
+  .confirm-meal-icon svg { width: 27px; height: 27px; }
+  .confirm-label {
+    display: block;
+    color: #718198;
+    font-size: .6rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .confirm-meal b {
+    display: block;
+    margin-top: 3px;
+    color: var(--login-azul-oscuro);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .confirm-route {
+    padding: 17px 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+    gap: 15px;
+    border-bottom: 1px solid #e1e8f2;
+  }
+  .confirm-route-divider { background: #e1e8f2; }
+  .confirm-route b {
+    display: block;
+    margin-top: 4px;
+    color: var(--login-azul-oscuro);
+    font-size: .83rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+  .confirm-employee {
+    padding-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .confirm-employee span:last-child {
+    color: var(--login-cobalto);
+    font-size: .82rem;
+    font-weight: 700;
+  }
+  .confirm-reminder {
+    margin-top: 16px;
+    padding: 14px 15px;
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    border: 1px solid #cbdcf1;
+    border-radius: 13px;
+    background: #edf5ff;
+    color: #425a77;
+  }
+  .confirm-reminder svg {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    color: var(--login-cobalto);
+  }
+  .confirm-reminder p {
+    font-size: .76rem;
+    line-height: 1.55;
+  }
+  .confirm-reminder b { color: var(--login-azul-oscuro); }
+  .confirm-change {
+    width: 100%;
+    min-height: 53px;
+    margin-top: 18px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border: 1.5px solid #b9cce5;
+    border-radius: 14px;
+    background: #fff;
+    color: var(--login-cobalto);
+    font: inherit;
+    font-size: .9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color .17s ease, background .17s ease, transform .17s cubic-bezier(.16, 1, .3, 1);
+  }
+  .confirm-change svg { width: 18px; height: 18px; }
+  .confirm-change:hover { border-color: var(--login-azul); background: #eff6ff; }
+  .confirm-change:active { transform: translateY(1px); }
+  .confirm-change:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .22);
+    outline-offset: 2px;
+  }
+  .confirm-close-note {
+    margin-top: 15px;
+    color: #718198;
+    font-size: .69rem;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  @media (max-width: 360px) {
+    .confirm-hero { padding-left: 19px; padding-right: 19px; }
+    .confirm-body { padding-left: 14px; padding-right: 14px; }
+    .confirm-ticket { padding: 17px; }
+    .confirm-ticket-head { gap: 12px; }
+    .confirm-date { max-width: 130px; }
+  }
 
   /* ── Sin menú / pedidos cerrados ─────────────────────────────
      Es la pantalla que más se repite durante la operación, así que funciona
@@ -1346,7 +1590,8 @@
     .empty-refresh.revisando svg { animation: none; }
     .empty-refresh { transition-duration: .01ms; }
     .menu-choice,
-    .menu-submit-button { transition-duration: .01ms; }
+    .menu-submit-button,
+    .confirm-change { transition-duration: .01ms; }
   }
 </style>
 </head>
@@ -1551,21 +1796,71 @@
       <button class="btn" onclick="guardarAjuste()">Guardar y volver</button>
     </section>
 
-    <!-- 4. Listo -->
-    <section class="vista card" id="v-listo">
-      <div class="listo">
-        <div class="tick">✓</div>
-        <h1 id="listo-titulo">¡Pedido registrado!</h1>
-        <p class="sub" id="listo-sub">Te esperamos en el comedor.</p>
-        <div class="recibo">
-          <div class="fila"><span class="k">Para el día</span><span class="v" id="r-fecha">—</span></div>
-          <div class="fila"><span class="k">Platillo</span><span class="v" id="r-platillo">—</span></div>
-          <div class="fila"><span class="k">Turno</span><span class="v" id="r-turno">—</span></div>
-          <div class="fila"><span class="k">Zona</span><span class="v" id="r-zona">—</span></div>
-          <div class="fila"><span class="k">Empleado</span><span class="v" id="r-emp">—</span></div>
+    <!-- 4. Confirmación -->
+    <section class="vista confirm-view" id="v-listo">
+      <div class="menu-brandbar confirm-brandbar">
+        <img class="menu-golunch" src="golunch-compacto.png" alt="CICSA GoLunch"
+             width="1328" height="698">
+        <div class="menu-client">
+          <span>Servicio para</span>
+          <img src="glovis-logo.png" alt="Hyundai Glovis" width="220" height="56">
         </div>
-        <p class="nota-edit" id="r-nota">Puedes cambiarlo volviendo a abrir esta página.</p>
-        <button class="btn sec" onclick="volverAlMenu()">Cambiar mi pedido</button>
+        <button class="menu-exit" type="button" onclick="salir()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4M14 8l4 4-4 4M9 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Salir</span>
+        </button>
+      </div>
+
+      <div class="confirm-hero">
+        <div class="confirm-check" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none"><path d="m13 25 7 7 15-17" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h1 id="listo-titulo">¡Listo, <strong id="listo-nombre">bienvenido</strong>!</h1>
+        <p id="listo-sub">Tu pedido quedó confirmado para el próximo servicio.</p>
+      </div>
+
+      <div class="confirm-body">
+        <section class="confirm-ticket" aria-labelledby="confirm-ticket-title">
+          <div class="confirm-ticket-head">
+            <div>
+              <h2 id="confirm-ticket-title">Tu pedido</h2>
+              <span class="confirm-status">
+                <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="7.5" stroke="currentColor"/><path d="m5.5 9 2.2 2.2 4.8-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Confirmado
+              </span>
+            </div>
+            <span class="confirm-date" id="r-fecha">—</span>
+          </div>
+
+          <div class="confirm-meal">
+            <span class="confirm-meal-icon" aria-hidden="true">
+              <svg viewBox="0 0 28 28" fill="none"><path d="M4 18h20M6 18a8 8 0 0 1 16 0M14 8V5M5 23h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <div><span class="confirm-label">Platillo</span><b id="r-platillo">—</b></div>
+          </div>
+
+          <div class="confirm-route">
+            <div><span class="confirm-label">Turno</span><b id="r-turno">—</b></div>
+            <span class="confirm-route-divider" aria-hidden="true"></span>
+            <div><span class="confirm-label">Zona</span><b id="r-zona">—</b></div>
+          </div>
+
+          <div class="confirm-employee">
+            <span class="confirm-label">Número de empleado</span>
+            <span id="r-emp">—</span>
+          </div>
+        </section>
+
+        <div class="confirm-reminder">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p id="r-nota">Puedes cambiarlo antes del corte volviendo al menú.</p>
+        </div>
+
+        <button class="confirm-change" type="button" onclick="volverAlMenu()">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 16-.8 4 4-.8L18 8.4 15.6 6 4 16Zm10-9 2.4 2.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Cambiar mi pedido
+        </button>
+        <p class="confirm-close-note">Tu pedido ya está guardado. Puedes cerrar esta página con tranquilidad.</p>
       </div>
     </section>
 
@@ -1946,13 +2241,14 @@
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'No se pudo registrar tu pedido.');
 
+      $('listo-nombre').textContent = nombreParaSaludo(empleado.empleado.nombre);
       $('r-fecha').textContent    = d.fecha_legible || d.fecha;
       $('r-platillo').textContent = d.resumen.platillo;
       $('r-turno').textContent    = d.resumen.turno;
       $('r-zona').textContent     = d.resumen.zona;
       $('r-emp').textContent      = '#' + d.empleado.numero_empleado;
       $('r-nota').innerHTML       = 'Puedes cambiarlo hasta las <b>' + d.resumen.corte +
-                                    ' de hoy</b> volviendo a abrir esta página.';
+                                    ' de hoy</b>. Usa el botón de abajo si necesitas hacer un cambio.';
       $('fechabar').style.display = 'none';
       ir('v-listo');
     } catch (e) {
@@ -1995,6 +2291,7 @@
     document.body.classList.toggle('login-active', vista === 'v-id');
     document.body.classList.toggle('empty-active', vista === 'v-cerrado');
     document.body.classList.toggle('menu-active', vista === 'v-menu');
+    document.body.classList.toggle('confirm-active', vista === 'v-listo');
     const pasos = { 'v-id': '1 de 2', 'v-menu': '2 de 2', 'v-ajustar': 'Ajustar' };
     $('paso').textContent = pasos[vista] || '';
     // El botón de salir solo tiene sentido con alguien identificado
