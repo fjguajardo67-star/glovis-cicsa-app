@@ -254,20 +254,294 @@
   .recibo .fila .v::first-letter { text-transform: uppercase; }
   .nota-edit { font-size: .78rem; color: var(--gris-text); line-height: 1.55; }
 
-  /* ── Estado vacío / cerrado ── */
-  /* Sin emoji: un glifo del teclado no es un sistema de iconos y le quitaba
-     seriedad a la única pantalla que ve quien llega y no puede pedir. El
-     mensaje se sostiene con tipografía. */
-  .vacio { text-align: center; padding: 26px 10px; }
-  .vacio h1 { margin-bottom: 10px; letter-spacing: -.02em; text-wrap: balance; }
-  .vacio p {
-    font-size: .92rem; color: var(--gris-text); max-width: 32ch;
-    margin: 0 auto; line-height: 1.55; text-wrap: pretty;
+  /* ── Sin menú / pedidos cerrados ─────────────────────────────
+     Es la pantalla que más se repite durante la operación, así que funciona
+     como una espera útil y de marca, no como una tarjeta de error. */
+  body.empty-active {
+    overflow-x: hidden;
+    background: #f7f9fd;
   }
-  /* Esta vista es lo único en pantalla. Se baja a la zona óptica en vez de
-     quedar pegada al encabezado; sin estirar la tarjeta, que dejaría el
-     mensaje flotando en un hueco blanco. */
-  #v-cerrado.activa { margin-top: 11vh; }
+  body.empty-active > header,
+  body.empty-active > footer { display: none; }
+  body.empty-active main {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  body.empty-active #fechabar,
+  body.empty-active #aviso { display: none !important; }
+
+  .empty-view {
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    max-width: 520px;
+    min-height: 100svh;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #f7f9fd;
+    color: var(--login-azul-oscuro);
+    font-family: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  }
+  #v-cerrado.activa {
+    display: flex;
+    flex-direction: column;
+  }
+  .empty-brandbar {
+    min-height: 138px;
+    padding: max(20px, env(safe-area-inset-top)) 28px 22px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) 1px minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+    border-bottom: 1px solid var(--login-linea);
+    background: #fff;
+  }
+  .empty-golunch {
+    display: block;
+    width: 100%;
+    max-width: 188px;
+    height: auto;
+    justify-self: center;
+  }
+  .empty-brand-divider {
+    width: 1px;
+    height: 62px;
+    background: #d4deec;
+  }
+  .empty-client {
+    display: grid;
+    justify-items: center;
+    gap: 9px;
+  }
+  .empty-client span {
+    color: var(--login-texto);
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .empty-glovis {
+    display: block;
+    width: 108px;
+    height: auto;
+  }
+
+  .empty-content {
+    position: relative;
+    z-index: 0;
+    min-height: calc(100svh - 138px);
+    padding: 28px 30px calc(34px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .empty-content::before,
+  .empty-content::after {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    pointer-events: none;
+    border-radius: 50%;
+  }
+  .empty-content::before {
+    width: 250px;
+    height: 250px;
+    left: -145px;
+    bottom: -125px;
+    background: #e7f0ff;
+  }
+  .empty-content::after {
+    width: 215px;
+    height: 215px;
+    right: -145px;
+    bottom: -120px;
+    border: 26px solid var(--login-azul);
+  }
+  .empty-illustration {
+    position: relative;
+    width: 186px;
+    height: 186px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+  }
+  .empty-illustration-halo {
+    position: absolute;
+    inset: 10px;
+    border-radius: 50%;
+    background: #e8f1ff;
+  }
+  .empty-orbit {
+    position: absolute;
+    inset: 0;
+    animation: empty-orbit 12s linear infinite;
+  }
+  .empty-orbit circle { fill: var(--login-azul); }
+  .empty-dish {
+    position: relative;
+    z-index: 1;
+    width: 108px;
+    height: 108px;
+    color: var(--login-cobalto);
+  }
+  .empty-steam {
+    animation: empty-steam 2.8s cubic-bezier(.16, 1, .3, 1) infinite;
+    transform-origin: 54px 45px;
+  }
+  .empty-content h1 {
+    max-width: 370px;
+    margin: 18px 0 0;
+    color: var(--login-azul-oscuro);
+    font-size: clamp(2rem, 8.4vw, 2.35rem);
+    font-weight: 800;
+    letter-spacing: -.035em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+  .empty-content h1 strong {
+    color: var(--login-azul);
+    font-weight: inherit;
+  }
+  .empty-content h1:focus { outline: none; }
+  .empty-copy {
+    max-width: 350px;
+    margin: 15px 0 0;
+    color: #52647d;
+    font-size: .89rem;
+    line-height: 1.55;
+    text-wrap: balance;
+  }
+  .empty-flow {
+    position: relative;
+    width: 100%;
+    max-width: 350px;
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .empty-flow::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 16.66%;
+    right: 16.66%;
+    height: 2px;
+    background: #d9e4f3;
+  }
+  .empty-flow-step {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    color: #6b7d94;
+    font-size: .65rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .empty-flow-step i {
+    z-index: 1;
+    width: 17px;
+    height: 17px;
+    display: block;
+    border: 4px solid #f7f9fd;
+    border-radius: 50%;
+    background: #c9d6e8;
+    box-shadow: 0 0 0 1px #c9d6e8;
+  }
+  .empty-flow-step:first-child { color: var(--login-cobalto); }
+  .empty-flow-step:first-child i {
+    background: var(--login-azul);
+    box-shadow: 0 0 0 1px var(--login-azul), 0 4px 12px rgba(37, 99, 235, .28);
+  }
+  .empty-view.modo-corte .empty-flow { display: none; }
+
+  .empty-refresh {
+    width: 100%;
+    max-width: 350px;
+    min-height: 56px;
+    margin-top: 25px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    border: 0;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--login-azul) 0%, var(--login-cobalto) 100%);
+    color: #fff;
+    box-shadow: 0 12px 26px rgba(13, 71, 161, .24);
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .18s cubic-bezier(.16, 1, .3, 1),
+                box-shadow .18s ease, filter .18s ease;
+  }
+  .empty-refresh svg { width: 21px; height: 21px; }
+  .empty-refresh:hover:not(:disabled) {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+    box-shadow: 0 15px 30px rgba(13, 71, 161, .29);
+  }
+  .empty-refresh:active:not(:disabled) { transform: translateY(1px) scale(.99); }
+  .empty-refresh:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .28);
+    outline-offset: 3px;
+  }
+  .empty-refresh:disabled { cursor: wait; filter: saturate(.72); }
+  .empty-refresh.revisando svg { animation: empty-spin .65s linear infinite; }
+  .empty-last-check {
+    min-height: 20px;
+    margin-top: 12px;
+    color: #667890;
+    font-size: .72rem;
+    line-height: 1.4;
+  }
+  .empty-last-check.error { color: #b42318; }
+  .empty-qr-note {
+    margin-top: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: #4b5f79;
+    font-size: .72rem;
+    font-weight: 500;
+  }
+  .empty-qr-note svg {
+    width: 14px;
+    height: 14px;
+    color: var(--login-cobalto);
+    flex: 0 0 auto;
+  }
+  @keyframes empty-orbit { to { transform: rotate(360deg); } }
+  @keyframes empty-steam {
+    0%, 100% { opacity: .55; transform: translateY(3px); }
+    45% { opacity: 1; transform: translateY(-3px); }
+  }
+  @keyframes empty-spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 360px) {
+    .empty-brandbar { padding-left: 20px; padding-right: 20px; gap: 14px; }
+    .empty-golunch { max-width: 165px; }
+    .empty-glovis { width: 96px; }
+    .empty-content { padding-left: 22px; padding-right: 22px; }
+    .empty-illustration { width: 168px; height: 168px; }
+  }
+  @media (max-height: 720px) {
+    .empty-brandbar { min-height: 118px; padding-top: max(14px, env(safe-area-inset-top)); padding-bottom: 14px; }
+    .empty-brand-divider { height: 52px; }
+    .empty-content { min-height: calc(100svh - 118px); padding-top: 18px; }
+    .empty-illustration { width: 148px; height: 148px; }
+    .empty-dish { width: 92px; height: 92px; }
+    .empty-content h1 { margin-top: 10px; font-size: 1.85rem; }
+    .empty-copy { margin-top: 10px; font-size: .82rem; }
+    .empty-flow { margin-top: 16px; }
+    .empty-refresh { margin-top: 18px; }
+  }
 
   .cargando {
     text-align: center; padding: 40px 0; color: var(--gris-text); font-size: .87rem;
@@ -607,6 +881,10 @@
   @media (prefers-reduced-motion: reduce) {
     .login-view.activa .login-heading { animation: none; }
     .btn.login-primary { transition-duration: .01ms; }
+    .empty-orbit,
+    .empty-steam,
+    .empty-refresh.revisando svg { animation: none; }
+    .empty-refresh { transition-duration: .01ms; }
   }
 </style>
 </head>
@@ -774,10 +1052,54 @@
     </section>
 
     <!-- Cerrado / sin menú -->
-    <section class="vista card" id="v-cerrado">
-      <div class="vacio">
-        <h1 id="cerrado-titulo">Los pedidos ya cerraron</h1>
-        <p id="cerrado-texto">Vuelve mañana para pedir el siguiente día de servicio.</p>
+    <section class="vista empty-view" id="v-cerrado">
+      <div class="empty-brandbar">
+        <img class="empty-golunch" src="golunch-compacto.png" alt="CICSA GoLunch"
+             width="1328" height="698">
+        <span class="empty-brand-divider" aria-hidden="true"></span>
+        <div class="empty-client">
+          <span>Servicio para</span>
+          <img class="empty-glovis" src="glovis-logo.png" alt="Hyundai Glovis"
+               width="220" height="56">
+        </div>
+      </div>
+
+      <div class="empty-content">
+        <div class="empty-illustration" aria-hidden="true">
+          <span class="empty-illustration-halo"></span>
+          <svg class="empty-orbit" viewBox="0 0 186 186">
+            <path d="M31 58a75 75 0 0 1 121-15" fill="none" stroke="#b9d4ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 10"/>
+            <path d="M158 128a75 75 0 0 1-119 17" fill="none" stroke="#d6e5fb" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="153" cy="43" r="5"/><circle cx="36" cy="144" r="4"/>
+          </svg>
+          <svg class="empty-dish" viewBox="0 0 108 108" fill="none">
+            <g class="empty-steam" stroke="currentColor" stroke-width="4" stroke-linecap="round">
+              <path d="M41 36c-7-7 8-10 1-19"/><path d="M56 33c-7-7 8-10 1-19"/><path d="M71 36c-7-7 8-10 1-19"/>
+            </g>
+            <path d="M19 57h70c-2 20-14 32-35 32S21 77 19 57Z" fill="#fff" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+            <path d="M25 89h58" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+            <path d="M33 58c3 10 10 16 21 19" stroke="#77a8f7" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+
+        <h1 id="cerrado-titulo">El menú de <strong>mañana</strong> está tomando forma.</h1>
+        <p class="empty-copy" id="cerrado-texto">Cocina aún no publica las opciones. En cuanto estén listas, aparecerán aquí para que elijas tu platillo, turno y zona.</p>
+
+        <div class="empty-flow" aria-label="Cómo funcionará tu pedido">
+          <span class="empty-flow-step"><i></i><span>Cocina<br>publica</span></span>
+          <span class="empty-flow-step"><i></i><span>Tú<br>eliges</span></span>
+          <span class="empty-flow-step"><i></i><span>Recoges<br>tu pedido</span></span>
+        </div>
+
+        <button class="empty-refresh" id="cerrado-actualizar" type="button" onclick="actualizarMenu()" aria-busy="false">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.35 5.65M20 5v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="cerrado-btn-label">Actualizar menú</span>
+        </button>
+        <p class="empty-last-check" id="cerrado-ultima" aria-live="polite">Última revisión: ahora</p>
+        <p class="empty-qr-note">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm11 0h2v2h-2v-2Zm3 0h2v5a1 1 0 0 1-1 1h-5v-2h4v-4Zm-4 3h2v3h-2v-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          <span>No necesitas volver a escanear el QR.</span>
+        </p>
       </div>
     </section>
   </div>
@@ -813,36 +1135,85 @@
   // ── Arranque ────────────────────────────────────────────────
   cargarEstado();
 
-  async function cargarEstado() {
-    $('cargando-text').textContent = 'Cargando el menú…';
-    $('btn-reintentar').hidden = true;
+  async function cargarEstado(opciones = {}) {
+    const desdeCerrado = opciones.desdeCerrado === true;
+    if (!desdeCerrado) {
+      $('cargando-text').textContent = 'Cargando el menú…';
+      $('btn-reintentar').hidden = true;
+    }
     try {
       const r = await fetch(API_BASE + '/pedido/estado');
       estado = await r.json();
     } catch {
-      $('cargando-text').textContent = 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.';
-      $('btn-reintentar').hidden = false;
-      return;
+      if (desdeCerrado) {
+        $('cerrado-ultima').textContent = 'No se pudo actualizar. Revisa tu conexión.';
+        $('cerrado-ultima').classList.add('error');
+      } else {
+        $('cargando-text').textContent = 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.';
+        $('btn-reintentar').hidden = false;
+      }
+      return false;
     }
 
     $('cargando').style.display = 'none';
     $('contenido').style.display = 'block';
 
     if (!estado.fecha) {
-      $('cerrado-titulo').textContent = 'Aún no hay menú publicado';
-      $('cerrado-texto').textContent = 'El comedor todavía no publica el menú del próximo día. Intenta más tarde.';
-      return ir('v-cerrado');
+      configurarVistaCerrada('sin-menu');
+      ir('v-cerrado');
+      return true;
     }
 
     pintarFecha();
 
     if (!estado.abierto) {
-      $('cerrado-texto').textContent =
-        'El corte fue a las ' + estado.corte + '. La cocina ya recibió su comanda. Vuelve mañana para pedir el siguiente día.';
-      return ir('v-cerrado');
+      configurarVistaCerrada('corte');
+      ir('v-cerrado');
+      return true;
     }
 
+    if (desdeCerrado) ir('v-id');
     enfocarNumeroSiConviene();
+    return true;
+  }
+
+  function configurarVistaCerrada(tipo) {
+    const porCorte = tipo === 'corte';
+    $('v-cerrado').classList.toggle('modo-corte', porCorte);
+    $('cerrado-titulo').innerHTML = porCorte
+      ? 'Los pedidos por hoy <strong>ya cerraron.</strong>'
+      : 'El menú de <strong>mañana</strong> está tomando forma.';
+    $('cerrado-texto').textContent = porCorte
+      ? 'El corte fue a las ' + estado.corte + '. La cocina ya recibió su comanda. Vuelve mañana para pedir el siguiente día de servicio.'
+      : 'Cocina aún no publica las opciones. En cuanto estén listas, aparecerán aquí para que elijas tu platillo, turno y zona.';
+    $('cerrado-btn-label').textContent = porCorte ? 'Revisar de nuevo' : 'Actualizar menú';
+    $('cerrado-ultima').classList.remove('error');
+    $('cerrado-ultima').textContent = 'Última revisión: ' + formatearHoraActual();
+  }
+
+  async function actualizarMenu() {
+    const boton = $('cerrado-actualizar');
+    boton.disabled = true;
+    boton.classList.add('revisando');
+    boton.setAttribute('aria-busy', 'true');
+    $('cerrado-btn-label').textContent = 'Revisando…';
+
+    try {
+      await cargarEstado({ desdeCerrado: true });
+    } finally {
+      boton.disabled = false;
+      boton.classList.remove('revisando');
+      boton.setAttribute('aria-busy', 'false');
+      $('cerrado-btn-label').textContent = $('v-cerrado').classList.contains('modo-corte')
+        ? 'Revisar de nuevo'
+        : 'Actualizar menú';
+    }
+  }
+
+  function formatearHoraActual() {
+    return new Intl.DateTimeFormat('es-MX', {
+      hour: 'numeric', minute: '2-digit'
+    }).format(new Date());
   }
 
   function pintarFecha() {
@@ -1053,6 +1424,7 @@
   function ir(vista) {
     document.querySelectorAll('.vista').forEach(v => v.classList.toggle('activa', v.id === vista));
     document.body.classList.toggle('login-active', vista === 'v-id');
+    document.body.classList.toggle('empty-active', vista === 'v-cerrado');
     const pasos = { 'v-id': '1 de 2', 'v-menu': '2 de 2', 'v-ajustar': 'Ajustar' };
     $('paso').textContent = pasos[vista] || '';
     // El botón de salir solo tiene sentido con alguien identificado
