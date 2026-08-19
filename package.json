@@ -1,7 +1,7 @@
 {
-  "name": "cicsa-comedor",
+  "name": "go-lunch",
   "version": "1.0.0",
-  "description": "Bot de pedidos de menu via WhatsApp para comedor industrial CICSA",
+  "description": "Go Lunch — pedidos y entrega del comedor CICSA · Glovis",
   "type": "module",
   "main": "index.js",
   "scripts": {

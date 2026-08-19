@@ -1,4 +1,4 @@
-// index.js — Servidor principal CICSA Comedor
+// index.js — Servidor principal de Go Lunch (comedor CICSA · Glovis)
 import 'dotenv/config';
 import express from 'express';
 import { webhookRouter } from './routes/webhook.js';
@@ -38,7 +38,7 @@ app.get('/', (req, res) => res.redirect(302, '/pedido.html'));
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'cicsa-comedor', ts: new Date().toISOString() });
+  res.json({ status: 'ok', service: 'go-lunch', ts: new Date().toISOString() });
 });
 // Diagnóstico. Exige ADMIN_KEY: revela detalles de la infraestructura y
 // SUPABASE_KEY es la llave de service-role, que no debe asomarse en público
