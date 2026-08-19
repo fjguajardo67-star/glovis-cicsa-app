@@ -14,6 +14,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Go Lunch">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Hurricane&family=Poppins:wght@400;600;700;800;900&display=swap');
+
   /* ── Tokens (mismos que el panel admin) ── */
   :root {
     --azul:       #003087;
@@ -31,6 +33,11 @@
     --tinta:      #0d1b3e;
     --rojo:       #c0392b;
     --rojo-light: #fdf0ee;
+    --login-azul-oscuro: #0d1b2e;
+    --login-cobalto: #0d47a1;
+    --login-azul: #2563eb;
+    --login-texto: #64748b;
+    --login-linea: #dbe4f0;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -262,7 +269,11 @@
      mensaje flotando en un hueco blanco. */
   #v-cerrado.activa { margin-top: 11vh; }
 
-  .cargando { text-align: center; padding: 40px 0; color: var(--gris-text); font-size: .87rem; }
+  .cargando {
+    text-align: center; padding: 40px 0; color: var(--gris-text); font-size: .87rem;
+    flex-direction: column; justify-content: center; gap: 14px;
+  }
+  .cargando .btn { width: min(220px, 100%); margin: 0 auto; }
 
   footer {
     text-align: center; padding: 16px; font-size: .7rem; color: var(--gris-text);
@@ -270,9 +281,336 @@
 
   .vista { display: none; }
   .vista.activa { display: block; }
+
+  /* ── Acceso del empleado ─────────────────────────────────────
+     Esta portada vive solo mientras el empleado se identifica. Al avanzar,
+     regresan el encabezado, la fecha y la densidad operativa del pedido. */
+  body.login-active {
+    background: #fff;
+    overflow-x: hidden;
+  }
+  body.login-active > header,
+  body.login-active > footer { display: none; }
+  body.login-active main {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  body.login-active #fechabar,
+  body.login-active #aviso { display: none !important; }
+  body.login-active .cargando {
+    min-height: 100svh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+  }
+
+  .login-view {
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    max-width: 520px;
+    min-height: 100svh;
+    margin: 0 auto;
+    padding: max(24px, env(safe-area-inset-top)) 24px
+             calc(92px + env(safe-area-inset-bottom));
+    overflow: hidden;
+    background: #fff;
+    text-align: center;
+    font-family: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  }
+  .login-view.activa {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .login-view::before,
+  .login-view::after {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    pointer-events: none;
+    border-radius: 50%;
+  }
+  .login-view::before {
+    width: 250px;
+    height: 250px;
+    left: -118px;
+    bottom: -132px;
+    background: #eff6ff;
+  }
+  .login-view::after {
+    width: 220px;
+    height: 220px;
+    right: -122px;
+    bottom: -134px;
+    border: 28px solid var(--login-azul);
+  }
+  .login-dots {
+    position: absolute;
+    z-index: -1;
+    left: 20px;
+    bottom: 20px;
+    width: 112px;
+    height: 88px;
+    opacity: .82;
+    pointer-events: none;
+  }
+  .login-dots circle { fill: #bfdbfe; }
+
+  .login-brand {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 13px;
+    margin-bottom: clamp(24px, 4vh, 36px);
+  }
+  .login-golunch {
+    display: block;
+    width: min(72vw, 255px);
+    height: auto;
+  }
+  .login-service { width: min(250px, 74vw); }
+  .login-service-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    color: var(--login-texto);
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .login-service-label::before,
+  .login-service-label::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--login-linea);
+  }
+  .login-glovis {
+    display: block;
+    width: 116px;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  .login-heading { color: var(--login-azul-oscuro); }
+  .login-heading h1 {
+    margin: 0;
+    color: inherit;
+    font-family: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(2.25rem, 10.5vw, 3.35rem);
+    font-weight: 800;
+    letter-spacing: -.04em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  .login-title-line { display: block; white-space: nowrap; }
+  .login-heading h1 em {
+    color: var(--login-azul);
+    font-style: normal;
+  }
+  .login-script {
+    display: block;
+    width: min(84vw, 320px);
+    height: auto;
+    margin: 2px auto -8px;
+    overflow: visible;
+    color: var(--login-azul);
+  }
+  .login-script text {
+    fill: currentColor;
+    font-family: "Hurricane", "Snell Roundhand", "Segoe Script", cursive;
+    font-size: 50px;
+    font-weight: 400;
+  }
+  .login-script .script-underline {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .login-explainer {
+    width: 100%;
+    margin-top: clamp(25px, 4vh, 36px);
+    color: var(--login-texto);
+  }
+  .login-calendar {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 11px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #eff6ff;
+    color: var(--login-azul);
+  }
+  .login-calendar svg { width: 30px; height: 30px; }
+  .login-explainer p {
+    max-width: 360px;
+    margin: 0 auto;
+    font-size: .93rem;
+    line-height: 1.5;
+    text-wrap: balance;
+  }
+
+  .login-form {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 430px;
+    margin-top: clamp(25px, 4vh, 36px);
+  }
+  label.login-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--login-cobalto);
+    font-size: .79rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  .login-input-wrap {
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 18px;
+    border: 1.5px solid #d4dce8;
+    border-radius: 14px;
+    background: #fff;
+    color: var(--login-azul);
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+  .login-input-wrap:focus-within {
+    border-color: var(--login-azul);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, .1);
+  }
+  .login-input-wrap svg { width: 21px; height: 21px; flex: 0 0 auto; }
+  .login-input-wrap input[type=text] {
+    min-width: 0;
+    flex: 1;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--login-azul-oscuro);
+    font-size: 1.12rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+  }
+  .login-input-wrap input[type=text]:focus { border: 0; background: transparent; }
+  .login-input-wrap input::placeholder { color: var(--login-texto); opacity: 1; }
+  .login-error {
+    margin-top: 10px;
+    padding: 9px 12px;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fef2f2;
+    color: #b42318;
+    font-size: .78rem;
+    line-height: 1.4;
+  }
+  .login-error[hidden] { display: none; }
+  .btn.login-primary {
+    min-height: 56px;
+    margin-top: 18px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 13px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--login-azul) 0%, var(--login-cobalto) 100%);
+    box-shadow: 0 12px 24px rgba(13, 71, 161, .22);
+    font-size: 1.08rem;
+    font-weight: 700;
+    transition: transform .16s cubic-bezier(.23, 1, .32, 1),
+                filter .18s ease, box-shadow .18s ease;
+  }
+  .login-primary .login-arrow {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+  }
+  .login-primary .login-arrow svg { width: 17px; height: 17px; }
+  .btn.login-primary:disabled {
+    opacity: 1;
+    background: #e5e7eb;
+    color: #94a3b8;
+    box-shadow: none;
+  }
+  .login-security {
+    max-width: 300px;
+    margin: 15px auto 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+    color: var(--login-texto);
+    font-size: .76rem;
+    line-height: 1.45;
+    text-wrap: balance;
+  }
+  .login-security svg {
+    width: 14px;
+    height: 14px;
+    margin-top: 2px;
+    flex: 0 0 auto;
+    color: #94a3b8;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn.login-primary:hover:not(:disabled) {
+      background: linear-gradient(180deg, var(--login-azul) 0%, var(--login-cobalto) 100%);
+      filter: brightness(1.07);
+      box-shadow: 0 15px 28px rgba(13, 71, 161, .27);
+      transform: translateY(-1px);
+    }
+  }
+  .btn.login-primary:active:not(:disabled) {
+    transform: translateY(1px) scale(.99);
+    box-shadow: 0 6px 14px rgba(13, 71, 161, .2);
+  }
+  .login-view.activa .login-heading {
+    animation: login-heading-in .42s cubic-bezier(.16, 1, .3, 1) both;
+  }
+  @keyframes login-heading-in {
+    from { opacity: .72; transform: translateY(10px); filter: blur(3px); }
+    to { opacity: 1; transform: translateY(0); filter: blur(0); }
+  }
+
+  @media (max-width: 360px) {
+    .login-view { padding-left: 18px; padding-right: 18px; }
+    .login-golunch { width: min(74vw, 225px); }
+    .login-glovis { width: 104px; }
+    .login-title-line { white-space: normal; }
+  }
+  @media (max-height: 720px) {
+    .login-view { padding-top: max(18px, env(safe-area-inset-top)); }
+    .login-brand { gap: 9px; margin-bottom: 20px; }
+    .login-golunch { width: min(62vw, 210px); }
+    .login-service-label { margin-bottom: 5px; }
+    .login-explainer { margin-top: 22px; }
+    .login-calendar { width: 50px; height: 50px; margin-bottom: 8px; }
+    .login-calendar svg { width: 26px; height: 26px; }
+    .login-form { margin-top: 22px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .login-view.activa .login-heading { animation: none; }
+    .btn.login-primary { transition-duration: .01ms; }
+  }
 </style>
 </head>
-<body>
+<body class="login-active">
 
 <header>
   <!-- alt vacío: la marca ya se nombra en el texto de al lado, repetirla solo
@@ -291,7 +629,10 @@
 </header>
 
 <main>
-  <div class="cargando" id="cargando">Cargando el menú…</div>
+  <div class="cargando" id="cargando" role="status" aria-live="polite">
+    <span id="cargando-text">Cargando el menú…</span>
+    <button class="btn sec" id="btn-reintentar" type="button" onclick="cargarEstado()" hidden>Reintentar</button>
+  </div>
 
   <div id="contenido" style="display:none">
     <!-- Fecha de servicio -->
@@ -307,14 +648,65 @@
     <div class="aviso" id="aviso"></div>
 
     <!-- 1. Identificarse -->
-    <section class="vista activa card" id="v-id">
-      <h1>Pide tu comida</h1>
-      <p class="sub">Identifícate con tu número de empleado.</p>
-      <label class="campo" for="num">Número de empleado</label>
-      <input type="text" id="num" placeholder="EMP001" autocomplete="off"
-             inputmode="text" onkeydown="if(event.key==='Enter')identificar()">
-      <p class="ayuda">Es el mismo número de tu gafete. No necesitas contraseña: tu zona y turno ya vienen de tu registro en Recursos Humanos.</p>
-      <button class="btn" id="btn-id" onclick="identificar()">Continuar</button>
+    <section class="vista activa login-view" id="v-id">
+      <div class="login-brand">
+        <img class="login-golunch" src="golunch-compacto.png" alt="CICSA GoLunch"
+             width="1328" height="698">
+        <div class="login-service">
+          <div class="login-service-label"><span>Servicio para</span></div>
+          <img class="login-glovis" src="glovis-logo.png" alt="Hyundai Glovis"
+               width="220" height="56">
+        </div>
+      </div>
+
+      <div class="login-heading">
+        <h1><span class="login-title-line">La comida de</span><span class="login-title-line"><em>mañana</em>, a un clic.</span></h1>
+        <svg class="login-script" viewBox="0 0 340 96" role="img" aria-labelledby="login-script-title">
+          <title id="login-script-title">Sin preocupaciones.</title>
+          <defs><path id="login-script-curve" d="M18 70 Q170 42 322 69"/></defs>
+          <text text-anchor="middle"><textPath href="#login-script-curve" startOffset="50%">Sin preocupaciones.</textPath></text>
+          <path class="script-underline" d="M55 88 Q178 63 315 80"/>
+        </svg>
+      </div>
+
+      <div class="login-explainer">
+        <div class="login-calendar" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M9 4v4M23 4v4M6 11h20M7 7h18a2 2 0 0 1 2 2v17a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="m11.5 20 3 3 6.5-7" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p>Elige tu platillo, horario y punto de entrega.<br>Nosotros nos encargamos del resto.</p>
+      </div>
+
+      <form class="login-form" onsubmit="event.preventDefault(); identificar()">
+        <label class="login-label" for="num">Número de empleado</label>
+        <div class="login-input-wrap">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm-7.5 8.25c0-3.73 3.36-6.75 7.5-6.75s7.5 3.02 7.5 6.75c0 .97-.78 1.75-1.75 1.75H6.25c-.97 0-1.75-.78-1.75-1.75Z"/>
+          </svg>
+          <input type="text" id="num" placeholder="01428" autocomplete="off" required
+                 inputmode="text" aria-describedby="login-help login-error" aria-invalid="false">
+        </div>
+        <div class="login-error" id="login-error" role="alert" hidden></div>
+        <button class="btn login-primary" id="btn-id" type="submit" aria-busy="false">
+          <span class="login-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span id="btn-id-label">Continuar</span>
+        </button>
+        <p class="login-security" id="login-help">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1Zm2 0h6V8a3 3 0 0 0-6 0v2Zm3 4a1.5 1.5 0 0 0-.75 2.8V19h1.5v-2.2A1.5 1.5 0 0 0 12 14Z"/></svg>
+          <span>Tu número se usa únicamente para localizar tu pedido.</span>
+        </p>
+      </form>
+
+      <svg class="login-dots" viewBox="0 0 112 88" aria-hidden="true">
+        <circle cx="8" cy="8" r="3"/><circle cx="32" cy="8" r="3"/><circle cx="56" cy="8" r="3"/><circle cx="80" cy="8" r="3"/><circle cx="104" cy="8" r="3"/>
+        <circle cx="8" cy="32" r="3"/><circle cx="32" cy="32" r="3"/><circle cx="56" cy="32" r="3"/><circle cx="80" cy="32" r="3"/><circle cx="104" cy="32" r="3"/>
+        <circle cx="8" cy="56" r="3"/><circle cx="32" cy="56" r="3"/><circle cx="56" cy="56" r="3"/><circle cx="80" cy="56" r="3"/><circle cx="104" cy="56" r="3"/>
+        <circle cx="8" cy="80" r="3"/><circle cx="32" cy="80" r="3"/><circle cx="56" cy="80" r="3"/><circle cx="80" cy="80" r="3"/><circle cx="104" cy="80" r="3"/>
+      </svg>
     </section>
 
     <!-- 1b. Calificar el pedido anterior (solo si quedó uno sin calificar) -->
@@ -422,11 +814,14 @@
   cargarEstado();
 
   async function cargarEstado() {
+    $('cargando-text').textContent = 'Cargando el menú…';
+    $('btn-reintentar').hidden = true;
     try {
       const r = await fetch(API_BASE + '/pedido/estado');
       estado = await r.json();
     } catch {
-      $('cargando').textContent = 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.';
+      $('cargando-text').textContent = 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.';
+      $('btn-reintentar').hidden = false;
       return;
     }
 
@@ -447,7 +842,7 @@
       return ir('v-cerrado');
     }
 
-    $('num').focus();
+    enfocarNumeroSiConviene();
   }
 
   function pintarFecha() {
@@ -474,7 +869,8 @@
     if (!numero) return;
 
     $('btn-id').disabled = true;
-    $('btn-id').textContent = 'Verificando…';
+    $('btn-id').setAttribute('aria-busy', 'true');
+    $('btn-id-label').textContent = 'Verificando…';
     limpiarAviso();
 
     try {
@@ -489,12 +885,14 @@
     } catch (e) {
       mostrarAviso(e.message, 'err');
       $('btn-id').disabled = false;
-      $('btn-id').textContent = 'Continuar';
+      $('btn-id').setAttribute('aria-busy', 'false');
+      $('btn-id-label').textContent = 'Continuar';
       return;
     }
 
     $('btn-id').disabled = false;
-    $('btn-id').textContent = 'Continuar';
+    $('btn-id').setAttribute('aria-busy', 'false');
+    $('btn-id-label').textContent = 'Continuar';
 
     const emp = empleado.empleado;
     const previo = empleado.pedido_actual;
@@ -644,13 +1042,29 @@
   }
 
   // ── Utilidades ──────────────────────────────────────────────
+  function enfocarNumeroSiConviene() {
+    // En móvil, enfocar al cargar abre el teclado y tapa la portada completa.
+    // En escritorio sí conserva la comodidad de empezar a escribir de inmediato.
+    if (window.innerWidth >= 720 && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      $('num').focus();
+    }
+  }
+
   function ir(vista) {
     document.querySelectorAll('.vista').forEach(v => v.classList.toggle('activa', v.id === vista));
+    document.body.classList.toggle('login-active', vista === 'v-id');
     const pasos = { 'v-id': '1 de 2', 'v-menu': '2 de 2', 'v-ajustar': 'Ajustar' };
     $('paso').textContent = pasos[vista] || '';
     // El botón de salir solo tiene sentido con alguien identificado
     $('btn-salir').hidden = (vista === 'v-id' || vista === 'v-cerrado');
     window.scrollTo(0, 0);
+    if (vista !== 'v-id') {
+      const titulo = document.querySelector(`#${vista} h1`);
+      if (titulo) {
+        titulo.setAttribute('tabindex', '-1');
+        titulo.focus({ preventScroll: true });
+      }
+    }
   }
 
   // Vuelve a la pantalla de identificación borrando TODO lo del empleado
@@ -667,15 +1081,28 @@
     limpiarAviso();
     if (estado) pintarFecha();          // la barra de fecha se restaura
     ir('v-id');
-    $('num').focus();
+    enfocarNumeroSiConviene();
   }
 
   function mostrarAviso(msg, tipo) {
+    if (document.body.classList.contains('login-active')) {
+      const loginError = $('login-error');
+      loginError.textContent = msg;
+      loginError.hidden = false;
+      $('num').setAttribute('aria-invalid', 'true');
+      return;
+    }
     const a = $('aviso');
     a.className = 'aviso ' + tipo;
     a.textContent = msg;
   }
-  function limpiarAviso() { $('aviso').className = 'aviso'; }
+  function limpiarAviso() {
+    $('aviso').className = 'aviso';
+    const loginError = $('login-error');
+    loginError.textContent = '';
+    loginError.hidden = true;
+    $('num').setAttribute('aria-invalid', 'false');
+  }
 
   function esc(s) {
     return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
