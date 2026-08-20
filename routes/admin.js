@@ -98,6 +98,20 @@ function zonasLimpias(zonas) {
   return z.length ? z : null;
 }
 
+// Largo mínimo cuando la clave la escribe el administrador. Las generadas
+// traen 8 caracteres; el riesgo está en la escrita a mano con prisa, que sin
+// esto podía ser "1". El límite de intentos ayuda, pero no salva a una clave
+// de tres dígitos. Devuelve el motivo para que el panel lo pueda explicar.
+const CLAVE_MINIMA = 6;
+function claveElegida(valor) {
+  if (typeof valor !== 'string' || !valor.trim()) return { usar: null };   // que la genere el servidor
+  const limpia = valor.trim();
+  if (limpia.length < CLAVE_MINIMA) {
+    return { error: `La clave debe tener al menos ${CLAVE_MINIMA} caracteres. Déjala vacía para que se genere una.` };
+  }
+  return { usar: limpia };
+}
+
 adminRouter.get('/repartidores', async (req, res) => {
   try {
     res.json({ repartidores: await db.listRepartidores() });
@@ -116,7 +130,9 @@ adminRouter.post('/repartidores', async (req, res) => {
     if (!z) return res.status(400).json({ error: 'Se requiere al menos una zona válida', zonas_validas: ZONAS_REPARTO });
 
     // Si el administrador no escribe una, se genera legible para dictarla.
-    const enClaro = (typeof clave === 'string' && clave.trim()) ? clave.trim() : generarClave();
+    const elegida = claveElegida(clave);
+    if (elegida.error) return res.status(400).json({ error: elegida.error });
+    const enClaro = elegida.usar || generarClave();
     const repartidor = await db.crearRepartidor({
       nombre: String(nombre).trim(), zonas: z, clave_hash: await hashClave(enClaro)
     });
@@ -157,8 +173,9 @@ adminRouter.put('/repartidores/:id', async (req, res) => {
 // hash, y poder recuperarla querría decir que no está bien guardada.
 adminRouter.post('/repartidores/:id/clave', async (req, res) => {
   try {
-    const enClaro = (typeof req.body?.clave === 'string' && req.body.clave.trim())
-      ? req.body.clave.trim() : generarClave();
+    const elegida = claveElegida(req.body?.clave);
+    if (elegida.error) return res.status(400).json({ error: elegida.error });
+    const enClaro = elegida.usar || generarClave();
     await db.actualizarRepartidor(req.params.id, { clave_hash: await hashClave(enClaro) });
     // Cambiar la clave cierra las sesiones abiertas con la anterior.
     const repartidor = await db.invalidarSesiones(req.params.id);
