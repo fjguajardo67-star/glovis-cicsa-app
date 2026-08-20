@@ -7,14 +7,18 @@
   --azul-line: #cbdaf0;
   --verde: #08795b;
   --verde-light: #e6f6ef;
+  --verde-accion: #087158;
+  --verde-texto: #07523f;
   --dorado: #9a5b00;
   --dorado-light: #fff3d5;
+  --dorado-texto: #694000;
   --gris-bg: #f4f7fb;
   --gris-line: #dbe5f2;
   --gris-text: #53647b;
   --tinta: #0c1b35;
   --rojo: #b42318;
   --rojo-light: #fff0ee;
+  --rojo-texto: #7e1d14;
   --blanco: #fff;
   --ease-out: cubic-bezier(.23, 1, .32, 1);
   --ease-in-out: cubic-bezier(.77, 0, .175, 1);
@@ -150,6 +154,33 @@ summary:focus-visible {
 
 .gate input:focus {
   border-color: var(--azul-vivo);
+}
+
+.gate-bienvenida {
+  margin-top: 14px;
+  padding: 13px 14px;
+  border: 2px solid #8fc9b5;
+  border-radius: 13px;
+  background: var(--verde-light);
+  color: var(--verde-texto);
+}
+
+.gate-bienvenida span,
+.gate-bienvenida b {
+  display: block;
+}
+
+.gate-bienvenida span {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.gate-bienvenida b {
+  margin-top: 2px;
+  font-size: 1.08rem;
+  line-height: 1.25;
 }
 
 /* Aplicación */
@@ -1263,14 +1294,18 @@ main {
   --azul-line: #34557e;
   --verde: #55d6ac;
   --verde-light: #123c34;
+  --verde-accion: #13795f;
+  --verde-texto: #baf2de;
   --dorado: #f2c568;
   --dorado-light: #392e18;
+  --dorado-texto: #ffe0a0;
   --gris-bg: #071426;
   --gris-line: #273a57;
   --gris-text: #adbbcf;
   --tinta: #eef4ff;
   --rojo: #ff9289;
   --rojo-light: #421f23;
+  --rojo-texto: #ffc1bb;
 }
 
 :root[data-theme="dark"] body {
@@ -1479,6 +1514,50 @@ main {
 /* Zona del equipo. Conserva su propio renglón para no alterar la rejilla
    principal del encabezado. */
 
+.sesion-repartidor {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  padding: 7px 8px 7px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--gris-line);
+  border-radius: 12px;
+  background: var(--blanco);
+}
+
+#sesion-nombre {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--azul);
+  font-size: .9rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#sesion-nombre::before {
+  content: "Repartidor";
+  display: block;
+  color: var(--gris-text);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+#btn-cerrar-sesion {
+  flex: none;
+  min-height: 40px;
+}
+
+.sesion-repartidor.legado #sesion-nombre {
+  color: var(--gris-text);
+}
+
 #zona-picker.gate {
   position: fixed;
   inset: 0;
@@ -1643,6 +1722,10 @@ main {
   background: #112b4b;
 }
 
+:root[data-theme="dark"] .sesion-repartidor {
+  background: #0e2039;
+}
+
 :root[data-theme="dark"] .zona-card {
   background: #0e2039;
 }
@@ -1660,8 +1743,332 @@ main {
 }
 
 @media (max-width: 430px) {
+  .sesion-repartidor {
+    min-height: 46px;
+    padding-left: 10px;
+  }
+
+  #sesion-nombre {
+    font-size: .84rem;
+  }
+
+  #btn-cerrar-sesion {
+    padding-inline: 10px;
+    font-size: .74rem;
+  }
+
   .zona-card {
     padding: 20px 18px;
     border-radius: 20px;
   }
+}
+
+/* Evidencia de llegada. Es el primer acto de cada turno y permanece separado
+   del escáner para que nunca se confundan ambas acciones. */
+.barra-llegada {
+  margin: 0 0 22px;
+  padding: 17px;
+  border: 2px solid #99cdbb;
+  border-radius: 18px;
+  background: var(--blanco);
+  box-shadow: 0 12px 28px rgba(6, 27, 68, .1);
+}
+
+.llegada-encabezado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.llegada-marca {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--verde-light);
+  color: var(--verde);
+}
+
+.llegada-marca svg {
+  width: 25px;
+  height: 25px;
+}
+
+.llegada-encabezado h2 {
+  color: var(--azul);
+  font-size: 1.04rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+
+.llegada-encabezado p {
+  margin-top: 3px;
+  color: var(--gris-text);
+  font-size: .88rem;
+  line-height: 1.4;
+}
+
+.btn-llegada {
+  min-height: 60px;
+  margin-top: 14px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: var(--verde-accion);
+  box-shadow: 0 8px 18px rgba(8, 113, 88, .24);
+  color: #fff;
+  font-size: 1.02rem;
+  line-height: 1.25;
+}
+
+.btn-llegada:focus-visible {
+  outline-color: rgba(8, 121, 91, .34);
+}
+
+.llegada-estado,
+.aviso-ubicacion {
+  position: relative;
+  min-height: 54px;
+  padding: 13px 14px 13px 50px;
+  display: flex;
+  align-items: center;
+  border-radius: 13px;
+  font-size: .9rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.llegada-estado::before,
+.aviso-ubicacion::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  width: 22px;
+  height: 22px;
+  background: currentColor;
+  transform: translateY(-50%);
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.llegada-estado {
+  margin-top: 14px;
+  border: 2px solid #8fc9b5;
+  background: var(--verde-light);
+  color: var(--verde-texto);
+}
+
+.llegada-estado::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='m5 12 4 4 10-10'/%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='black' stroke-width='1.8'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='m5 12 4 4 10-10'/%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='black' stroke-width='1.8'/%3E%3C/svg%3E");
+}
+
+.aviso-ubicacion {
+  margin-top: 10px;
+  border: 2px solid #dfbd62;
+  background: var(--dorado-light);
+  color: var(--dorado-texto);
+}
+
+.aviso-ubicacion::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='2.5' fill='none' stroke='black' stroke-width='2'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='2.5' fill='none' stroke='black' stroke-width='2'/%3E%3C/svg%3E");
+}
+
+/* Permiso denegado: ese día completo queda sin evidencia de ubicación. */
+.aviso-ubicacion.grave {
+  border-color: var(--rojo);
+  background: var(--rojo-light);
+  box-shadow: 0 8px 20px rgba(180, 35, 24, .14);
+  color: var(--rojo-texto);
+}
+
+.aviso-ubicacion.grave::before {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M12 3 2.5 20h19L12 3Z'/%3E%3Cpath fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' d='M12 9v5m0 3h.01'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M12 3 2.5 20h19L12 3Z'/%3E%3Cpath fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' d='M12 9v5m0 3h.01'/%3E%3C/svg%3E");
+}
+
+/* Cierre de ruta: visible, pero deliberadamente secundario al escáner. */
+.cerrar-ruta {
+  margin: 2px 9px 10px;
+  padding: 14px;
+  border: 1px solid #e5c36e;
+  border-radius: 12px;
+  background: var(--dorado-light);
+}
+
+.cerrar-ruta-copy strong,
+.cerrar-ruta-copy span {
+  display: block;
+}
+
+.cerrar-ruta-copy strong {
+  color: var(--dorado-texto);
+  font-size: .92rem;
+  font-weight: 800;
+}
+
+.cerrar-ruta-copy span {
+  margin-top: 3px;
+  color: var(--dorado-texto);
+  font-size: .84rem;
+  line-height: 1.4;
+}
+
+#btn-cerrar-ruta.btn.sec {
+  min-height: 54px;
+  margin-top: 12px;
+  border-color: var(--dorado);
+  background: var(--blanco);
+  color: var(--dorado-texto);
+  font-size: .9rem;
+  line-height: 1.3;
+}
+
+/* Marca contractual: se entregó al supervisor, no directamente al empleado. */
+.al-supervisor {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 4px 8px;
+  display: inline-flex;
+  border: 1px solid #dfbd62;
+  border-radius: 7px;
+  background: var(--dorado-light);
+  color: var(--dorado-texto) !important;
+  font-size: .8rem;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+/* El resultado del escaneo debe leerse de reojo y a distancia. */
+.flash b {
+  font-size: 1.5rem;
+}
+
+.flash span {
+  font-size: 1rem;
+}
+
+.flash-eyebrow {
+  font-size: .82rem !important;
+}
+
+:root[data-theme="dark"] .barra-llegada {
+  border-color: #347861;
+  background: #0e2039;
+}
+
+:root[data-theme="dark"] .llegada-estado {
+  border-color: #347861;
+}
+
+:root[data-theme="dark"] .aviso-ubicacion {
+  border-color: #806a34;
+}
+
+:root[data-theme="dark"] .aviso-ubicacion.grave {
+  border-color: #bb5148;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .24);
+}
+
+:root[data-theme="dark"] .cerrar-ruta {
+  border-color: #806a34;
+}
+
+:root[data-theme="dark"] #btn-cerrar-ruta.btn.sec {
+  border-color: #806a34;
+  background: #0e2039;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-llegada:hover {
+    background: #09644f;
+  }
+
+  #btn-cerrar-ruta.btn.sec:hover {
+    background: #fff9e9;
+  }
+}
+
+@media (max-width: 430px) {
+  .barra-llegada {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .llegada-marca {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .btn-llegada {
+    min-height: 58px;
+  }
+
+  .llegada-estado,
+  .aviso-ubicacion {
+    padding: 12px 12px 12px 46px;
+    font-size: .86rem;
+  }
+
+  .llegada-estado::before,
+  .aviso-ubicacion::before {
+    left: 13px;
+  }
+
+  .cerrar-ruta {
+    margin-inline: 7px;
+    padding: 12px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   USUARIOS DE REPARTO — ESTRUCTURA MÍNIMA, PENDIENTE DE ACABADO
+
+   Cada repartidor entra con su clave personal y la entrega queda
+   atribuida a él. Ganchos:
+
+     #gate-bienvenida / #gate-nombre   "Bienvenido, Luis" tras validar
+     #sesion-repartidor                quién opera esta tablet
+     #sesion-nombre                    su nombre (o "Reparto general")
+     #sesion-repartidor.legado         modo de clave compartida, sin persona
+     #btn-cerrar-sesion                cambiar usuario
+   ══════════════════════════════════════════════════════════════ */
+
+.gate-bienvenida {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: var(--verde-light, #e6f4e6);
+  border: 1px solid var(--verde, #1e7a22);
+  color: var(--verde, #1e7a22);
+  text-align: center;
+  font-size: .92rem;
+}
+.gate-bienvenida b { display: block; font-size: 1.1rem; font-weight: 800; }
+
+.sesion-repartidor {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: .82rem;
+  font-weight: 700;
+}
+/* Con la clave compartida no hay persona detrás: se marca distinto para que
+   no se lea como si alguien estuviera identificado. */
+.sesion-repartidor.legado #sesion-nombre {
+  color: var(--dorado, #b8860b);
+  font-style: italic;
 }

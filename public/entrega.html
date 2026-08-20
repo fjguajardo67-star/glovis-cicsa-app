@@ -222,11 +222,17 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7zM6.5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM17.5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
   </div>
   <h1>Entrega de comidas</h1>
-  <p>Ingresa la clave de reparto. Se guardará en este equipo para no pedirla de nuevo.</p>
-  <label for="clave">Clave de reparto</label>
-  <input type="password" id="clave" placeholder="Escribe la clave" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()">
-  <button class="btn" onclick="entrar()">Entrar</button>
+  <p>Escribe tu clave personal. Te la da el administrador del comedor.</p>
+  <label for="clave">Tu clave</label>
+  <input type="password" id="clave" placeholder="Escribe tu clave" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()">
+  <button class="btn" id="btn-entrar" onclick="entrar()">Entrar</button>
   <div id="gateErr" class="aviso oculto"></div>
+  <!-- Bienvenida tras validar la clave: el repartidor tiene que ver SU nombre
+       para notar si agarró la tablet de alguien más o si le dictaron mal la
+       clave. ESTRUCTURA PARA ESTILIZAR: #gate-bienvenida, #gate-nombre. -->
+  <div id="gate-bienvenida" class="gate-bienvenida oculto">
+    <span>Bienvenido,</span> <b id="gate-nombre">—</b>
+  </div>
 </div>
 
 <!-- Selección de zona: una vez por equipo, después de la clave y antes del
@@ -286,6 +292,14 @@
          otro, y equivocarse de tablet es el error fácil de cometer.
          ESTRUCTURA PARA ESTILIZAR: #zona-activa el contenedor,
          #zona-activa-txt el nombre, #btn-cambiar-zona la acción. -->
+    <!-- Quién está usando esta tablet. Con dos repartidores y una entrega que
+         queda atribuida a una persona, el nombre no puede estar escondido.
+         ESTRUCTURA PARA ESTILIZAR: #sesion-repartidor, #sesion-nombre,
+         #btn-cerrar-sesion. -->
+    <div class="sesion-repartidor" id="sesion-repartidor">
+      <span id="sesion-nombre">—</span>
+      <button id="btn-cerrar-sesion" class="btn-texto" type="button" onclick="cambiarUsuario()">Cambiar usuario</button>
+    </div>
     <div class="zona-activa" id="zona-activa">
       <svg class="zona-activa-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
       <span class="zona-activa-copy"><small>Zona activa</small><b id="zona-activa-txt">—</b></span>
@@ -300,6 +314,28 @@
   </div>
 
   <main>
+    <!-- Llegada al punto. Es lo primero de la pantalla porque es lo primero de
+         la ruta, y de su hora depende que el contrato aplique o no el 30%.
+         ESTRUCTURA PARA ESTILIZAR: #barra-llegada el contenedor,
+         #btn-llegada la acción, #llegada-estado el resumen una vez registrada,
+         #aviso-ubicacion la advertencia cuando no hay GPS o falta permiso. -->
+    <section class="barra-llegada" id="barra-llegada" aria-labelledby="llegada-titulo">
+      <div class="llegada-encabezado">
+        <span class="llegada-marca" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/><path d="M12 3v2"/></svg>
+        </span>
+        <div>
+          <h2 id="llegada-titulo">Llegada al punto</h2>
+          <p>Registra la hora antes de iniciar las entregas.</p>
+        </div>
+      </div>
+      <button class="btn btn-llegada" id="btn-llegada" type="button" onclick="registrarLlegada()">
+        Llegué al punto de entrega
+      </button>
+      <div class="llegada-estado oculto" id="llegada-estado" role="status" aria-live="polite"></div>
+      <div class="aviso-ubicacion oculto" id="aviso-ubicacion" role="status" aria-live="polite"></div>
+    </section>
+
     <div class="scanner-heading">
       <div>
         <h1>Escanea la etiqueta</h1>
@@ -374,6 +410,18 @@
     <details class="pedidos-panel" open>
       <summary>Pendientes <span id="badge-pendientes">0</span></summary>
       <div class="lista-contenido" id="lista-pendientes"></div>
+      <!-- Cierre de ruta: lo que nadie recogió se deja con el supervisor y
+           deja de contar como no entregado. ESTRUCTURA PARA ESTILIZAR:
+           #cerrar-ruta el contenedor, #btn-cerrar-ruta la acción. -->
+      <div class="cerrar-ruta oculto" id="cerrar-ruta">
+        <div class="cerrar-ruta-copy" id="cerrar-ruta-ayuda">
+          <strong>¿Terminaste el reparto?</strong>
+          <span>Registra las comidas no recogidas y quién las recibió.</span>
+        </div>
+        <button class="btn sec" id="btn-cerrar-ruta" type="button" aria-describedby="cerrar-ruta-ayuda" onclick="cerrarRuta()">
+          Entregar pendientes al supervisor
+        </button>
+      </div>
     </details>
     <details class="pedidos-panel">
       <summary>Entregadas <span id="badge-entregadas">0</span></summary>
@@ -409,7 +457,18 @@
     lector: 'cicsa_entrega_lector',  // modo pistola/escáner integrado
     zona:   'cicsa_entrega_zona',    // 'zona_vdc' | 'zona_refris' — se fija por equipo
     indice: 'cicsa_entrega_indice',  // { fecha, mapa: { numero: zona } } de TODAS las zonas
-    tema:   'cicsa_entrega_tema'
+    tema:   'cicsa_entrega_tema',
+    // Llegadas por subir. Cola aparte de la de escaneos porque va a otro
+    // endpoint, pero con la misma regla: no se borra hasta que el servidor la
+    // confirme. La hora de llegada decide si el contrato aplica el 30%.
+    llegadas: 'cicsa_entrega_llegadas',
+    // Nombre de quien recibe lo que nadie recogió. Casi siempre el mismo
+    // supervisor: se recuerda para que cerrar la ruta sea un toque.
+    supervisor: 'cicsa_entrega_supervisor',
+    // Sesión del repartidor: token firmado + su nombre y zonas. La CLAVE nunca
+    // se guarda — si el equipo se pierde, lo que hay adentro caduca solo y el
+    // administrador puede cerrarlo desde el panel.
+    sesion: 'cicsa_entrega_sesion'
   };
   // Una caché por zona: cambiar de VDC a REFRIS no debe mezclar listas ni
   // contadores, y volver a la anterior no debe obligar a descargar de nuevo.
@@ -440,6 +499,63 @@
   // tenían la clave guardada, que son todos después de la primera vez.
   let MODO_LECTOR = false;
   let APP_ARRANCADA = false;
+  // Arriba por la misma razón que las anteriores: el arranque la lee antes
+  // de que el script termine de parsear.
+  let SESION = null;
+
+  // ── Ubicación ─────────────────────────────────────────────
+  // El contrato descuenta el 30% de lo entregado fuera de tiempo, y la defensa
+  // contra "lo escanearon en ruta" es la coordenada. Se mantiene una posición
+  // reciente en memoria en vez de pedirla en cada escaneo: un GPS frío tarda
+  // hasta 20 segundos y haría esperar al repartidor en cada etiqueta. Como el
+  // reparto ocurre parado en el sitio, el primer fix se paga una vez y los
+  // demás salen instantáneos.
+  let POSICION = null;          // { lat, lon, precision_m, ts }
+  let VIGILANDO = null;         // id de watchPosition
+  let PERMISO_UBICACION = 'desconocido';   // concedido | denegado | no_disponible
+  let LLEGADAS = [];            // cola local de llegadas por subir
+  let LLEGADAS_DIA = [];        // las que el servidor ya tiene
+  let PUNTOS = [];              // puntos de entrega del contrato
+
+  // Arriba de esto el fix vino de antenas, no de satélites: no distingue el
+  // andén de la carretera. El servidor descarta igual, esto solo evita mandarlo.
+  const PRECISION_MAXIMA_M = 100;
+  // Una posición más vieja que esto ya no representa dónde estás parado.
+  const POSICION_VIGENTE_MS = 90 * 1000;
+
+  function posicionUtil() {
+    if (!POSICION) return null;
+    if (Date.now() - POSICION.ts > POSICION_VIGENTE_MS) return null;
+    if (POSICION.precision_m > PRECISION_MAXIMA_M) return null;
+    return POSICION;
+  }
+
+  function iniciarVigilancia() {
+    if (!navigator.geolocation || VIGILANDO !== null) return;
+    VIGILANDO = navigator.geolocation.watchPosition(
+      p => {
+        PERMISO_UBICACION = 'concedido';
+        POSICION = {
+          lat: p.coords.latitude, lon: p.coords.longitude,
+          precision_m: Math.round(p.coords.accuracy), ts: Date.now()
+        };
+        pintarUbicacion();
+      },
+      err => {
+        // 1 = PERMISSION_DENIED. Sin permiso NINGUNA entrega lleva coordenada,
+        // y eso hay que gritarlo: descubrirlo en una reclamación es tarde.
+        PERMISO_UBICACION = err.code === 1 ? 'denegado' : 'no_disponible';
+        pintarUbicacion();
+      },
+      { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 }
+    );
+  }
+
+  function detenerVigilancia() {
+    if (VIGILANDO === null) return;
+    navigator.geolocation.clearWatch(VIGILANDO);
+    VIGILANDO = null;
+  }
 
   const $ = id => document.getElementById(id);
   const leerLS  = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } };
@@ -468,15 +584,122 @@
   actualizarTema();
 
   // ── Arranque ──────────────────────────────────────────────
+  SESION = leerLS(LS.sesion, null);
+  // La clave compartida de la versión anterior sigue leyéndose para no dejar
+  // tirados los equipos que ya la tienen guardada. Es el modo legado: el
+  // servidor solo la acepta si el administrador lo enciende a propósito.
   CLAVE = localStorage.getItem(LS.clave) || '';
-  if (CLAVE) iniciar(); else $('gate').classList.remove('oculto');
+  if (SESION?.token || CLAVE) iniciar(); else $('gate').classList.remove('oculto');
 
-  function entrar() {
+  // Cabeceras de autorización. Con sesión va el token; sin ella, la clave
+  // compartida de siempre. Nunca viaja la clave personal del repartidor: se usa
+  // una sola vez, en el login, y no se guarda en ningún lado.
+  function cabecerasAuth(extra = {}) {
+    if (SESION?.token) return { ...extra, 'authorization': 'Bearer ' + SESION.token };
+    return { ...extra, 'x-admin-key': CLAVE };
+  }
+
+  function zonasAutorizadas() {
+    // Sin sesión (modo legado o administrador) no hay restricción del lado del
+    // equipo; el servidor manda de todas formas.
+    const z = SESION?.repartidor?.zonas;
+    return Array.isArray(z) && z.length ? z : ZONAS_VALIDAS;
+  }
+
+  async function entrar() {
     const k = $('clave').value.trim();
     if (!k) return;
-    CLAVE = k;
-    localStorage.setItem(LS.clave, k);
-    iniciar();
+    const btn = $('btn-entrar');
+    btn.disabled = true; btn.textContent = 'Verificando…';
+    $('gateErr').classList.add('oculto');
+    try {
+      const r = await fetch(API_BASE + '/api/entrega/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clave: k })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.token) {
+        SESION = { token: d.token, expira: d.expires_at, repartidor: d.repartidor };
+        guardar(LS.sesion, SESION);
+        CLAVE = '';                       // la sesión reemplaza a la clave compartida
+        $('clave').value = '';            // no dejarla escrita en pantalla
+        // Su nombre, antes de entrar: así nota si agarró la tablet de otro.
+        $('gate-nombre').textContent = d.repartidor?.nombre || '';
+        $('gate-bienvenida').classList.remove('oculto');
+        await new Promise(res => setTimeout(res, 900));
+        return iniciar();
+      }
+      if (r.status === 429) throw new Error(d.error || 'Demasiados intentos. Espera unos minutos.');
+      // 401 con clave personal: puede ser que este equipo aún use la clave
+      // compartida de la versión anterior. Se intenta como antes.
+      if (r.status === 401) {
+        CLAVE = k;
+        localStorage.setItem(LS.clave, k);
+        SESION = null;
+        const prueba = await fetch(API_BASE + '/api/entrega/' + (FECHA || '2000-01-01'),
+          { headers: { 'x-admin-key': k } });
+        if (prueba.status !== 401) { $('clave').value = ''; return iniciar(); }
+        localStorage.removeItem(LS.clave); CLAVE = '';
+        throw new Error('Clave incorrecta');
+      }
+      throw new Error(d.error || 'No se pudo entrar');
+    } catch (e) {
+      $('gateErr').textContent = e.message;
+      $('gateErr').className = 'aviso err';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  }
+
+  // La sesión dejó de valer: venció, el administrador la cerró o desactivó al
+  // repartidor. Se pide la clave otra vez, pero LA COLA NO SE TOCA: esas
+  // entregas ya ocurrieron y se suben en cuanto alguien vuelva a entrar.
+  // Borrarlas para "limpiar" sería perder comida realmente entregada.
+  function sesionRechazada(d) {
+    const motivos = {
+      token_vencido:      'Tu sesión venció. Vuelve a escribir tu clave.',
+      sesion_invalidada:  'El administrador cerró tu sesión. Pídele tu clave nueva.',
+      repartidor_inactivo:'Tu usuario está desactivado. Habla con el administrador.',
+      token_invalido:     'La sesión no es válida. Vuelve a escribir tu clave.'
+    };
+    const msg = motivos[d?.motivo] || 'Vuelve a escribir tu clave.';
+    SESION = null;
+    localStorage.removeItem(LS.sesion);
+    // Ojo: NO se tocan LS.cola ni LS.llegadas.
+    $('app').classList.add('oculto');
+    $('zona-picker').classList.add('oculto');
+    $('gate-bienvenida').classList.add('oculto');
+    $('gate').classList.remove('oculto');
+    $('gateErr').textContent = msg +
+      (COLA.length ? ' Tienes ' + COLA.length + ' entrega(s) por subir: se conservan y se enviarán al entrar.' : '');
+    $('gateErr').className = 'aviso err';
+  }
+
+  // Cambiar de usuario. Igual que cambiar de zona: NO se permite con entregas
+  // sin subir, porque esa cola es de quien la escaneó y el servidor la
+  // rechazaría si la subiera otro. Nunca se borra la cola para resolverlo.
+  function cambiarUsuario() {
+    if (COLA.length) {
+      return mostrarAviso('avisoSync',
+        'Hay ' + COLA.length + ' entrega(s) sin subir. Son de esta sesión: conéctate y espera a que ' +
+        '"Por subir" quede en 0 antes de cambiar de usuario.', 'err');
+    }
+    if (!confirm('¿Cerrar la sesión de ' + (SESION?.repartidor?.nombre || 'este usuario') + '?')) return;
+    SESION = null;
+    localStorage.removeItem(LS.sesion);
+    localStorage.removeItem(LS.clave);
+    // También la zona: ahora que hay usuarios, la ruta es de la jornada de cada
+    // quien y no del aparato. Sin esto el siguiente en entrar heredaba la zona
+    // del anterior y podía repartir la ruta equivocada sin darse cuenta. Las
+    // cachés de cada zona NO se borran: siguen sirviendo si vuelve a ella.
+    localStorage.removeItem(LS.zona);
+    ZONA = '';
+    CLAVE = '';
+    $('app').classList.add('oculto');
+    $('zona-picker').classList.add('oculto');
+    $('gate-bienvenida').classList.add('oculto');
+    $('gate').classList.remove('oculto');
   }
 
   // ── Zona del equipo ───────────────────────────────────────
@@ -493,9 +716,19 @@
       return;
     }
     $('zona-picker-aviso').className = 'aviso oculto';
+    pintarOpcionesZona();
     $('zona-opciones').classList.remove('oculto');
     $('zona-cancelar').classList.toggle('oculto', !ZONA);
     $('zona-picker').classList.remove('oculto');
+  }
+
+  // Solo se muestran las zonas que este repartidor tiene asignadas. Si tiene
+  // una sola, ni siquiera hay que preguntarle: se toma sola.
+  function pintarOpcionesZona() {
+    const permitidas = zonasAutorizadas();
+    document.querySelectorAll('.zona-opcion').forEach(b => {
+      b.classList.toggle('oculto', !permitidas.includes(b.dataset.zona));
+    });
   }
 
   function cerrarSelectorZona() {
@@ -505,6 +738,13 @@
 
   async function elegirZona(z) {
     if (!ZONAS_VALIDAS.includes(z)) return;
+    // El servidor lo vuelve a comprobar; esto evita que el repartidor descubra
+    // el rechazo hasta después de descargar media lista.
+    if (!zonasAutorizadas().includes(z)) {
+      $('zona-picker-aviso').textContent = 'No tienes autorizada esa zona. Pídele al administrador que te la asigne.';
+      $('zona-picker-aviso').className = 'aviso err';
+      return;
+    }
     if (COLA.length) return abrirSelectorZona();   // el candado, por si acaso
     if (z === ZONA) return cerrarSelectorZona();
 
@@ -544,9 +784,20 @@
     COLA = leerLS(LS.cola, []);
     ZONA = localStorage.getItem(LS.zona) || '';
 
+    // Con una sola zona autorizada no hay nada que preguntar: se toma sola.
+    const permitidas = zonasAutorizadas();
+    if (!permitidas.includes(ZONA) && permitidas.length === 1) {
+      ZONA = permitidas[0];
+      localStorage.setItem(LS.zona, ZONA);
+    }
+    // Si la zona guardada dejó de estar autorizada (el admin se la quitó), se
+    // descarta y se vuelve a preguntar en vez de fallar contra el servidor.
+    if (ZONA && !permitidas.includes(ZONA)) ZONA = '';
+
     // Sin zona no se puede operar: se pregunta antes de mostrar el escáner.
     if (!ZONAS_VALIDAS.includes(ZONA)) {
       ZONA = '';
+      pintarOpcionesZona();
       $('zona-opciones').classList.remove('oculto');
       $('zona-cancelar').classList.add('oculto');
       $('zona-picker').classList.remove('oculto');
@@ -568,6 +819,14 @@
 
     if (!APP_ARRANCADA) {
       APP_ARRANCADA = true;
+      LLEGADAS = leerLS(LS.llegadas, []);
+      // El GPS se sigue mientras la app está a la vista: así cada escaneo se
+      // sella al instante con una posición fresca en vez de esperar un fix.
+      // Al ocultarse se suelta, para no gastar batería en el trayecto.
+      iniciarVigilancia();
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) detenerVigilancia(); else iniciarVigilancia();
+      });
       // El modo lector se recuerda: se configura una vez por equipo
       $('chk-lector').checked = leerLS(LS.lector, false);
       alternarModoLector($('chk-lector').checked);
@@ -594,6 +853,167 @@
   // traen: se intenta deducir del pedido guardado o del índice del día. Si no
   // se puede, devuelve vacío y el elemento viaja SIN zona — el servidor lo
   // acepta sin verificar antes que perder una entrega que sí ocurrió.
+  // ── Llegada al punto ──────────────────────────────────────
+  // Qué turno se está entregando. Se deduce de lo que queda pendiente, que es
+  // más confiable que el reloj: si la ruta se atrasó, el turno sigue siendo el
+  // de la comida que traes. El reloj solo decide cuando no hay pendientes.
+  function turnoEnCurso() {
+    const pend = PEDIDOS.filter(p => !p.entregado_en && p.turno);
+    if (pend.length) {
+      const cuenta = {};
+      pend.forEach(p => { cuenta[p.turno] = (cuenta[p.turno] || 0) + 1; });
+      return Object.entries(cuenta).sort((a, b) => b[1] - a[1])[0][0];
+    }
+    const ahora = new Date();
+    const minutos = ahora.getHours() * 60 + ahora.getMinutes();
+    const [ha, ma] = (TURNO_HORA.turno_a || '10:00').split(':').map(Number);
+    const [hb, mb] = (TURNO_HORA.turno_b || '17:00').split(':').map(Number);
+    const medio = ((ha * 60 + ma) + (hb * 60 + mb)) / 2;
+    return minutos < medio ? 'turno_a' : 'turno_b';
+  }
+
+  function llegadaRegistrada(turno) {
+    return LLEGADAS_DIA.find(l => l.zona === ZONA && l.turno === turno && l.fecha_menu === FECHA)
+        || LLEGADAS.find(l => l.zona === ZONA && l.turno === turno && l.fecha === FECHA)
+        || null;
+  }
+
+  // Metros entre dos coordenadas (Haversine). Sirve para avisar al repartidor
+  // si registra la llegada lejos del punto del contrato.
+  function metrosEntre(a, b) {
+    const R = 6371000, rad = g => g * Math.PI / 180;
+    const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon);
+    const s = Math.sin(dLat / 2) ** 2 +
+              Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+    return Math.round(2 * R * Math.asin(Math.sqrt(s)));
+  }
+
+  async function registrarLlegada() {
+    if (!ZONA || !FECHA) return;
+    const turno = turnoEnCurso();
+    if (llegadaRegistrada(turno)) {
+      return flash('dup', 'La llegada ya estaba registrada',
+        'Se conserva la primera hora: es la que cuenta para el contrato.');
+    }
+
+    const pos = posicionUtil();
+    // Sin coordenada NO se bloquea: la hora de llegada es lo que decide la
+    // penalización y perderla por un GPS que no fijó sería peor. Se registra y
+    // se avisa, para que quede claro que esa llegada va sin respaldo de lugar.
+    const punto = PUNTOS.find(p => p.zona === ZONA && p.lat != null);
+    let aviso = '';
+    if (!pos) {
+      aviso = PERMISO_UBICACION === 'denegado'
+        ? 'Sin permiso de ubicación: esta llegada queda sin coordenada.'
+        : 'Todavía sin señal de GPS: esta llegada queda sin coordenada.';
+    } else if (punto) {
+      const d = metrosEntre(pos, punto);
+      const radio = punto.radio_m || 150;
+      if (d > radio) aviso = 'Estás a ' + (d >= 1000 ? (d / 1000).toFixed(1) + ' km' : d + ' m') +
+                             ' del punto de ' + (ZONA_TXT[ZONA] || ZONA) + '.';
+    }
+
+    const item = {
+      fecha: FECHA, zona: ZONA, turno,
+      llegada_en: new Date().toISOString(),
+      lat: pos ? pos.lat : null,
+      lon: pos ? pos.lon : null,
+      precision_m: pos ? pos.precision_m : null
+    };
+    LLEGADAS.push(item);
+    guardar(LS.llegadas, LLEGADAS);
+
+    flash(aviso ? 'dup' : 'ok', 'Llegada registrada · ' + horaLocal(item.llegada_en),
+      aviso || ((ZONA_TXT[ZONA] || '') + ' · ' + (TURNO_TXT[turno] || '')));
+    pintar();
+    if (navigator.onLine) sincronizar();
+  }
+
+  // ── Cierre de ruta ────────────────────────────────────────
+  // Lo que el empleado no recogió NO es comida no entregada: el proveedor la
+  // cocinó y la llevó, y devolverla es merma suya. Se deja con el supervisor y
+  // queda constancia de quién la recibió. Sin esto, el propio sistema
+  // registraba esas comidas como faltantes — evidencia en contra.
+  function cerrarRuta() {
+    const pend = PEDIDOS.filter(p => !p.entregado_en);
+    if (!pend.length) return mostrarAviso('avisoSync', 'No queda nada pendiente por cerrar.', 'info');
+
+    const previo = localStorage.getItem(LS.supervisor) || '';
+    const quien = prompt(
+      'Vas a registrar ' + pend.length + ' comida(s) como entregadas al supervisor.\n\n' +
+      '¿Quién las recibió?', previo);
+    if (quien === null) return;
+    const nombre = quien.trim();
+    if (!nombre) return mostrarAviso('avisoSync', 'Hace falta el nombre de quien recibió.', 'err');
+    localStorage.setItem(LS.supervisor, nombre);
+
+    const pos = posicionUtil();
+    const ahora = new Date().toISOString();
+    for (const p of pend) {
+      p.entregado_en = ahora;
+      p.entregado_a = 'supervisor';
+      p.recibido_por = nombre;
+      COLA.push({
+        numero_empleado: p.numero_empleado, entregado_en: ahora,
+        fecha: FECHA, zona: p.zona || ZONA,
+        entregado_a: 'supervisor', recibido_por: nombre,
+        repartidor_id: SESION?.repartidor?.id ?? null,
+        lat: pos ? pos.lat : null, lon: pos ? pos.lon : null,
+        precision_m: pos ? pos.precision_m : null
+      });
+    }
+    guardar(LS.cola, COLA);
+    guardarCacheZona();
+    flash('ok', pend.length + ' entregadas al supervisor', 'Recibió: ' + nombre);
+    pintar();
+    if (navigator.onLine) sincronizar();
+  }
+
+  function guardarCacheZona() {
+    guardar(claveDatos(ZONA), {
+      fecha: FECHA, pedidos: PEDIDOS, zona: ZONA,
+      turno_hora: TURNO_HORA, tolerancia_min: TOLERANCIA_MIN, motivos: MOTIVOS
+    });
+  }
+
+  // Advertencia de ubicación. Va a la vista y no a la consola: si el permiso
+  // está denegado, TODAS las entregas del día quedan sin coordenada y eso no
+  // se puede descubrir en una reclamación.
+  function pintarUbicacion() {
+    const el = $('aviso-ubicacion');
+    if (!el) return;
+    let msg = '';
+    if (PERMISO_UBICACION === 'denegado') {
+      msg = 'Sin permiso de ubicación. Las entregas se registran, pero SIN la coordenada que respalda dónde se hicieron. Actívala en los ajustes del equipo.';
+    } else if (!navigator.geolocation) {
+      msg = 'Este equipo no tiene ubicación disponible.';
+    } else if (!posicionUtil()) {
+      msg = POSICION
+        ? 'Señal de GPS débil (±' + POSICION.precision_m + ' m). Espera unos segundos en el sitio.'
+        : 'Buscando señal de GPS…';
+    }
+    el.textContent = msg;
+    el.classList.toggle('oculto', !msg);
+    el.classList.toggle('grave', PERMISO_UBICACION === 'denegado');
+  }
+
+  function pintarLlegada() {
+    const turno = turnoEnCurso();
+    const l = llegadaRegistrada(turno);
+    const btn = $('btn-llegada'), est = $('llegada-estado');
+    if (!btn || !est) return;
+    btn.classList.toggle('oculto', !!l);
+    est.classList.toggle('oculto', !l);
+    if (l) {
+      const hora = horaLocal(l.llegada_en);
+      const sinSubir = LLEGADAS.some(x => x.turno === turno && x.zona === ZONA);
+      est.textContent = 'Llegada registrada a las ' + hora + ' · ' +
+        (TURNO_TXT[turno] || turno) + (sinSubir ? ' · por subir' : '');
+    } else {
+      btn.textContent = 'Llegué al punto de entrega · ' + (TURNO_TXT[turno] || '');
+    }
+  }
+
   function zonaDeElemento(e) {
     if (e && e.zona) return e.zona;
     const n = e && e.numero_empleado;
@@ -606,6 +1026,30 @@
   // ── Sincronización ────────────────────────────────────────
   async function sincronizar() {
     if (!navigator.onLine) return;
+
+    // 0) Las llegadas primero. Van antes que los escaneos a propósito: si la
+    //    subida se corta a media sincronización, lo que se salva es la hora de
+    //    llegada, que es de lo que depende la penalización del contrato.
+    if (LLEGADAS.length) {
+      const quedan = [];
+      for (const l of LLEGADAS) {
+        try {
+          const r = await fetch(API_BASE + '/api/entrega/llegada', {
+            method: 'POST',
+            headers: cabecerasAuth({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(l)
+          });
+          // 400 = el servidor la rechaza por datos inválidos y reintentar no la
+          // va a arreglar. Cualquier otro fallo se reintenta: perder una hora de
+          // llegada por un error pasajero costaría el 30% de esa entrega.
+          if (r.ok) continue;
+          if (r.status === 400) continue;
+          quedan.push(l);
+        } catch { quedan.push(l); }
+      }
+      LLEGADAS = quedan;
+      guardar(LS.llegadas, LLEGADAS);
+    }
 
     // 1) Subir la cola, AGRUPADA POR FECHA: cada escaneo lleva la fecha en que
     //    ocurrió, y si el reparto se escaneó ayer y la app se abre hoy, esos
@@ -632,7 +1076,7 @@
           if (zonaLote) cuerpo.zona = zonaLote;
           const r = await fetch(API_BASE + '/api/entrega', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-admin-key': CLAVE },
+            headers: cabecerasAuth({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(cuerpo)
           });
           if (!r.ok) continue;
@@ -687,8 +1131,8 @@
       if (FECHA && fechaObjetivo !== FECHA) { PEDIDOS = []; }
       const url = API_BASE + '/api/entrega/' + fechaObjetivo +
         (zonaPeticion ? '?zona=' + encodeURIComponent(zonaPeticion) : '');
-      const r = await fetch(url, { headers: { 'x-admin-key': CLAVE } });
-      if (r.status === 401) return mostrarAviso('avisoSync', 'Clave incorrecta. Bórrala y vuelve a entrar.', 'err');
+      const r = await fetch(url, { headers: cabecerasAuth() });
+      if (r.status === 401) return sesionRechazada(await r.json().catch(() => ({})));
       if (!r.ok) return;
       const d = await r.json();
       if (!vigente()) return;       // llegó tarde: la zona ya es otra
@@ -705,6 +1149,11 @@
       if (d.motivos_tardia) MOTIVOS = d.motivos_tardia;
       // El índice de todas las zonas se guarda aparte: no es de una ruta, y es
       // lo que permite avisar "esto es de la otra zona" cuando no hay señal.
+      // Llegadas que el servidor ya tiene y punto del contrato: con esto la
+      // app sabe si la llegada de este turno ya quedó y a qué distancia está
+      // del punto acordado.
+      LLEGADAS_DIA = Array.isArray(d.llegadas) ? d.llegadas : [];
+      if (Array.isArray(d.puntos)) PUNTOS = d.puntos;
       if (d.indice_zonas) {
         INDICE_ZONAS = d.indice_zonas;
         guardar(LS.indice, { fecha: FECHA, mapa: INDICE_ZONAS });
@@ -769,7 +1218,21 @@
     // app se reabre al día siguiente, debe subirse al día en que ocurrió; y la
     // zona viaja para que el servidor verifique que el pedido sí era de esta
     // ruta, sin confiar en el filtro del teléfono.
-    COLA.push({ numero_empleado: p.numero_empleado, entregado_en: p.entregado_en, fecha: FECHA, zona: p.zona || ZONA });
+    // La coordenada viaja con el escaneo. Veinte escaneos formando un racimo
+    // apretado prueban un reparto en sitio; un rastro que avanza por la
+    // carretera prueba lo contrario. Si el GPS no fijó va en nulo: la entrega
+    // vale más que su coordenada, y perderla por eso sería peor.
+    const pos = posicionUtil();
+    COLA.push({
+      numero_empleado: p.numero_empleado, entregado_en: p.entregado_en,
+      fecha: FECHA, zona: p.zona || ZONA, entregado_a: 'empleado',
+      // Quién lo escaneó. El servidor NO se fía de este campo para atribuir
+      // —usa la sesión— pero sí lo compara: si otro repartidor intenta subir
+      // esta cola, el elemento se rechaza en vez de atribuirse mal.
+      repartidor_id: SESION?.repartidor?.id ?? null,
+      lat: pos ? pos.lat : null, lon: pos ? pos.lon : null,
+      precision_m: pos ? pos.precision_m : null
+    });
     guardar(LS.cola, COLA);
 
     const tardia = esTardia(p);
@@ -961,6 +1424,13 @@
   function pintar() {
     $('cab-fecha').textContent = fechaLegible(FECHA) || 'Sin fecha de servicio';
     $('zona-activa-txt').textContent = ZONA_TXT[ZONA] || '—';
+    // Quién opera esta tablet. En modo legado no hay persona: se dice tal cual
+    // en vez de inventar un nombre.
+    const ses = $('sesion-repartidor');
+    if (ses) {
+      $('sesion-nombre').textContent = SESION?.repartidor?.nombre || 'Reparto general';
+      ses.classList.toggle('legado', !SESION?.repartidor);
+    }
     $('zona-activa').dataset.zona = ZONA || '';
 
     // El servidor ya filtra por zona; este segundo filtro es por si quedó una
@@ -969,6 +1439,13 @@
     const delDia = ZONA ? PEDIDOS.filter(p => !p.zona || p.zona === ZONA) : PEDIDOS;
     const hechas = delDia.filter(p => p.entregado_en);
     const faltan = delDia.filter(p => !p.entregado_en);
+
+    pintarLlegada();
+    pintarUbicacion();
+    // Cerrar ruta solo tiene sentido con algo pendiente y la ruta ya empezada:
+    // ofrecerlo antes del primer escaneo invita a cerrar sin haber repartido.
+    const cr = $('cerrar-ruta');
+    if (cr) cr.classList.toggle('oculto', !(faltan.length && hechas.length));
 
     $('n-entregado').textContent = hechas.length;
     $('n-falta').textContent = faltan.length;
@@ -996,6 +1473,9 @@
         <div class="d">
           <b>${esc(p.nombre || '—')}</b>
           <span>${esc(p.platillo || '')} · ${esc(TURNO_TXT[p.turno] || '')} · ${esc(ZONA_TXT[p.zona] || '')}</span>
+          ${p.entregado_a === 'supervisor'
+            ? `<span class="al-supervisor">Entregada al supervisor${p.recibido_por ? ' · ' + esc(p.recibido_por) : ''}</span>`
+            : ''}
           ${tardia ? `<span class="motivo">${faltaMotivo
               ? '⚠ Tardía — falta indicar el motivo'
               : 'Tardía · ' + esc(MOTIVOS[p.motivo_tardia] || p.motivo_tardia)}</span>` : ''}

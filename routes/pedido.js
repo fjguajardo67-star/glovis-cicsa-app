@@ -49,6 +49,15 @@ pedidoRouter.post('/identificar', async (req, res) => {
       pedidoActual = delDia.find(p => p.empleado_telefono === empleado.telefono) || null;
     }
 
+    // Queda constancia de que esta persona consultó el menú de ese día, haya
+    // pedido o no. Es lo que separa "no le gustó" de "no se enteró": sin este
+    // registro, los dos se ven idénticos en el panel y llevan a decisiones
+    // opuestas. Envuelto y silencioso a propósito: es una bitácora de consulta
+    // y jamás debe impedir que alguien pida si la tabla falta o falla.
+    if (fecha) {
+      try { await db.registrarAcceso(fecha, empleado.telefono); } catch {}
+    }
+
     // ¿Trae algo entregado sin calificar de los últimos días?
     let porCalificar = null;
     try {

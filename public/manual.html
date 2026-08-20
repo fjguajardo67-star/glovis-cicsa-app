@@ -196,13 +196,29 @@
       <li><b>Desactivar</b> (baja temporal, conserva historial) vs <b>Eliminar</b> (borra el registro y sus pedidos). Ante la duda, desactiva.</li>
     </ul>
 
-    <h3>📊 Dashboard — quién ha pedido</h3>
-    <p>Elige la fecha y verás una fila por empleado activo:</p>
+    <h3>📊 Dashboard — quién pidió y quién no</h3>
+    <p>Elige la fecha y verás una fila por empleado activo, con cinco estados:</p>
     <ul>
-      <li><span class="sem" style="background:#1e7a22"></span><b>Ya pidió</b> — con su platillo, zona y turno.</li>
-      <li><span class="sem" style="background:#8a96a8"></span><b>Sin pedir aún</b> — todavía no entra a la página (operación por QR).</li>
-      <li>Cuando el canal de WhatsApp esté activo, aparecen además <b>"recibió sin pedir"</b> (amarillo) y <b>"no recibió"</b> (rojo, envío fallido).</li>
+      <li><b>✅ Entregado</b> — pidió y ya se le entregó, a tiempo.</li>
+      <li><b>⏱️ Tardía</b> — se le entregó después de la hora de su turno.</li>
+      <li><b>⬜ Pendiente</b> — pidió, falta entregarle.</li>
+      <li><b>👀 Vio el menú, no pidió</b> — abrió la app ese día y decidió no pedir.</li>
+      <li><b>— No abrió la app</b> — nunca la consultó para esa fecha.</li>
     </ul>
+    <div class="caja tip">
+      <b>Los dos últimos son la misma cifra en el papel y dos problemas opuestos.</b>
+      Quien vio el menú y no pidió tomó una decisión: eso se atiende en la
+      cocina, revisando qué se ofreció ese día. Quien no abrió la app ni se
+      enteró: eso se atiende con el QR, con el supervisor o recordándoselo.
+      Antes los dos aparecían como "no ordenó" y llevaban a arreglar lo que no
+      estaba roto. La tarjeta de arriba te da el desglose, y en cada renglón se
+      ve <b>a qué hora miró</b> y cuántas veces volvió.
+    </div>
+    <p style="font-size:.86rem;color:var(--gris-text)">
+      El registro se hace cuando el empleado escribe su número en la página. Si
+      la consulta falla, <b>nunca impide pedir</b>: la bitácora es secundaria,
+      el pedido no.
+    </p>
 
     <h3>🍽️ Pedidos</h3>
     <p>La lista completa de una fecha: quién, qué platillo, zona y turno. Útil para dudas puntuales ("¿sí quedó mi pedido?").</p>
@@ -270,7 +286,7 @@
     <h3>Instalación (una sola vez por teléfono)</h3>
     <div class="paso"><div class="n">1</div><div class="t"><b>Escanea el QR de la hoja de instalación</b> que te da el administrador (o abre la dirección de la app de entrega).</div></div>
     <div class="paso"><div class="n">2</div><div class="t"><b>Agrégala a la pantalla de inicio:</b> iPhone: Compartir → "Agregar a pantalla de inicio" · Android: menú ⋮ → "Agregar a pantalla principal". Queda como una app normal.</div></div>
-    <div class="paso"><div class="n">3</div><div class="t"><b>Escribe la clave de reparto</b> (te la da el administrador). Se guarda en el teléfono y no la vuelve a pedir.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Escribe TU clave personal</b> (te la da el administrador; tú no la creas). La app te saluda con tu nombre: si ves el nombre de otra persona, avisa — esa tablet no es la tuya. Tu nombre queda arriba, junto a la zona, y <b>cada entrega que escanees queda registrada a tu nombre</b>.</div></div>
     <div class="paso"><div class="n">4</div><div class="t"><b>Elige la ruta de este equipo:</b> <b>Glovis VDC</b> o <b>Glovis REFRIS</b>. Cada tablet atiende una sola zona, para que dos repartidores trabajen al mismo tiempo sin estorbarse. Queda guardada y no se vuelve a preguntar; la zona activa se ve siempre arriba, junto a la fecha.</div></div>
     <p>La app incluye <b>tema claro y oscuro</b>. Se cambia con el botón de luna o sol; la preferencia queda guardada en ese equipo. En ambos temas, los logos permanecen juntos dentro de una placa blanca para conservar su lectura.</p>
 
@@ -283,10 +299,11 @@
 
     <h3>El día de reparto</h3>
     <div class="paso"><div class="n">1</div><div class="t"><b>Antes de salir, abre la app</b> (con señal). La lista del día se descarga y queda guardada en el teléfono. Arriba se ven los contadores: <b>Entregadas · Pendientes · Por subir</b>.</div></div>
-    <div class="paso"><div class="n">2</div><div class="t"><b>Al entregar cada comida</b>, toca <b>"Abrir cámara"</b> y centra el QR de la etiqueta dentro del marco. La barra azul se mueve mientras está buscando; al leer, la cámara se reemplaza por una confirmación grande con el nombre. El teléfono también vibra.</div></div>
-    <div class="paso"><div class="n">3</div><div class="t"><b>Si un QR no se deja leer</b> (etiqueta manchada o rota), toca <b>"Ingresar número manualmente"</b>, captura el número de empleado y presiona <b>"Registrar"</b>. También puedes abrir la lista de Pendientes y tocar <b>"Entregar"</b>.</div></div>
-    <div class="paso"><div class="n">4</div><div class="t"><b>Con pistola Bluetooth o escáner integrado</b>, activa <b>"Lector Bluetooth"</b> una sola vez. La app mantiene el campo preparado y no abre el teclado en pantalla entre entregas.</div></div>
-    <div class="paso"><div class="n">5</div><div class="t"><b>Al terminar, revisa que "Por subir" esté en 0</b> antes de cerrar la app. Si no está en cero, espera a tener señal — baja solo.</div></div>
+      <div class="paso"><div class="n">2</div><div class="t"><b>Al llegar al punto, toca "Llegué al punto de entrega".</b> Es el paso más importante del día: <b>de esa hora depende que el contrato aplique o no el descuento por entrega tardía</b>, y la app guarda además la coordenada donde estabas. Tócalo apenas llegues, antes de empezar a repartir — repartir 30 comidas toma diez minutos o más, y lo que cuenta es <b>a qué hora llegaste</b>, no cuánto tardaste en repartir.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Al entregar cada comida</b>, toca <b>"Abrir cámara"</b> y centra el QR de la etiqueta dentro del marco. La barra azul se mueve mientras está buscando; al leer, la cámara se reemplaza por una confirmación grande con el nombre. El teléfono también vibra.</div></div>
+    <div class="paso"><div class="n">4</div><div class="t"><b>Si un QR no se deja leer</b> (etiqueta manchada o rota), toca <b>"Ingresar número manualmente"</b>, captura el número de empleado y presiona <b>"Registrar"</b>. También puedes abrir la lista de Pendientes y tocar <b>"Entregar"</b>.</div></div>
+    <div class="paso"><div class="n">5</div><div class="t"><b>Con pistola Bluetooth o escáner integrado</b>, activa <b>"Lector Bluetooth"</b> una sola vez. La app mantiene el campo preparado y no abre el teclado en pantalla entre entregas.</div></div>
+    <div class="paso"><div class="n">6</div><div class="t"><b>Al terminar, revisa que "Por subir" esté en 0</b> antes de cerrar la app. Si no está en cero, espera a tener señal — baja solo.</div></div>
 
     <h3>Qué significa cada aviso</h3>
     <table>
@@ -297,6 +314,44 @@
       <tr><td><b style="color:#c0392b">"Etiqueta de otro día"</b></td><td>La etiqueta es de una fecha distinta</td><td>NO la entregues — es comida de otro día</td></tr>
       <tr><td><b style="color:#c0392b">"Este pedido corresponde a Glovis REFRIS"</b> (o VDC)</td><td>Esa comida es de la otra ruta, no de la tuya</td><td>Entrégala si va contigo, pero el escaneo lo hace el equipo de esa zona. Aquí no se guardó nada</td></tr>
     </table>
+
+    <h3>Cambiar de usuario</h3>
+    <p>Con <b>"Cambiar usuario"</b> en el encabezado. Sirve cuando otra persona
+    va a usar esa misma tablet.</p>
+    <div class="caja peligro">
+      <b>No se puede cambiar de usuario con entregas por subir.</b> Esos escaneos
+      son tuyos: el sistema no los deja subir a nombre de alguien más. Conéctate,
+      espera a que <b>"Por subir"</b> llegue a cero y entonces cambia. La app
+      <b>nunca borra la cola</b> para resolverlo — esas entregas ya ocurrieron.
+    </div>
+    <p>Si tu sesión vence o el administrador la cierra, la app te pide la clave
+    otra vez. <b>Lo que tengas por subir se conserva</b> y se envía en cuanto
+    vuelvas a entrar.</p>
+
+    <h3>Cerrar la ruta: lo que nadie recogió</h3>
+    <p>Si al terminar quedan comidas que su dueño no pasó a recoger, <b>no te las
+    lleves de regreso</b>: déjalas con el supervisor y toca
+    <b>"Cerrar ruta: entregar lo pendiente al supervisor"</b>. La app te pregunta
+    quién las recibió y las registra como entregadas.</p>
+    <div class="caja importante">
+      <b>Por qué importa:</b> el contrato descuenta de la factura las comidas
+      <b>no entregadas</b>. Una comida que cocinaste, llevaste y dejaste en el
+      sitio <b>sí se entregó</b>, aunque el empleado no haya pasado por ella. Si
+      no cierras la ruta, el sistema la cuenta como faltante y esa cuenta juega
+      en tu contra.
+    </div>
+
+    <h3>La ubicación</h3>
+    <p>La app guarda <b>dónde</b> se registró cada llegada y cada escaneo. No es
+    para vigilar al repartidor: es la prueba de que el reparto se hizo en el
+    punto y no en el camino, que es lo que se discute cuando hay una
+    reclamación por entrega tardía.</p>
+    <div class="caja peligro">
+      <b>Si aparece el aviso rojo de "sin permiso de ubicación", avísale al
+      administrador el mismo día.</b> Las entregas se siguen registrando, pero
+      todas quedan <b>sin la coordenada que las respalda</b>, y eso no se puede
+      recuperar después.
+    </div>
 
     <h3>Cambiar de ruta</h3>
     <p>Con el botón <b>"Cambiar zona"</b> del encabezado. Al cambiar, la pantalla
@@ -409,11 +464,42 @@
       <tr><td>Este manual</td><td><code class="url-app" data-ruta="/manual.html">—</code></td><td>Todos</td></tr>
     </table>
 
-    <h3>Las dos claves</h3>
+    <h3>Las claves</h3>
     <table>
       <tr><th>Clave</th><th>Abre</th><th>Quién la tiene</th></tr>
       <tr><td><b>Clave de administrador</b></td><td>Panel completo, comanda, etiquetas y también la app de entrega</td><td>Solo administración. No se comparte ni se manda por mensaje.</td></tr>
-      <tr><td><b>Clave de reparto</b></td><td>Únicamente la app de entrega</td><td>Repartidor. Si su teléfono se pierde, se cambia esta clave y listo.</td></tr>
+      <tr><td><b>Clave personal de cada repartidor</b></td><td>Únicamente la app de entrega, y solo sus zonas asignadas</td><td>Una por persona. La asigna el administrador desde el panel.</td></tr>
+      <tr><td><b>Clave de reparto compartida</b> <em>(en retiro)</em></td><td>La app de entrega, sin identificar a nadie</td><td>Solo funciona si <code>ENTREGA_LEGACY_ENABLED=on</code>. Es temporal, para los equipos que aún no migran.</td></tr>
+    </table>
+
+    <h3>Usuarios de reparto</h3>
+    <p>Se administran en <b>Panel → Cocina → Usuarios de reparto</b>.</p>
+    <div class="paso"><div class="n">1</div><div class="t"><b>Dar de alta:</b> nombre completo y las zonas que atiende (una o las dos). La clave puedes escribirla o dejar que se genere sola.</div></div>
+    <div class="paso"><div class="n">2</div><div class="t"><b>Anota la clave en ese momento.</b> Se muestra una sola vez: después la base solo guarda su resguardo cifrado y ya no hay forma de consultarla. Si se pierde, se restablece.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Restablecer clave</b> genera una nueva y <b>cierra al instante la sesión</b> que el repartidor tuviera abierta en su tablet.</div></div>
+    <div class="paso"><div class="n">4</div><div class="t"><b>Desactivar</b> hace lo mismo y además le impide volver a entrar. Es lo que hay que hacer <b>el mismo día</b> si una tablet se pierde o alguien deja el puesto.</div></div>
+    <div class="paso"><div class="n">5</div><div class="t"><b>Cambiar sus zonas</b> se refleja la próxima vez que entre. Si le quitas la zona que traía seleccionada, la app se la pide de nuevo en lugar de fallar.</div></div>
+
+    <div class="caja importante">
+      <b>Por qué importa quién entregó:</b> con la clave compartida una entrega
+      solo decía "alguien con la clave". Ahora queda a nombre de una persona, y
+      eso es lo que sostiene una aclaración con el cliente. Las entregas hechas
+      con la clave vieja se registran como <b>"Reparto general"</b> — no se le
+      atribuyen a nadie, porque con una clave compartida no se sabe quién fue.
+    </div>
+
+    <h3>Migrar desde la clave compartida</h3>
+    <div class="paso"><div class="n">1</div><div class="t">Da de alta a cada repartidor y entrégale su clave.</div></div>
+    <div class="paso"><div class="n">2</div><div class="t">En su tablet, toca <b>Cambiar usuario</b> y que entre con la suya. La app cambia sola de la clave compartida a su sesión.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t">Cuando <b>todos</b> hayan migrado, quita <code>ENTREGA_LEGACY_ENABLED</code> de Railway. A partir de ahí la clave compartida deja de servir y toda entrega tiene nombre.</div></div>
+
+    <h3>Variables en Railway</h3>
+    <table>
+      <tr><th>Variable</th><th>Para qué</th></tr>
+      <tr><td><code>ADMIN_KEY</code></td><td>Panel, impresos y diagnóstico. Sin cambios.</td></tr>
+      <tr><td><code>ENTREGA_SESSION_SECRET</code></td><td><b>Nueva y obligatoria.</b> Firma las sesiones de los repartidores. Una cadena larga y aleatoria; si se cambia, todos vuelven a entrar.</td></tr>
+      <tr><td><code>ENTREGA_LEGACY_ENABLED</code></td><td><b>Nueva y temporal.</b> Ponla en <code>on</code> solo mientras migras. Sin ella, la clave compartida no funciona.</td></tr>
+      <tr><td><code>ENTREGA_KEY</code></td><td>La clave compartida de siempre. Se retira al terminar la migración.</td></tr>
     </table>
   </section>
 

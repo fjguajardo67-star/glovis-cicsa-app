@@ -503,19 +503,27 @@
       <div class="card">
         <div class="card-header">
           <div class="card-icon">📊</div>
-          <h3>Control de envíos y pedidos</h3>
+          <h3>Control de pedidos y entrega</h3>
         </div>
+        <!-- Antes decía "si recibió el menú" y la leyenda ofrecía tres estados
+             heredados de WhatsApp: recibió / no recibió / falló el envío. Eso
+             venía de la tabla de envíos, que el comedor ya no usa — con el QR
+             nadie "recibe" el menú, el empleado va y lo consulta. El dashboard
+             nunca consultó esa tabla, así que el panel prometía un dato que no
+             existía y esos dos estados no podían aparecer nunca. -->
         <p style="font-size:.85rem;color:var(--gris-text);margin-bottom:14px">
-          Estado de cada empleado para la fecha seleccionada: si recibió el menú y qué eligió.
+          Estado de cada empleado para la fecha seleccionada: qué pidió y si ya lo recibió.
         </p>
         <div class="row-fin">
           <div><label>Fecha del menú</label><input type="date" id="db-fecha" style="max-width:180px"></div>
           <button class="accion" onclick="verDashboard()">Consultar</button>
         </div>
         <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.8rem;color:var(--gris-text)">
-          <span>✅ Ya pidió</span>
-          <span>🟡 Recibió, sin pedir aún</span>
-          <span>🔴 No recibió / falló</span>
+          <span>✅ Entregado</span>
+          <span>⏱️ Tardía</span>
+          <span>⬜ Pendiente — pidió, falta entregarle</span>
+          <span>👀 Vio el menú, no pidió</span>
+          <span>— No abrió la app</span>
         </div>
         <div id="dashboardBox" style="margin-top:18px"></div>
       </div>
@@ -643,6 +651,58 @@
           Cada botón abre la vista lista para imprimir, con la clave ya incluida.
           La prueba en papel carta sirve para validar la medida contra el contenedor antes de comprar rollos.
         </p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">🧑‍✈️</div>
+          <h3>Usuarios de reparto</h3>
+        </div>
+        <p style="font-size:.85rem;color:var(--gris-text);margin:-4px 0 14px;line-height:1.55">
+          Cada repartidor entra con su clave personal y la entrega queda registrada
+          a su nombre. <b>Tú asignas la clave; él no la crea.</b> Se muestra una sola
+          vez al darlo de alta o al restablecerla — después solo queda guardado su
+          resguardo cifrado y ya no se puede consultar.
+        </p>
+        <div class="row-fin">
+          <div><label>Nombre completo</label><input type="text" id="rp-nombre" placeholder="Luis Hernández"></div>
+          <div>
+            <label>Zonas que atiende</label>
+            <div style="display:flex;gap:14px;align-items:center;padding-top:6px">
+              <label style="display:flex;gap:6px;align-items:center;font-weight:600;font-size:.88rem">
+                <input type="checkbox" id="rp-vdc" style="width:18px;height:18px"> Glovis VDC</label>
+              <label style="display:flex;gap:6px;align-items:center;font-weight:600;font-size:.88rem">
+                <input type="checkbox" id="rp-refris" style="width:18px;height:18px"> Glovis REFRIS</label>
+            </div>
+          </div>
+          <div><label>Clave (opcional)</label><input type="text" id="rp-clave" placeholder="Se genera sola"></div>
+          <button class="accion" onclick="crearRepartidor()">Dar de alta</button>
+        </div>
+        <div id="rpAviso" class="aviso"></div>
+        <div id="rpClaveNueva" class="oculto" style="margin:12px 0;padding:14px;border-radius:11px;background:var(--dorado-light);border:1px solid var(--dorado)">
+          <div style="font-size:.8rem;font-weight:700;color:#8a6516;margin-bottom:4px">
+            Anótala ahora: no se vuelve a mostrar
+          </div>
+          <div id="rpClaveTexto" style="font-family:ui-monospace,Menlo,monospace;font-size:1.5rem;font-weight:800;letter-spacing:.08em;color:var(--tinta)"></div>
+        </div>
+        <div id="rpBox" style="margin-top:14px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon">📍</div>
+          <h3>Puntos de entrega</h3>
+        </div>
+        <p style="font-size:.85rem;color:var(--gris-text);margin:-4px 0 14px;line-height:1.55">
+          La referencia contra la que se mide cada entrega. El contrato nombra
+          <b>Patio LZC VDC</b> (Calle Volcán Ajusco s/n, Isla del Cayacal) y
+          <b>REFIS</b> (Bulevar de las Bahías).
+          <b>Abre este panel desde la tablet, parado en el andén, y toca Capturar.</b>
+          Desde una computadora no se puede: ahí la ubicación sale del wifi y se
+          va cientos de metros.
+        </p>
+        <div id="puntosBox"></div>
+        <div id="puntoAviso" class="aviso"></div>
       </div>
     </section>
 
@@ -775,6 +835,9 @@
       const f = document.getElementById('db-fecha');
       if (f && !f.value) f.value = sumarDias(fechaComedor(), 1);
     }
+    // Los puntos de entrega se consultan al abrir Cocina, no al entrar al
+    // panel: son configuración que se toca una vez, no en cada sesión.
+    if (p === 'cocina') { cargarRepartidores(); cargarPuntos(); }
   }
 
   async function api(path, opts = {}) {
@@ -901,7 +964,10 @@
       let h = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">';
       h += tarjeta(r.activos,      'Empleados activos',   'var(--azul)',      'var(--azul-light)');
       h += tarjeta(r.ordenaron,    'Ordenaron',           'var(--verde)',     '#f0f7f0');
-      h += tarjeta(r.no_ordenaron, 'No ordenaron',        'var(--gris-text)', 'var(--gris-bg)');
+      // El desglose que importa en el arranque: quien miró el menú y no pidió
+      // es un problema de cocina; quien nunca abrió la app es de difusión.
+      h += tarjeta(r.vieron_no_ordenaron ?? 0, 'Vieron, no pidieron', '#b8860b', '#fff9e6');
+      h += tarjeta(r.no_abrieron ?? r.no_ordenaron, 'No abrieron la app', 'var(--gris-text)', 'var(--gris-bg)');
       h += tarjeta(r.entregados,   'Entregados',          'var(--verde)',     '#f0f7f0');
       h += tarjeta(r.pendientes,   'Pendientes de entrega','#b8860b',         '#fff9e6');
       h += tarjeta(r.tardias,      'Entregas tardías',    'var(--rojo)',      '#fdecec');
@@ -910,8 +976,12 @@
       const ESTADO = {
         entregado: ['✅ Entregado',  '#f0f7f0'],
         tardia:    ['⏱️ Tardía',     '#fff9e6'],
-        pendiente: ['⬜ Pendiente',  ''],
-        no_ordeno: ['— No ordenó',   'var(--gris-bg)']
+        pendiente:     ['⬜ Pendiente',        ''],
+        vio_no_ordeno: ['👀 Vio, no pidió',   '#fff9e6'],
+        no_abrio:      ['— No abrió la app',  'var(--gris-bg)'],
+        // Se conserva por si la tabla de accesos aún no existe en la base:
+        // entonces el servidor sigue devolviendo el estado de antes.
+        no_ordeno:     ['— No ordenó',        'var(--gris-bg)']
       };
 
       h += '<div style="overflow-x:auto"><table style="min-width:720px"><tr>' +
@@ -1552,6 +1622,187 @@
   }
 
   // ── Cocina ──
+  // ── Usuarios de reparto ──
+  // La clave se asigna aquí y se muestra UNA vez. En la base solo queda su
+  // resguardo cifrado, así que no existe "ver la clave actual": si se pierde,
+  // se restablece — y eso además cierra la sesión que estuviera abierta.
+  const ZONAS_RP = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
+
+  function mostrarClaveNueva(clave, quien) {
+    document.getElementById('rpClaveTexto').textContent = clave;
+    document.getElementById('rpClaveNueva').classList.remove('oculto');
+    aviso('rpAviso', 'Clave de ' + quien + ' lista. Dictásela y guárdala: no se puede volver a consultar.');
+  }
+
+  async function cargarRepartidores() {
+    const box = document.getElementById('rpBox');
+    if (!box) return;
+    try {
+      const { repartidores } = await api('/api/repartidores');
+      if (!repartidores.length) {
+        box.innerHTML = '<div class="vacio">Todavía no hay usuarios de reparto. Mientras tanto, los equipos entran con la clave compartida.</div>';
+        return;
+      }
+      box.innerHTML = '<table><tr><th>Nombre</th><th>Zonas</th><th>Estado</th><th></th><th></th></tr>' +
+        repartidores.map(r => {
+          const zonas = (r.zonas || []).map(z => ZONAS_RP[z] || z).join(' · ') || '—';
+          return '<tr>' +
+            '<td>' + escaparHtml(r.nombre) + '</td>' +
+            '<td>' + escaparHtml(zonas) + '</td>' +
+            '<td><span class="badge ' + (r.activo ? 'on' : 'off') + '">' + (r.activo ? 'Activo' : 'Inactivo') + '</span></td>' +
+            '<td><button class="accion mini sec" onclick="restablecerClave(' + Number(r.id) + ')">Restablecer clave</button></td>' +
+            '<td><button class="accion mini ' + (r.activo ? 'peligro' : 'sec') + '" onclick="alternarRepartidor(' + Number(r.id) + ',' + (!r.activo) + ')">' +
+              (r.activo ? 'Desactivar' : 'Activar') + '</button></td>' +
+          '</tr>';
+        }).join('') + '</table>' +
+        '<p style="font-size:.78rem;color:var(--gris-text);margin-top:10px">' +
+        'Restablecer la clave o desactivar a alguien <b>cierra su sesión al instante</b>, ' +
+        'aunque ya la tuviera abierta en la tablet. Es lo que hay que hacer si un equipo se pierde.</p>';
+    } catch (e) {
+      box.innerHTML = '<div class="aviso err">Error: ' + escaparHtml(e.message) + '</div>';
+    }
+  }
+
+  function zonasSeleccionadas() {
+    const z = [];
+    if (document.getElementById('rp-vdc').checked) z.push('zona_vdc');
+    if (document.getElementById('rp-refris').checked) z.push('zona_refris');
+    return z;
+  }
+
+  async function crearRepartidor() {
+    const nombre = val('rp-nombre');
+    const zonas = zonasSeleccionadas();
+    if (!nombre) return aviso('rpAviso', 'Escribe el nombre completo', false);
+    if (!zonas.length) return aviso('rpAviso', 'Marca al menos una zona', false);
+    try {
+      const r = await api('/api/repartidores', {
+        method: 'POST',
+        body: JSON.stringify({ nombre, zonas, clave: val('rp-clave') || undefined })
+      });
+      ['rp-nombre', 'rp-clave'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('rp-vdc').checked = false;
+      document.getElementById('rp-refris').checked = false;
+      mostrarClaveNueva(r.clave, r.repartidor.nombre);
+      cargarRepartidores();
+    } catch (e) { aviso('rpAviso', 'Error: ' + e.message, false); }
+  }
+
+  async function restablecerClave(id) {
+    if (!confirm('¿Restablecer la clave?\n\nLa anterior deja de servir y se cierra la sesión que tenga abierta en su equipo.')) return;
+    try {
+      const r = await api('/api/repartidores/' + id + '/clave', { method: 'POST', body: '{}' });
+      mostrarClaveNueva(r.clave, r.repartidor.nombre);
+      cargarRepartidores();
+    } catch (e) { aviso('rpAviso', 'Error: ' + e.message, false); }
+  }
+
+  async function alternarRepartidor(id, activo) {
+    if (!activo && !confirm('¿Desactivar a este repartidor?\n\nSe cierra su sesión de inmediato y no podrá volver a entrar.')) return;
+    try {
+      await api('/api/repartidores/' + id, { method: 'PUT', body: JSON.stringify({ activo }) });
+      document.getElementById('rpClaveNueva').classList.add('oculto');
+      cargarRepartidores();
+    } catch (e) { aviso('rpAviso', 'Error: ' + e.message, false); }
+  }
+
+  // ── Puntos de entrega ──
+  // La referencia contra la que se mide cada entrega del contrato. Se captura
+  // desde la tablet parada en el andén: en una PC la ubicación viene del wifi
+  // o de la IP y un punto mal fijado desplaza para siempre TODAS las medidas.
+  const ZONAS_PUNTO = [
+    { zona: 'zona_vdc',    nombre: 'Patio LZC VDC',  direccion: 'Calle Volcán Ajusco s/n, Col. Isla del Cayacal, C.P. 60950' },
+    { zona: 'zona_refris', nombre: 'REFIS',          direccion: 'Calle Bulevar de las Bahías, C.P. 60950' }
+  ];
+  const PRECISION_PUNTO_MAXIMA_M = 25;
+  let PUNTOS_GUARDADOS = [];
+
+  async function cargarPuntos() {
+    const box = document.getElementById('puntosBox');
+    if (!box) return;
+    try {
+      const hoy = fechaComedor();
+      const d = await api('/api/entrega/' + hoy);
+      PUNTOS_GUARDADOS = d.puntos || [];
+    } catch { PUNTOS_GUARDADOS = []; }
+
+    box.innerHTML = ZONAS_PUNTO.map(z => {
+      const p = PUNTOS_GUARDADOS.find(x => x.zona === z.zona);
+      const fijado = p && p.lat != null;
+      return `<div style="border:1px solid var(--gris-line);border-radius:11px;padding:14px;margin-bottom:10px">
+        <div style="font-weight:800;color:var(--azul)">${escaparHtml(z.nombre)}</div>
+        <div style="font-size:.78rem;color:var(--gris-text);margin-bottom:8px">${escaparHtml(z.direccion)}</div>
+        <div style="font-size:.85rem;margin-bottom:10px">${fijado
+          ? '📍 <b>' + p.lat.toFixed(6) + ', ' + p.lon.toFixed(6) + '</b>' +
+            '<span style="color:var(--gris-text)"> · radio ' + (p.radio_m || 150) + ' m</span>'
+          : '<span style="color:var(--rojo);font-weight:700">Sin fijar — la distancia de las entregas sale vacía</span>'}</div>
+        <button class="accion ${fijado ? 'sec' : ''}" onclick="capturarPunto('${z.zona}')">
+          ${fijado ? 'Volver a capturar' : 'Capturar con este dispositivo'}
+        </button>
+      </div>`;
+    }).join('');
+  }
+
+  // Promedia varias lecturas en vez de tomar una sola: parado en el sitio, el
+  // promedio de diez fijaciones cae bastante más cerca que cualquiera de ellas.
+  async function capturarPunto(zona) {
+    const z = ZONAS_PUNTO.find(x => x.zona === zona);
+    if (!navigator.geolocation) return aviso('puntoAviso', 'Este dispositivo no tiene ubicación. Usa la tablet en el sitio.', false);
+
+    aviso('puntoAviso', 'Midiendo… quédate quieto en el punto de entrega.');
+    const muestras = [];
+    const OBJETIVO = 8, LIMITE_MS = 25000;
+    const t0 = Date.now();
+
+    await new Promise(resolve => {
+      const id = navigator.geolocation.watchPosition(
+        p => {
+          muestras.push({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy });
+          aviso('puntoAviso', 'Midiendo… ' + muestras.length + '/' + OBJETIVO +
+            ' (±' + Math.round(p.coords.accuracy) + ' m)');
+          if (muestras.length >= OBJETIVO || Date.now() - t0 > LIMITE_MS) {
+            navigator.geolocation.clearWatch(id); resolve();
+          }
+        },
+        () => { navigator.geolocation.clearWatch(id); resolve(); },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: LIMITE_MS }
+      );
+      setTimeout(() => { try { navigator.geolocation.clearWatch(id); } catch {} resolve(); }, LIMITE_MS + 1000);
+    });
+
+    if (!muestras.length) {
+      return aviso('puntoAviso', 'No se obtuvo señal de GPS. Si estás en una computadora, hazlo desde la tablet en el sitio.', false);
+    }
+    // Se queda la mejor mitad: las lecturas malas de un GPS que apenas fija
+    // arrastran el promedio y aquí el promedio es lo que se va a firmar.
+    muestras.sort((a, b) => a.acc - b.acc);
+    const buenas = muestras.slice(0, Math.max(1, Math.ceil(muestras.length / 2)));
+    const lat = buenas.reduce((s, m) => s + m.lat, 0) / buenas.length;
+    const lon = buenas.reduce((s, m) => s + m.lon, 0) / buenas.length;
+    const precision_m = Math.round(buenas.reduce((s, m) => s + m.acc, 0) / buenas.length);
+
+    if (precision_m > PRECISION_PUNTO_MAXIMA_M) {
+      return aviso('puntoAviso',
+        'Precisión insuficiente (±' + precision_m + ' m; se necesitan ' + PRECISION_PUNTO_MAXIMA_M + ' m o menos). ' +
+        'Sal a cielo abierto y vuelve a intentar. Desde una computadora no va a lograrse.', false);
+    }
+
+    if (!confirm('Fijar el punto de ' + z.nombre + ' aquí?\n\n' +
+      lat.toFixed(6) + ', ' + lon.toFixed(6) + '  (±' + precision_m + ' m)\n\n' +
+      'Contra este punto se medirá la distancia de todas las entregas.')) {
+      return aviso('puntoAviso', 'Captura cancelada.', false);
+    }
+
+    try {
+      await api('/api/entrega/punto', {
+        method: 'POST',
+        body: JSON.stringify({ zona, nombre: z.nombre, direccion: z.direccion, lat, lon, precision_m })
+      });
+      aviso('puntoAviso', z.nombre + ' fijado en ' + lat.toFixed(6) + ', ' + lon.toFixed(6) + ' (±' + precision_m + ' m)');
+      cargarPuntos();
+    } catch (e) { aviso('puntoAviso', 'Error: ' + e.message, false); }
+  }
+
   async function verCocina() {
     const f = document.getElementById('co-fecha').value;
     const box = document.getElementById('cocinaBox');

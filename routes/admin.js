@@ -7,6 +7,7 @@ import { construirListMessage, esEntregaTardia, MOTIVOS_TARDIA, limiteEntrega, h
 import { diezDigitos } from '../services/telefono.js';
 import { resumenCocina } from '../services/cocina.js';
 import { fechaServicio } from '../services/pedidos.js';
+import { hashClave, generarClave } from '../services/sesion.js';
 
 export const adminRouter = express.Router();
 
@@ -80,6 +81,88 @@ adminRouter.delete('/empleados/:telefono', async (req, res) => {
   try {
     await db.deleteEmpleado(req.params.telefono);
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Repartidores ────────────────────────────────────────────────
+// Todo este bloque va bajo ADMIN_KEY, que es lo que protege al router. La
+// clave del repartidor se asigna aquí: él no crea la suya, y en ninguna
+// respuesta viaja el hash — las consultas piden columnas explícitas.
+const ZONAS_REPARTO = ['zona_vdc', 'zona_refris'];
+
+function zonasLimpias(zonas) {
+  if (!Array.isArray(zonas)) return null;
+  const z = [...new Set(zonas)].filter(x => ZONAS_REPARTO.includes(x));
+  return z.length ? z : null;
+}
+
+adminRouter.get('/repartidores', async (req, res) => {
+  try {
+    res.json({ repartidores: await db.listRepartidores() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/repartidores', async (req, res) => {
+  try {
+    const { nombre, zonas, clave } = req.body || {};
+    if (!nombre || !String(nombre).trim()) {
+      return res.status(400).json({ error: 'Se requiere el nombre' });
+    }
+    const z = zonasLimpias(zonas);
+    if (!z) return res.status(400).json({ error: 'Se requiere al menos una zona válida', zonas_validas: ZONAS_REPARTO });
+
+    // Si el administrador no escribe una, se genera legible para dictarla.
+    const enClaro = (typeof clave === 'string' && clave.trim()) ? clave.trim() : generarClave();
+    const repartidor = await db.crearRepartidor({
+      nombre: String(nombre).trim(), zonas: z, clave_hash: await hashClave(enClaro)
+    });
+    // La clave viaja UNA sola vez, aquí, y nunca se vuelve a poder consultar:
+    // en la base solo queda el hash.
+    res.json({ ok: true, repartidor, clave: enClaro });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.put('/repartidores/:id', async (req, res) => {
+  try {
+    const { nombre, zonas, activo } = req.body || {};
+    const cambios = {};
+    if (nombre !== undefined) {
+      if (!String(nombre).trim()) return res.status(400).json({ error: 'El nombre no puede quedar vacío' });
+      cambios.nombre = String(nombre).trim();
+    }
+    if (zonas !== undefined) {
+      const z = zonasLimpias(zonas);
+      if (!z) return res.status(400).json({ error: 'Se requiere al menos una zona válida', zonas_validas: ZONAS_REPARTO });
+      cambios.zonas = z;
+    }
+    if (activo !== undefined) cambios.activo = !!activo;
+
+    const repartidor = await db.actualizarRepartidor(req.params.id, cambios);
+    // Desactivar tiene que cerrar la sesión que ya estaba abierta: si el
+    // equipo se perdió, dejar de poder entrar mañana no sirve de nada.
+    if (activo === false) await db.invalidarSesiones(req.params.id);
+    res.json({ ok: true, repartidor });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Restablecer clave. No existe "ver la clave actual" a propósito: solo hay
+// hash, y poder recuperarla querría decir que no está bien guardada.
+adminRouter.post('/repartidores/:id/clave', async (req, res) => {
+  try {
+    const enClaro = (typeof req.body?.clave === 'string' && req.body.clave.trim())
+      ? req.body.clave.trim() : generarClave();
+    await db.actualizarRepartidor(req.params.id, { clave_hash: await hashClave(enClaro) });
+    // Cambiar la clave cierra las sesiones abiertas con la anterior.
+    const repartidor = await db.invalidarSesiones(req.params.id);
+    res.json({ ok: true, repartidor, clave: enClaro });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -437,6 +520,12 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
       db.listEmpleadosActivos(),
       db.getPedidosPorFecha(fecha)
     ]);
+    // Quién abrió la app ese día. Si la tabla todavía no existe en la base, el
+    // dashboard sigue funcionando como antes en vez de caerse entero.
+    let accesos = [];
+    try { accesos = await db.getAccesosPorFecha(fecha); } catch {}
+    const accesoPorTel = {};
+    accesos.forEach(a => { accesoPorTel[diezDigitos(a.empleado_telefono)] = a; });
 
     const pedidoPorTel = {};
     pedidos.forEach(p => { pedidoPorTel[diezDigitos(p.empleado_telefono)] = p; });
@@ -445,10 +534,16 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
     // escaneo del QR al entregar (entregado_en). No hay estados intermedios.
     const filas = empleados.map(emp => {
       const p = pedidoPorTel[diezDigitos(emp.telefono)];
+      const acc = accesoPorTel[diezDigitos(emp.telefono)];
       if (!p) {
+        // Dos cosas muy distintas que antes se veían igual: mirar el menú y no
+        // pedir es una decisión; no abrir la app siquiera es no haberse
+        // enterado. La primera se arregla en la cocina, la segunda con el QR.
         return { nombre: emp.nombre, numero_empleado: emp.numero_empleado,
                  platillo: null, zona: null, turno: null,
-                 entregado_en: null, motivo_tardia: null, estado: 'no_ordeno' };
+                 entregado_en: null, motivo_tardia: null,
+                 visto_en: acc?.visto_en || null, veces: acc?.veces || 0,
+                 estado: acc ? 'vio_no_ordeno' : 'no_abrio' };
       }
       const tardia = esEntregaTardia(fecha, p.turno, p.entregado_en);
       return {
@@ -459,6 +554,8 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
         turno: p.turno,
         entregado_en: p.entregado_en || null,
         motivo_tardia: p.motivo_tardia || null,
+        visto_en: acc?.visto_en || null,
+        veces: acc?.veces || 0,
         estado: !p.entregado_en ? 'pendiente' : (tardia ? 'tardia' : 'entregado')
       };
     });
@@ -468,8 +565,11 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
       fecha,
       resumen: {
         activos:     filas.length,
-        ordenaron:   filas.filter(f => f.estado !== 'no_ordeno').length,
-        no_ordenaron: cuenta('no_ordeno'),
+        ordenaron:   filas.filter(f => f.estado !== 'no_ordeno' && f.estado !== 'vio_no_ordeno' && f.estado !== 'no_abrio').length,
+        no_ordenaron: cuenta('no_ordeno') + cuenta('vio_no_ordeno') + cuenta('no_abrio'),
+        // El desglose que separa un problema de cocina de uno de difusión.
+        vieron_no_ordenaron: cuenta('vio_no_ordeno'),
+        no_abrieron:         cuenta('no_abrio'),
         entregados:  cuenta('entregado') + cuenta('tardia'),
         pendientes:  cuenta('pendiente'),
         tardias:     cuenta('tardia')

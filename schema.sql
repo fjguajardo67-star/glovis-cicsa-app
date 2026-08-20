@@ -90,6 +90,161 @@ ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS motivo_tardia VARCHAR;
 -- cuando vuelve y su pedido anterior ya fue entregado: si | tal_vez | no
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS rating VARCHAR;
 
+-- ════════════════════════════════════════════════════════════════════
+-- EVIDENCIA DE ENTREGA
+--
+-- El contrato descuenta el 30% del costo de los box lunch "entregados de
+-- forma extemporánea", y castiga aparte la cantidad no entregada. Las
+-- columnas de aquí abajo existen para poder sostener las dos cosas con algo
+-- más que la palabra del repartidor.
+-- ════════════════════════════════════════════════════════════════════
+
+-- Dónde se escaneó cada entrega. Es lo que rebate "lo escanearon en ruta":
+-- veinte escaneos en un racimo de metros son un reparto en sitio; un rastro
+-- que avanza por la carretera es otra cosa muy distinta.
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS entrega_lat         DOUBLE PRECISION;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS entrega_lon         DOUBLE PRECISION;
+-- Precisión del fix en metros. Se guarda porque una coordenada de ±1500 m
+-- parece evidencia y no prueba nada: sin este dato no hay forma de saberlo.
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS entrega_precision_m REAL;
+
+-- A quién se le entregó. Sin esto, la comida que el empleado no recogió se
+-- registraba como NO ENTREGADA — evidencia en contra del proveedor por algo
+-- que sí cocinó y sí llevó. 'empleado' | 'supervisor'
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS entregado_a  VARCHAR;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS recibido_por TEXT;
+
+-- Hora en que el registro llegó al SERVIDOR. No sustituye a entregado_en,
+-- que es el momento real del escaneo y se captura sin señal; la acota. Es el
+-- único dato de esta tabla que no viene del reloj del repartidor, así que es
+-- lo que responde a "le movieron la hora a la tablet". Si la diferencia
+-- saliera negativa, es imposible y delata manipulación.
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS entrega_recibido_en TIMESTAMP WITH TIME ZONE;
+
+-- Quién abrió la app y consultó el menú de un día, haya pedido o no.
+--
+-- Sin esto, "no ordenó" tapa dos problemas opuestos: quien miró el menú y no
+-- le gustó (problema de cocina) y quien nunca supo que la app existe (problema
+-- de difusión). En el arranque del servicio, la segunda es casi siempre la
+-- explicación, y no había forma de distinguirlas.
+--
+-- Se registra al identificarse con el número de empleado. Una fila por persona
+-- y fecha de servicio: la primera vez que miró, la última, y cuántas veces.
+CREATE TABLE IF NOT EXISTS accesos (
+    fecha_menu        DATE    NOT NULL,
+    empleado_telefono VARCHAR NOT NULL,
+    visto_en          TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  -- la primera
+    ultima_vez        TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    veces             INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (fecha_menu, empleado_telefono)
+);
+-- Sin llave foránea a propósito: esta bitácora es de consulta, no de negocio.
+-- Un empleado dado de baja no debe llevarse el registro de que sí miraba el
+-- menú, y una consulta no puede fallar por integridad referencial.
+CREATE INDEX IF NOT EXISTS idx_accesos_fecha ON accesos (fecha_menu);
+
+-- ════════════════════════════════════════════════════════════════════
+-- REPARTIDORES
+--
+-- Antes todos los equipos compartían una sola ENTREGA_KEY, así que una
+-- entrega no se podía atribuir a nadie: solo "alguien con la clave". Con dos
+-- repartidores trabajando a la vez y una penalización contractual de por
+-- medio, eso ya no alcanza.
+--
+-- La clave la asigna el administrador; el repartidor no crea la suya.
+-- ════════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS repartidores (
+    id             BIGSERIAL PRIMARY KEY,
+    nombre         TEXT    NOT NULL,
+    -- NUNCA la clave en claro. Formato scrypt$N$r$p$sal$hash (services/sesion.js),
+    -- con los parámetros dentro para poder endurecerlos después sin invalidar
+    -- las claves ya entregadas.
+    clave_hash     TEXT    NOT NULL,
+    -- Zonas autorizadas. Un arreglo y no dos banderas porque mañana puede
+    -- haber un tercer comedor y la restricción de abajo lo absorbe sola.
+    zonas          TEXT[]  NOT NULL DEFAULT '{}',
+    activo         BOOLEAN NOT NULL DEFAULT true,
+    -- Se sube al restablecer la clave o desactivar al repartidor: cualquier
+    -- token emitido antes deja de valer, sin llevar lista de revocados.
+    version_sesion INTEGER NOT NULL DEFAULT 1,
+    creado_en      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Solo zonas del catálogo. Sin esto un error de captura deja a alguien con una
+-- zona que no existe y sin poder entrar, o peor, entrando a donde no debe.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'repartidores_zonas_validas') THEN
+    ALTER TABLE repartidores ADD CONSTRAINT repartidores_zonas_validas
+      CHECK (zonas <@ ARRAY['zona_vdc','zona_refris']::TEXT[]);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_repartidores_activo ON repartidores (activo);
+
+-- Quién confirmó cada entrega. El id sirve para cruzar; el nombre se guarda
+-- como fotografía del momento porque un reporte de hace seis meses debe seguir
+-- diciendo quién entregó aunque esa persona ya no esté en la plantilla.
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS entregado_por_id     BIGINT;
+ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS entregado_por_nombre TEXT;
+
+-- ON DELETE SET NULL y no CASCADE: borrar a un repartidor jamás debe borrar
+-- entregas. Se pierde el vínculo, nunca la evidencia.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'pedidos_entregado_por_fkey') THEN
+    ALTER TABLE pedidos ADD CONSTRAINT pedidos_entregado_por_fkey
+      FOREIGN KEY (entregado_por_id) REFERENCES repartidores(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_pedidos_repartidor ON pedidos (entregado_por_id);
+
+-- Llegada del repartidor al punto de entrega.
+--
+-- Es el evento que decide la puntualidad, y no el escaneo: repartir 30 box
+-- lunch toma diez minutos o más, así que medir comida por comida garantiza
+-- que la última siempre salga tarde aunque el vehículo haya llegado a tiempo.
+-- El contrato coincide: penaliza "los box lunch entregados de forma
+-- extemporánea" en bloque, no por unidad.
+CREATE TABLE IF NOT EXISTS llegadas (
+    id           BIGSERIAL PRIMARY KEY,
+    fecha_menu   DATE    NOT NULL,
+    zona         VARCHAR NOT NULL,               -- zona_vdc | zona_refris
+    turno        VARCHAR NOT NULL,               -- turno_a | turno_b
+    -- Vacío por defecto. El contrato nombra "REFIS 1, 2 y 3": si el reparto
+    -- resulta ser tres paradas, cada una se distingue aquí sin migrar nada.
+    punto        VARCHAR NOT NULL DEFAULT '',
+    llegada_en   TIMESTAMP WITH TIME ZONE NOT NULL,      -- reloj del equipo
+    recibido_en  TIMESTAMP WITH TIME ZONE DEFAULT NOW(), -- reloj del servidor
+    lat          DOUBLE PRECISION,
+    lon          DOUBLE PRECISION,
+    precision_m  REAL,
+    -- La primera llegada es la buena. Reenviar desde la cola no la mueve.
+    CONSTRAINT unica_llegada UNIQUE (fecha_menu, zona, turno, punto)
+);
+CREATE INDEX IF NOT EXISTS idx_llegadas_fecha ON llegadas (fecha_menu, zona);
+
+-- Puntos de entrega del contrato, contra los que se mide la distancia.
+--   Patio LZC VDC: Calle Volcán Ajusco s/n, Col. Isla del Cayacal, C.P. 60950
+--   REFIS 1, 2 y 3: Calle Bulevar de las Bahías, C.P. 60950
+-- Las coordenadas NO se ponen a mano desde un mapa: un pin a ojo se va 20 o
+-- 30 metros y ese error entra directo en la cifra que se le presenta al
+-- cliente. Se capturan paradas en el sitio, con la misma tablet y la misma
+-- precisión con la que después se miden las entregas.
+CREATE TABLE IF NOT EXISTS puntos_entrega (
+    zona           VARCHAR NOT NULL,
+    punto          VARCHAR NOT NULL DEFAULT '',
+    nombre         TEXT,
+    direccion      TEXT,
+    lat            DOUBLE PRECISION,
+    lon            DOUBLE PRECISION,
+    radio_m        INTEGER DEFAULT 150,
+    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (zona, punto)
+);
+
 -- Envíos del menú (registro de a quién se le mandó y su estado)
 CREATE TABLE IF NOT EXISTS envios (
     id             BIGSERIAL PRIMARY KEY,
