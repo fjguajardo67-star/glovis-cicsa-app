@@ -973,12 +973,29 @@
       h += tarjeta(r.tardias,      'Entregas tardías',    'var(--rojo)',      '#fdecec');
       h += '</div>';
 
+      // Si la bitácora de accesos no se pudo leer, decirlo. Las dos cifras de
+      // arriba dejan de significar algo y hay que advertirlo antes de que
+      // alguien tome una decisión con ellas.
+      if (r.accesos_ok === false) {
+        h += '<div style="background:#fdecec;border-left:4px solid var(--rojo);border-radius:6px;' +
+             'padding:11px 14px;margin-bottom:16px;font-size:.83rem;color:var(--gris-text)">' +
+             '<strong style="color:var(--rojo)">No se pudo leer quién abrió la app.</strong> ' +
+             'Los ' + (r.sin_dato ?? 0) + ' marcados «Sin dato» pudieron haber entrado o no — ' +
+             'no lo sabemos. «Vieron, no pidieron» y «No abrieron la app» no son confiables ' +
+             'en esta consulta. Los pedidos y las entregas sí.' +
+             '</div>';
+      }
+
       const ESTADO = {
         entregado: ['✅ Entregado',  '#f0f7f0'],
         tardia:    ['⏱️ Tardía',     '#fff9e6'],
         pendiente:     ['⬜ Pendiente',        ''],
         vio_no_ordeno: ['👀 Vio, no pidió',   '#fff9e6'],
         no_abrio:      ['— No abrió la app',  'var(--gris-bg)'],
+        // Cuando la bitácora de accesos falla no se puede saber si entró o no.
+        // Decirlo es lo correcto: afirmar "no abrió la app" sobre alguien que
+        // quizá sí entró manda a arreglar el problema equivocado.
+        sin_dato:      ['❓ Sin dato',         'var(--gris-bg)'],
         // Se conserva por si la tabla de accesos aún no existe en la base:
         // entonces el servidor sigue devolviendo el estado de antes.
         no_ordeno:     ['— No ordenó',        'var(--gris-bg)']

@@ -539,8 +539,22 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
     ]);
     // Quién abrió la app ese día. Si la tabla todavía no existe en la base, el
     // dashboard sigue funcionando como antes en vez de caerse entero.
+    //
+    // Pero se recuerda SI falló, y eso es lo importante: sin la bandera, una
+    // consulta caída dejaba la lista vacía y todos los que no pidieron salían
+    // como "no abrió la app" — el panel afirmaba un dato duro sobre gente que
+    // quizá sí entró. Y las dos lecturas piden acciones opuestas: si nadie
+    // abrió se ataca la difusión, si abrieron y no pidieron se ataca el menú.
+    // Confundirlas es justo lo que esta función existe para evitar, así que
+    // cuando no se sabe hay que decir que no se sabe.
     let accesos = [];
-    try { accesos = await db.getAccesosPorFecha(fecha); } catch {}
+    let accesosOk = true;
+    try {
+      accesos = await db.getAccesosPorFecha(fecha);
+    } catch (err) {
+      accesosOk = false;
+      console.error('[Panel] No se pudo leer accesos de', fecha, '—', err.message);
+    }
     const accesoPorTel = {};
     accesos.forEach(a => { accesoPorTel[diezDigitos(a.empleado_telefono)] = a; });
 
@@ -560,7 +574,7 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
                  platillo: null, zona: null, turno: null,
                  entregado_en: null, motivo_tardia: null,
                  visto_en: acc?.visto_en || null, veces: acc?.veces || 0,
-                 estado: acc ? 'vio_no_ordeno' : 'no_abrio' };
+                 estado: acc ? 'vio_no_ordeno' : (accesosOk ? 'no_abrio' : 'sin_dato') };
       }
       const tardia = esEntregaTardia(fecha, p.turno, p.entregado_en);
       return {
@@ -582,11 +596,18 @@ adminRouter.get('/dashboard/:fecha', async (req, res) => {
       fecha,
       resumen: {
         activos:     filas.length,
-        ordenaron:   filas.filter(f => f.estado !== 'no_ordeno' && f.estado !== 'vio_no_ordeno' && f.estado !== 'no_abrio').length,
-        no_ordenaron: cuenta('no_ordeno') + cuenta('vio_no_ordeno') + cuenta('no_abrio'),
+        // Se cuenta por lo que SÍ son, no por descarte. Antes era una lista de
+        // exclusión, y así cualquier estado nuevo se colaba como "ordenaron"
+        // sin que nadie lo notara — 'sin_dato' habría entrado de una.
+        ordenaron:   cuenta('pendiente') + cuenta('entregado') + cuenta('tardia'),
+        no_ordenaron: cuenta('no_ordeno') + cuenta('vio_no_ordeno') + cuenta('no_abrio') + cuenta('sin_dato'),
         // El desglose que separa un problema de cocina de uno de difusión.
         vieron_no_ordenaron: cuenta('vio_no_ordeno'),
         no_abrieron:         cuenta('no_abrio'),
+        // Cuántos quedaron sin poder clasificar porque la bitácora falló, y la
+        // bandera para que el panel lo advierta en vez de dar cifras a medias.
+        sin_dato:    cuenta('sin_dato'),
+        accesos_ok:  accesosOk,
         entregados:  cuenta('entregado') + cuenta('tardia'),
         pendientes:  cuenta('pendiente'),
         tardias:     cuenta('tardia')
