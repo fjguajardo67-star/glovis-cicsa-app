@@ -709,6 +709,26 @@
   const TURNO_TXT = { turno_a: 'Turno A (10:00 am)', turno_b: 'Turno B (5:00 pm)' };
   const zonaTxt  = z => ZONA_TXT[z]  || z || '—';
   const turnoTxt = t => TURNO_TXT[t] || t || '—';
+
+  // ── Fechas del comedor ──
+  // NUNCA usar toISOString() para una fecha sin hora: convierte a UTC, y en
+  // Lázaro Cárdenas (UTC-6) a partir de las 18:00 ya devuelve el día
+  // siguiente. Eso caía justo en la rutina posterior al corte de las 8 PM:
+  // el panel ofrecía imprimir la comanda del día equivocado.
+  // Se ancla a la zona del comedor y no a la del equipo, para que el panel dé
+  // la misma fecha desde cualquier computadora.
+  const ZONA_COMEDOR = 'America/Mexico_City';
+  const fechaComedor = (d = new Date()) => new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA_COMEDOR, year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(d);
+
+  // Aritmética sobre la fecha civil (YYYY-MM-DD), sin husos de por medio.
+  function sumarDias(iso, n) {
+    const [a, m, d] = iso.split('-').map(Number);
+    const x = new Date(a, m - 1, d + n);
+    const p = v => String(v).padStart(2, '0');
+    return x.getFullYear() + '-' + p(x.getMonth() + 1) + '-' + p(x.getDate());
+  }
   // En reportes los pedidos viejos sin asignar se agrupan bajo una clave
   // propia, que hay que nombrar en español y no mostrar tal cual.
   const etiquetaTurno = t => t === 'sin_turno' ? 'Sin turno' : turnoTxt(t);
@@ -724,11 +744,10 @@
     api('/api/empleados').then(() => {
       document.getElementById('gate').style.display = 'none';
       document.getElementById('app').style.display = 'block';
-      const hoy = new Date().toISOString().slice(0,10);
+      const hoy = fechaComedor();
       ['m-fecha','pe-fecha','co-fecha','r-fecha','r-ini','r-fin'].forEach(id => document.getElementById(id).value = hoy);
       // Los impresos casi siempre son del día de servicio (mañana)
-      const man = new Date(); man.setDate(man.getDate() + 1);
-      document.getElementById('im-fecha').value = man.toISOString().slice(0,10);
+      document.getElementById('im-fecha').value = sumarDias(hoy, 1);
       cargarEmpleados();
       cargarSemana();
     }).catch(() => {
@@ -745,10 +764,7 @@
     // Al abrir el Dashboard, precargar la fecha de mañana
     if (p === 'dashboard') {
       const f = document.getElementById('db-fecha');
-      if (f && !f.value) {
-        const m = new Date(); m.setDate(m.getDate() + 1);
-        f.value = m.toISOString().split('T')[0];
-      }
+      if (f && !f.value) f.value = sumarDias(fechaComedor(), 1);
     }
   }
 
@@ -896,8 +912,8 @@
         const [txt, bg] = ESTADO[f.estado] || ['—', ''];
         const vacio = '<span style="color:#aaa">—</span>';
         h += '<tr style="background:' + bg + '">' +
-             '<td>' + (f.nombre || '') + '</td>' +
-             '<td>' + (f.platillo || vacio) + '</td>' +
+             '<td>' + escaparHtml(f.nombre) + '</td>' +
+             '<td>' + (f.platillo ? escaparHtml(f.platillo) : vacio) + '</td>' +
              '<td style="font-size:.82rem">' + (f.zona ? zonaTxt(f.zona) : vacio) + '</td>' +
              '<td style="font-size:.82rem">' + (f.turno ? turnoTxt(f.turno) : vacio) + '</td>' +
              '<td style="font-size:.82rem;font-variant-numeric:tabular-nums">' + horaTxt(f.entregado_en) + '</td>' +
@@ -979,7 +995,7 @@
         d.sin_recoger.length
           ? '<table><tr><th>Empleado</th><th>No.</th><th>Pedidos</th><th>No recogidos</th><th>%</th></tr>' +
             d.sin_recoger.map(x =>
-              '<tr><td>' + x.nombre + '</td><td>' + x.numero_empleado + '</td><td>' + x.pedidos + '</td>' +
+              '<tr><td>' + escaparHtml(x.nombre) + '</td><td>' + escaparHtml(x.numero_empleado) + '</td><td>' + x.pedidos + '</td>' +
               '<td><strong>' + x.no_recogidos + '</strong></td>' +
               '<td style="color:' + (x.pct >= 50 ? 'var(--rojo)' : x.pct >= 25 ? '#b8860b' : 'var(--gris-text)') +
               ';font-weight:700">' + x.pct + '%</td></tr>').join('') +
@@ -1104,7 +1120,7 @@
       let entregados = 0;
       for (const p of r.pedidos) {
         if (p.entregado_en) entregados++;
-        h += `<tr><td>${p.empleados?.nombre||'—'}</td><td>${p.empleados?.numero_empleado||'—'}</td><td>${p.opcion_texto}</td><td>${zonaTxt(p.zona)}</td><td>${turnoTxt(p.turno)}</td><td>${horaEntrega(p.entregado_en)}</td></tr>`;
+        h += `<tr><td>${escaparHtml(p.empleados?.nombre)||'—'}</td><td>${escaparHtml(p.empleados?.numero_empleado)||'—'}</td><td>${escaparHtml(p.opcion_texto)}</td><td>${zonaTxt(p.zona)}</td><td>${turnoTxt(p.turno)}</td><td>${horaEntrega(p.entregado_en)}</td></tr>`;
       }
       h += `</table><p style="margin-top:10px;font-size:.85rem;color:var(--gris)">Total: ${r.count} pedidos · Entregados: ${entregados} · Sin recoger: ${r.count - entregados}</p>`;
       box.innerHTML = h;
@@ -1415,13 +1431,19 @@
       h += `<table><tr><th>Nombre</th><th>No.</th><th>Teléfono</th><th>Zona habitual</th><th>Turno habitual</th><th>Estado</th><th></th><th></th></tr>`;
       for (const e of empleados) {
         h += `<tr>
-          <td>${e.nombre}</td><td>${e.numero_empleado}</td>
+          <td>${escaparHtml(e.nombre)}</td><td>${escaparHtml(e.numero_empleado)}</td>
           <td>${e.telefono}<button onclick="editarTel('${e.telefono}')" style="background:none;border:1px solid #003087;color:#003087;border-radius:4px;font-size:.65rem;padding:1px 5px;cursor:pointer;margin-left:6px">Editar</button></td>
           <td>${selectAsignacion(e.telefono, 'zona_default', e.zona_default, ZONA_TXT)}</td>
           <td>${selectAsignacion(e.telefono, 'turno_default', e.turno_default, TURNO_TXT)}</td>
           <td><span class="badge ${e.activo?'on':'off'}">${e.activo?'Activo':'Inactivo'}</span></td>
           <td><button class="accion mini ${e.activo?'peligro':'sec'}" onclick="toggleEmp('${e.telefono}',${!e.activo})">${e.activo?'Desactivar':'Activar'}</button></td>
-          <td><button class="accion mini" style="background:#fff;border:1px solid var(--rojo);color:var(--rojo)" onclick="eliminarEmp('${e.telefono}','${(e.nombre||'').replace(/'/g,'')}')">Eliminar</button></td>
+          <!-- Solo viaja el teléfono: el nombre se busca dentro de la función.
+               Meterlo aquí lo ponía dentro de una cadena de JavaScript dentro
+               de un atributo HTML, y quitarle las comillas simples no bastaba
+               —una comilla doble o una diagonal invertida en el nombre rompían
+               el atributo—. Los nombres llegan del Excel de RRHH, que no es
+               una fuente de confianza. -->
+          <td><button class="accion mini" style="background:#fff;border:1px solid var(--rojo);color:var(--rojo)" onclick="eliminarEmp('${e.telefono}')">Eliminar</button></td>
         </tr>`;
       }
       box.innerHTML = h + '</table>';
@@ -1457,7 +1479,8 @@
     } catch(e) { alert('Error: ' + e.message); }
   }
 
-  async function eliminarEmp(tel, nombre) {
+  async function eliminarEmp(tel) {
+    const nombre = (EMPLEADOS[tel] || {}).nombre;
     if (!confirm('¿Eliminar a ' + (nombre||'este empleado') + ' permanentemente?\n\nEsta acción no se puede deshacer. Si solo quieres pausarlo, usa Desactivar.')) return;
     try { await api('/api/empleados/' + tel, { method:'DELETE' }); cargarEmpleados(); }
     catch(e) { alert('Error: ' + e.message); }
@@ -1748,11 +1771,7 @@
     const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
     const fechas = [];
-    for (let i = 0; i < dias; i++) {
-      const d = new Date(inicio + 'T12:00:00');
-      d.setDate(d.getDate() + i);
-      fechas.push(d.toISOString().split('T')[0]);
-    }
+    for (let i = 0; i < dias; i++) fechas.push(sumarDias(inicio, i));
 
     av.className = 'aviso'; av.textContent = 'Cargando menus existentes...';
     const existentes = {};
@@ -1772,9 +1791,10 @@
 
     let diasConMenu = 0;
     for (let i = 0; i < dias; i++) {
-      const d = new Date(inicio + 'T12:00:00');
-      d.setDate(d.getDate() + i);
-      const fecha = d.toISOString().split('T')[0];
+      const fecha = sumarDias(inicio, i);
+      // El mediodía es a propósito: ancla el Date lejos de los bordes del día
+      // para que ningún huso lo corra al leer el nombre del día y el mes.
+      const d = new Date(fecha + 'T12:00:00');
       const diaNom = DIAS_ES[d.getDay()];
       const label = diaNom + ' ' + d.getDate() + ' ' + MESES_ES[d.getMonth()];
       const esFinde = d.getDay() === 0 || d.getDay() === 6;

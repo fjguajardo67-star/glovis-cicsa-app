@@ -75,8 +75,13 @@ entregaRouter.post('/', async (req, res) => {
         resultados.push({
           numero_empleado: numero,
           ok: r.ok,
+          // Un reintento sobre algo ya entregado viaja como ok con esta marca:
+          // la cola del teléfono se vacía y queda constancia de que la hora
+          // guardada es la de la primera confirmación, no la de este reintento.
+          ya_entregado: r.ya_entregado || false,
           motivo: r.motivo || null,
-          nombre: r.pedido?.empleados?.nombre || null
+          nombre: r.pedido?.empleados?.nombre || null,
+          entregado_en: r.pedido?.entregado_en || null
         });
       } catch (err) {
         resultados.push({ numero_empleado: numero, ok: false, motivo: 'error_servidor', detalle: err.message });

@@ -53,9 +53,14 @@ webhookRouter.get('/', (req, res) => {
 // que conozca la URL puede inyectar pedidos falsos.
 function firmaValida(req) {
   const secret = process.env.APP_SECRET;
+  // Sin secreto NO se puede verificar nada, así que se rechaza. Antes esto
+  // devolvía true "para no estorbar mientras Meta no estaba conectado", y el
+  // resultado era que cualquiera que supiera la URL podía mandar una secuencia
+  // de platillo→zona→turno y escribir pedidos reales en la misma tabla de
+  // producción. Un canal que no se puede autenticar se cierra, no se abre.
   if (!secret) {
-    console.warn('[Webhook] APP_SECRET no configurado — se omite la validación de firma (NO usar así en producción)');
-    return true;
+    console.warn('[Webhook] APP_SECRET no configurado — se rechaza la petición');
+    return false;
   }
   const firma = req.headers['x-hub-signature-256'];
   if (!firma || !req.rawBody) return false;

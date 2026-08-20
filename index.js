@@ -88,8 +88,16 @@ app.get('/test-supabase', soloAdmin, async (req, res) => {
   }
 });
 
-// Webhook de WhatsApp (Meta)
-app.use('/webhook', webhookRouter);
+// Webhook de WhatsApp (Meta). El canal se enciende a propósito con
+// WHATSAPP_ENABLED=on; mientras esté apagado la ruta ni siquiera se monta y
+// responde 404, en vez de quedar escuchando una integración que nadie usa.
+// Hoy el comedor opera por la web, así que lo normal es que esté apagado.
+if (process.env.WHATSAPP_ENABLED === 'on') {
+  app.use('/webhook', webhookRouter);
+  console.log('[WhatsApp] Canal ENCENDIDO: /webhook montado');
+} else {
+  console.log('[WhatsApp] Canal apagado (WHATSAPP_ENABLED != on): /webhook no montado');
+}
 
 // Entregas: acepta ENTREGA_KEY (clave del repartidor) o ADMIN_KEY.
 // Montada ANTES de /api para que su regla de clave gane a la del panel.

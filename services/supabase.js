@@ -311,15 +311,37 @@ export async function marcarEntregado(fecha, numeroEmpleado, entregadoEn, motivo
   // borrar el que el chofer ya había elegido.
   if (motivoTardia) cambios.motivo_tardia = motivoTardia;
 
+  // Solo escribe si todavía no hay hora. La primera confirmación es la buena:
+  // si se pierde la respuesta y el teléfono reintenta, o si el mismo pedido se
+  // escanea desde otro equipo, la evidencia de a qué hora se entregó no se
+  // debe mover — de ella dependen la puntualidad, el motivo del retraso y la
+  // duración de la ruta en los reportes.
   const { data, error } = await supabase
     .from('pedidos')
     .update(cambios)
     .eq('fecha_menu', fecha)
     .eq('empleado_telefono', emp.telefono)
+    .is('entregado_en', null)
     .select('*, empleados(nombre, numero_empleado)');
   if (error) throw error;
-  if (!data || !data.length) return { ok: false, motivo: 'sin_pedido' };
-  return { ok: true, pedido: data[0] };
+  if (data && data.length) return { ok: true, pedido: data[0] };
+
+  // No se actualizó nada: falta averiguar si es que no hay pedido ese día o
+  // si ya estaba entregado, porque el repartidor necesita respuestas distintas.
+  const { data: existente, error: errBusca } = await supabase
+    .from('pedidos')
+    .select('*, empleados(nombre, numero_empleado)')
+    .eq('fecha_menu', fecha)
+    .eq('empleado_telefono', emp.telefono)
+    .limit(1);
+  if (errBusca) throw errBusca;
+  if (!existente || !existente.length) return { ok: false, motivo: 'sin_pedido' };
+
+  // Ya estaba entregado. Se responde ok a propósito: la entrega SÍ ocurrió, y
+  // devolver error dejaría el escaneo atorado en la cola del teléfono para
+  // siempre —solo se vacía con ok o con un rechazo de negocio— y el repartidor
+  // nunca vería "Por subir" en cero. Se conserva la hora original.
+  return { ok: true, ya_entregado: true, pedido: existente[0] };
 }
 
 // Guarda la calificación. Solo aplica a pedidos ya ENTREGADOS: calificar algo
