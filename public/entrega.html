@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#003087">
+<meta name="theme-color" content="#061b44">
 <title>Go Lunch — Entrega</title>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="/icono-32.png">
@@ -194,65 +194,132 @@
   }
   .oculto { display: none !important; }
 </style>
+<link rel="stylesheet" href="/entrega.css">
 </head>
 <body>
 
 <!-- Puerta: una sola vez por dispositivo -->
 <div id="gate" class="gate">
-  <h1>🚚 Entrega de comidas</h1>
-  <p>Escribe la clave del comedor. Se guarda en este teléfono para que no la pidan de nuevo.</p>
-  <input type="password" id="clave" placeholder="Clave" onkeydown="if(event.key==='Enter')entrar()">
+  <div class="gate-brand">
+    <img src="/golunch-lateral.png" alt="CICSA GoLunch">
+    <span aria-hidden="true"></span>
+    <img src="/glovis-logo.png" alt="Hyundai Glovis">
+  </div>
+  <div class="gate-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7zM6.5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM17.5 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg>
+  </div>
+  <h1>Entrega de comidas</h1>
+  <p>Ingresa la clave de reparto. Se guardará en este equipo para no pedirla de nuevo.</p>
+  <label for="clave">Clave de reparto</label>
+  <input type="password" id="clave" placeholder="Escribe la clave" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()">
   <button class="btn" onclick="entrar()">Entrar</button>
   <div id="gateErr" class="aviso oculto"></div>
 </div>
 
 <div id="app" class="oculto">
-  <header>
-    <div class="t"><b>Entrega</b><span id="cab-fecha">—</span></div>
+  <header class="app-header">
+    <div class="brand-lockup">
+      <img src="/golunch-lateral.png" alt="CICSA GoLunch">
+      <span aria-hidden="true"></span>
+      <img src="/glovis-logo.png" alt="Hyundai Glovis">
+    </div>
+    <div class="app-heading"><b>Entrega</b><span id="cab-fecha">—</span></div>
     <span class="conexion on" id="conexion">EN LÍNEA</span>
   </header>
 
   <div class="marcador">
     <div class="m-entregado"><div class="n" id="n-entregado">0</div><div class="e">Entregadas</div></div>
-    <div class="m-falta"><div class="n" id="n-falta">0</div><div class="e">Faltan</div></div>
+    <div class="m-falta"><div class="n" id="n-falta">0</div><div class="e">Pendientes</div></div>
     <div class="m-cola vacia" id="caja-cola"><div class="n" id="n-cola">0</div><div class="e">Por subir</div></div>
   </div>
 
   <main>
-    <div id="flash" class="flash"><b id="flash-t"></b><span id="flash-s"></span></div>
-
-    <div class="camara oculta" id="camara">
-      <video id="video" playsinline muted></video>
-      <div class="mira"></div>
+    <div class="scanner-heading">
+      <div>
+        <h1>Escanea la etiqueta</h1>
+        <p>Centra el código dentro del marco.</p>
+      </div>
+      <button class="camera-toggle" id="btn-camara" type="button" aria-pressed="false" onclick="alternarCamara()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h4l2-3h6l2 3h4v12H3z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span id="btn-camara-label">Abrir cámara</span>
+      </button>
     </div>
 
-    <button class="btn" id="btn-camara" onclick="alternarCamara()">📷 Escanear con la cámara</button>
+    <div class="scanner-stage">
+      <div class="camara oculta" id="camara" aria-label="Área de escaneo">
+        <video id="video" playsinline muted></video>
+        <div class="camera-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h4l2-3h6l2 3h4v12H3z"/><circle cx="12" cy="13" r="4"/></svg>
+          <strong>Cámara lista</strong>
+          <span>Ábrela para comenzar a leer las etiquetas.</span>
+        </div>
+        <div class="camera-shade" aria-hidden="true"></div>
+        <div class="mira" aria-hidden="true">
+          <span class="scan-corner tl"></span><span class="scan-corner tr"></span>
+          <span class="scan-corner bl"></span><span class="scan-corner br"></span>
+          <span class="scan-line"></span>
+        </div>
+        <div class="scan-status" id="scan-status">Cámara detenida</div>
+      </div>
+      <div id="flash" class="flash" role="status" aria-live="assertive">
+        <span class="flash-icon" id="flash-icon" aria-hidden="true"></span>
+        <span class="flash-eyebrow" id="flash-eyebrow"></span>
+        <b id="flash-t"></b>
+        <span id="flash-s"></span>
+      </div>
+    </div>
 
-    <div class="manual">
-      <input id="manual" placeholder="O captura el número" autocomplete="off"
-             onkeydown="if(event.key==='Enter')entregarManual()"
-             onblur="setTimeout(devolverFocoLector, 150)">
-      <button class="btn" style="margin:0" onclick="entregarManual()">OK</button>
+    <div class="offline-note oculto" id="offline-note" role="status">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.9 4.9 19.1 19.1M8.5 8.6a9.7 9.7 0 0 1 10.5 1.5M5 10.1c.5-.5 1.1-.9 1.7-1.3M8 13.1a6 6 0 0 1 7.9.7M11.1 16.1a2 2 0 0 1 2.8 0"/></svg>
+      <p><b>Seguimos trabajando sin señal.</b> Los escaneos se guardan en este equipo y se subirán automáticamente.</p>
+    </div>
+
+    <button class="manual-trigger" id="btn-manual" type="button" aria-expanded="false" aria-controls="manual-panel" onclick="alternarManual()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3M7 9v6M10 9v6M14 9v6M17 9v6"/></svg>
+      <span>Ingresar número manualmente</span>
+      <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+    </button>
+
+    <div class="manual-panel oculto" id="manual-panel">
+      <div class="manual">
+        <input id="manual" aria-label="Número de empleado" placeholder="Número de empleado" autocomplete="off"
+               onkeydown="if(event.key==='Enter')entregarManual()"
+               onblur="setTimeout(devolverFocoLector, 150)">
+        <button class="btn" type="button" onclick="entregarManual()">Registrar</button>
+      </div>
     </div>
 
     <label class="modo-lector">
-      <input type="checkbox" id="chk-lector" onchange="alternarModoLector(this.checked)">
-      <span><b>Modo lector</b> — para pistola o tablet con escáner integrado</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 10 10-5 4V3l5 4L7 17"/></svg>
+      <span class="reader-copy"><b id="lector-titulo">Activar lector Bluetooth</b><small id="lector-detalle">Para pistola o tablet con escáner integrado.</small></span>
+      <input type="checkbox" id="chk-lector" aria-label="Activar lector Bluetooth" onchange="alternarModoLector(this.checked)">
     </label>
 
     <div id="avisoSync"></div>
 
-    <div class="titulo">Pendientes</div>
-    <div id="lista-pendientes"></div>
-    <div class="titulo">Entregadas</div>
-    <div id="lista-hechas"></div>
+    <section class="ultima-entrega oculto" id="ultima-entrega" aria-label="Última entrega">
+      <div class="section-heading"><h2>Última entrega</h2><span id="ultima-hora">—</span></div>
+      <div class="ultima-card">
+        <span class="ultima-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg></span>
+        <div><b id="ultima-nombre">—</b><span id="ultima-detalle">—</span></div>
+      </div>
+    </section>
+
+    <details class="pedidos-panel" open>
+      <summary>Pendientes <span id="badge-pendientes">0</span></summary>
+      <div class="lista-contenido" id="lista-pendientes"></div>
+    </details>
+    <details class="pedidos-panel">
+      <summary>Entregadas <span id="badge-entregadas">0</span></summary>
+      <div class="lista-contenido" id="lista-hechas"></div>
+    </details>
   </main>
 </div>
 
 <!-- Motivo de entrega tardía -->
 <div class="motivo-fondo" id="motivo-fondo">
   <div class="motivo-caja">
-    <h2>⏱️ Entrega tardía</h2>
+    <h2>Entrega tardía</h2>
     <p class="quien" id="motivo-quien">—</p>
     <p class="reloj" id="motivo-reloj">—</p>
     <div id="motivo-opciones"></div>
@@ -338,6 +405,8 @@
     const on = navigator.onLine;
     el.className = 'conexion ' + (on ? 'on' : 'off');
     el.textContent = on ? 'EN LÍNEA' : 'SIN SEÑAL';
+    $('offline-note').classList.toggle('oculto', on);
+    $('app').classList.toggle('sin-conexion', !on);
   }
 
   // ── Sincronización ────────────────────────────────────────
@@ -546,19 +615,35 @@
   // que es justo lo que estorba en una ruta. Queda como interruptor y no
   // automático porque en un teléfono sin lector el auto-foco solo lograría
   // levantar el teclado en pantalla y tapar la lista.
+  function alternarManual(forzar) {
+    const panel = $('manual-panel');
+    const boton = $('btn-manual');
+    const abrir = typeof forzar === 'boolean' ? forzar : panel.classList.contains('oculto');
+    panel.classList.toggle('oculto', !abrir);
+    boton.setAttribute('aria-expanded', String(abrir));
+    if (abrir && !MODO_LECTOR) setTimeout(() => $('manual').focus(), 0);
+  }
+
   function alternarModoLector(activo) {
     MODO_LECTOR = !!activo;
     guardar(LS.lector, MODO_LECTOR);
     const campo = $('manual');
+    const contenedor = $('chk-lector').closest('.modo-lector');
     campo.classList.toggle('lector', MODO_LECTOR);
+    contenedor.classList.toggle('activo', MODO_LECTOR);
+    $('lector-titulo').textContent = MODO_LECTOR ? 'Lector Bluetooth listo' : 'Activar lector Bluetooth';
+    $('lector-detalle').textContent = MODO_LECTOR
+      ? 'Foco automático activado.'
+      : 'Para pistola o tablet con escáner integrado.';
     if (MODO_LECTOR) {
       // El lector teclea solo: el teclado en pantalla sobra y taparía la lista
       campo.setAttribute('inputmode', 'none');
       campo.placeholder = 'Listo para escanear…';
+      alternarManual(true);
       enfocarLector();
     } else {
       campo.removeAttribute('inputmode');
-      campo.placeholder = 'O captura el número';
+      campo.placeholder = 'Número de empleado';
       campo.blur();
     }
   }
@@ -581,6 +666,7 @@
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     } catch {
+      $('scan-status').textContent = 'Cámara sin permiso';
       return mostrarAviso('avisoSync', 'No se pudo abrir la cámara. Usa la captura manual o revisa los permisos.', 'err');
     }
     const v = $('video');
@@ -588,8 +674,10 @@
     await v.play();
     escaneando = true;
     $('camara').classList.remove('oculta');
-    $('btn-camara').textContent = '✕ Cerrar la cámara';
     $('btn-camara').classList.add('alta');
+    $('btn-camara').setAttribute('aria-pressed', 'true');
+    $('btn-camara-label').textContent = 'Cerrar cámara';
+    $('scan-status').textContent = 'Buscando código…';
     requestAnimationFrame(leerCuadro);
   }
 
@@ -598,8 +686,10 @@
     if (stream) stream.getTracks().forEach(t => t.stop());
     stream = null;
     $('camara').classList.add('oculta');
-    $('btn-camara').textContent = '📷 Escanear con la cámara';
     $('btn-camara').classList.remove('alta');
+    $('btn-camara').setAttribute('aria-pressed', 'false');
+    $('btn-camara-label').textContent = 'Abrir cámara';
+    $('scan-status').textContent = 'Cámara detenida';
     enfocarLector();   // al cerrar la cámara, el lector vuelve a quedar armado
   }
 
@@ -626,21 +716,33 @@
 
   // ── Pintado ───────────────────────────────────────────────
   function pintar() {
-    $('cab-fecha').textContent = FECHA || 'sin fecha';
+    $('cab-fecha').textContent = fechaLegible(FECHA) || 'Sin fecha de servicio';
     const hechas = PEDIDOS.filter(p => p.entregado_en);
     const faltan = PEDIDOS.filter(p => !p.entregado_en);
 
     $('n-entregado').textContent = hechas.length;
     $('n-falta').textContent = faltan.length;
     $('n-cola').textContent = COLA.length;
+    $('badge-pendientes').textContent = faltan.length;
+    $('badge-entregadas').textContent = hechas.length;
     $('caja-cola').classList.toggle('vacia', COLA.length === 0);
+
+    const ultima = hechas.slice().sort((a, b) => new Date(b.entregado_en) - new Date(a.entregado_en))[0];
+    $('ultima-entrega').classList.toggle('oculto', !ultima);
+    if (ultima) {
+      $('ultima-hora').textContent = horaLocal(ultima.entregado_en);
+      $('ultima-nombre').textContent = ultima.nombre || '—';
+      $('ultima-detalle').textContent = [
+        ultima.platillo || '', TURNO_TXT[ultima.turno] || '', ZONA_TXT[ultima.zona] || ''
+      ].filter(Boolean).join(' · ');
+    }
 
     const fila = (p, hecho) => {
       const tardia = hecho && esTardia(p);
       const faltaMotivo = tardia && !p.motivo_tardia;
       return `
       <div class="fila ${hecho ? 'hecho' : ''} ${tardia ? 'tardia' : ''}">
-        <span class="ic">${hecho ? (tardia ? '⏱️' : '✅') : '⬜'}</span>
+        <span class="ic" aria-hidden="true">${hecho ? (tardia ? 'T' : 'OK') : 'P'}</span>
         <div class="d">
           <b>${esc(p.nombre || '—')}</b>
           <span>${esc(p.platillo || '')} · ${esc(TURNO_TXT[p.turno] || '')} · ${esc(ZONA_TXT[p.zona] || '')}</span>
@@ -658,20 +760,32 @@
 
     $('lista-pendientes').innerHTML = faltan.length
       ? faltan.map(p => fila(p, false)).join('')
-      : '<p style="font-size:.85rem;color:var(--gris-text);padding:6px 2px">Todo entregado. 🎉</p>';
+      : '<p class="lista-vacia">No quedan entregas pendientes.</p>';
     $('lista-hechas').innerHTML = hechas.length
       ? hechas.map(p => fila(p, true)).join('')
-      : '<p style="font-size:.85rem;color:var(--gris-text);padding:6px 2px">Aún no hay entregas.</p>';
+      : '<p class="lista-vacia">Aún no hay entregas registradas.</p>';
   }
 
+  const ICONOS_FLASH = {
+    ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4 10-10"/></svg>',
+    dup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>',
+    mal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m7 7 10 10M17 7 7 17"/></svg>'
+  };
+  const ETIQUETAS_FLASH = { ok: 'Entrega registrada', dup: 'Revisar entrega', mal: 'No se registró' };
   let flashTimer = null;
   function flash(tipo, titulo, detalle) {
     const el = $('flash');
     el.className = 'flash ver ' + tipo;
+    $('flash-icon').innerHTML = ICONOS_FLASH[tipo] || ICONOS_FLASH.mal;
+    $('flash-eyebrow').textContent = ETIQUETAS_FLASH[tipo] || ETIQUETAS_FLASH.mal;
     $('flash-t').textContent = titulo;
     $('flash-s').textContent = detalle || '';
+    el.parentElement.classList.add('mostrando-resultado');
     clearTimeout(flashTimer);
-    flashTimer = setTimeout(() => { el.className = 'flash'; }, 4000);
+    flashTimer = setTimeout(() => {
+      el.className = 'flash';
+      el.parentElement.classList.remove('mostrando-resultado');
+    }, 4000);
   }
 
   function mostrarAviso(id, msg, tipo) {
@@ -681,6 +795,15 @@
   function esc(s) {
     return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function fechaLegible(fecha) {
+    if (!fecha) return '';
+    const [a, m, d] = String(fecha).split('-').map(Number);
+    if (!a || !m || !d) return fecha;
+    return new Intl.DateTimeFormat('es-MX', {
+      weekday: 'long', day: 'numeric', month: 'long'
+    }).format(new Date(a, m - 1, d));
   }
 
   // Hora del escaneo en formato local ("10:07 a.m."). entregado_en trae el

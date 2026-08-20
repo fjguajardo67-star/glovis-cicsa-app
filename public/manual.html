@@ -233,7 +233,16 @@
       <li><b>Quién no recoge su pedido:</b> lista por empleado con cuántas veces pidió y cuántas no recogió, ordenada por reincidencia. Es la conversación con el supervisor.</li>
       <li><b>Merma:</b> comida que se preparó y nadie recogió, desglosada por turno y por zona. Te dice dónde se está tirando dinero.</li>
       <li><b>Tiempos de ruta:</b> a qué hora se entregó la primera y la última comida de cada turno, cuánto duró la ruta, y el promedio del periodo.</li>
+      <li><b>Qué platillo gustó y cuál no:</b> lo que respondieron los empleados en la encuesta, por platillo, ordenado de peor a mejor. Trae porciones, las tres respuestas, cuántas opiniones y un porcentaje de aprobación.</li>
     </ul>
+    <div class="caja peligro">
+      <b>La calificación es una señal, no una medición.</b> La opinión se guarda junto al
+      pedido, así que un <b>"No me gustó"</b> puede estar castigando comida fría o una entrega
+      tardía, y no al guisado. Úsala para <b>fijarte</b> en un platillo, y confirma con lo que
+      la gente hace y no dice: su <b>merma</b> y cuántas porciones se piden cuando ese platillo
+      vuelve al menú. Por lo mismo, con <b>menos de cinco opiniones no se muestra porcentaje</b>:
+      la celda dice "muestra corta". Dos respuestas no deciden un menú.
+    </div>
     <div class="caja tip">
       <b>Cómo se cuenta la merma:</b> un pedido sin entregar <b>no</b> cuenta como merma si su
       hora de entrega todavía no llega. Por eso un reporte que corras a media mañana no acusa
@@ -242,7 +251,7 @@
     <p>Y tres descargas de Excel:</p>
     <ul>
       <li><b>Excel de cocina y etiquetas</b> de una fecha.</li>
-      <li><b>Reporte de operación</b> por rango de fechas: una hoja por tema (sin recoger, merma, tiempos de ruta) más una de resumen que explica de dónde salen los números.</li>
+      <li><b>Reporte de operación</b> por rango de fechas: una hoja por tema (sin recoger, merma, tiempos de ruta y calificaciones por platillo) más una de resumen que explica de dónde salen los números.</li>
       <li><b>Reporte de facturación</b> por rango de fechas, con costo unitario y detalle de auditoría — para el cobro al cliente corporativo.</li>
     </ul>
 
@@ -271,10 +280,11 @@
     </div>
 
     <h3>El día de reparto</h3>
-    <div class="paso"><div class="n">1</div><div class="t"><b>Antes de salir, abre la app</b> (con señal). La lista del día se descarga y queda guardada en el teléfono. Arriba se ven los contadores: <b>Entregadas · Faltan · Por subir</b>.</div></div>
-    <div class="paso"><div class="n">2</div><div class="t"><b>Al entregar cada comida</b>, toca <b>"Escanear con la cámara"</b> y apunta al QR de la etiqueta. Aviso <b>verde grande</b> con el nombre = entrega registrada. El teléfono vibra al leer.</div></div>
-    <div class="paso"><div class="n">3</div><div class="t"><b>Si un QR no se deja leer</b> (etiqueta manchada o rota): escribe el número de empleado en el campo de captura y toca OK, o búscalo en la lista de Pendientes y toca <b>"Entregar"</b>.</div></div>
-    <div class="paso"><div class="n">4</div><div class="t"><b>Al terminar, revisa que "Por subir" esté en 0</b> antes de cerrar la app. Si no está en cero, espera a tener señal — baja solo.</div></div>
+    <div class="paso"><div class="n">1</div><div class="t"><b>Antes de salir, abre la app</b> (con señal). La lista del día se descarga y queda guardada en el teléfono. Arriba se ven los contadores: <b>Entregadas · Pendientes · Por subir</b>.</div></div>
+    <div class="paso"><div class="n">2</div><div class="t"><b>Al entregar cada comida</b>, toca <b>"Abrir cámara"</b> y centra el QR de la etiqueta dentro del marco. La barra azul se mueve mientras está buscando; al leer, la cámara se reemplaza por una confirmación grande con el nombre. El teléfono también vibra.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Si un QR no se deja leer</b> (etiqueta manchada o rota), toca <b>"Ingresar número manualmente"</b>, captura el número de empleado y presiona <b>"Registrar"</b>. También puedes abrir la lista de Pendientes y tocar <b>"Entregar"</b>.</div></div>
+    <div class="paso"><div class="n">4</div><div class="t"><b>Con pistola Bluetooth o escáner integrado</b>, activa <b>"Lector Bluetooth"</b> una sola vez. La app mantiene el campo preparado y no abre el teclado en pantalla entre entregas.</div></div>
+    <div class="paso"><div class="n">5</div><div class="t"><b>Al terminar, revisa que "Por subir" esté en 0</b> antes de cerrar la app. Si no está en cero, espera a tener señal — baja solo.</div></div>
 
     <h3>Qué significa cada aviso</h3>
     <table>
@@ -307,6 +317,11 @@
     <h2>5 · Problemas comunes y su solución</h2>
     <table>
       <tr><th>Síntoma</th><th>Causa más probable</th><th>Solución</th></tr>
+      <tr>
+        <td>La página del empleado dice <b>"El sistema no está respondiendo"</b></td>
+        <td>Falla técnica: el servidor o la base no contestan. <b>No</b> es que falte publicar el menú</td>
+        <td>Es la única pantalla que indica una avería de verdad. Revisa que el panel abra; si tampoco, avisa a soporte. El empleado puede tocar <b>Reintentar</b> cuando se restablezca</td>
+      </tr>
       <tr>
         <td>La página del empleado dice <b>"El menú de mañana está tomando forma"</b></td>
         <td>No hay menú para ninguna fecha futura</td>
