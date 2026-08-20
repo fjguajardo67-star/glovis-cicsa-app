@@ -302,9 +302,28 @@ export async function getPedidosPorFecha(fecha) {
 
 // Marca entregas entrando por número de empleado, que es lo que trae el QR
 // de la etiqueta. `entregadoEn` es la hora del escaneo, no la de sincronización.
-export async function marcarEntregado(fecha, numeroEmpleado, entregadoEn, motivoTardia = null) {
+export async function marcarEntregado(fecha, numeroEmpleado, entregadoEn, motivoTardia = null, zonaEsperada = null) {
   const emp = await getEmpleadoPorNumero(numeroEmpleado);
   if (!emp) return { ok: false, motivo: 'empleado_no_encontrado' };
+
+  // Con dos repartidores trabajando a la vez, cada equipo declara su zona y el
+  // servidor la comprueba antes de escribir. No basta el filtro del teléfono:
+  // una caché vieja o un equipo mal configurado registraría entregas de la otra
+  // ruta, y eso mueve la evidencia de quién entregó qué. Se lee ANTES de tocar
+  // nada para que un escaneo de la zona equivocada no modifique la base.
+  if (zonaEsperada) {
+    const { data: previo, error: errZona } = await supabase
+      .from('pedidos')
+      .select('zona')
+      .eq('fecha_menu', fecha)
+      .eq('empleado_telefono', emp.telefono)
+      .limit(1);
+    if (errZona) throw errZona;
+    if (!previo || !previo.length) return { ok: false, motivo: 'sin_pedido' };
+    if (previo[0].zona !== zonaEsperada) {
+      return { ok: false, motivo: 'zona_incorrecta', zona_esperada: previo[0].zona };
+    }
+  }
 
   const cambios = { entregado_en: entregadoEn };
   // Solo se escribe si viene: una re-sincronización sin motivo no debe

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#061b44">
+<meta id="theme-color" name="theme-color" content="#061b44">
 <title>Go Lunch — Entrega</title>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="/icono-32.png">
@@ -13,6 +13,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Entrega">
+<script>
+  // Evita un destello claro al abrir la PWA cuando el equipo usa tema oscuro.
+  try {
+    if (localStorage.getItem('cicsa_entrega_tema') === 'dark') {
+      document.documentElement.dataset.theme = 'dark';
+    }
+  } catch {}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
   :root {
@@ -200,6 +208,11 @@
 
 <!-- Puerta: una sola vez por dispositivo -->
 <div id="gate" class="gate">
+  <button class="theme-toggle gate-theme" type="button" data-theme-toggle onclick="alternarTema()" aria-label="Activar tema oscuro" aria-pressed="false">
+    <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.4 8.4 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+    <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+    <span data-theme-label>Tema oscuro</span>
+  </button>
   <div class="gate-brand">
     <img src="/golunch-lateral.png" alt="CICSA GoLunch">
     <span aria-hidden="true"></span>
@@ -216,6 +229,43 @@
   <div id="gateErr" class="aviso oculto"></div>
 </div>
 
+<!-- Selección de zona: una vez por equipo, después de la clave y antes del
+     escáner. Cada tablet atiende una sola ruta para que dos repartidores
+     trabajen a la vez sin verse las listas.
+     ESTRUCTURA PARA ESTILIZAR DESPUÉS: #zona-picker es el contenedor,
+     .zona-opcion[data-zona] los botones, #zona-picker-aviso el mensaje de
+     bloqueo cuando hay entregas por subir. -->
+<div id="zona-picker" class="gate oculto">
+  <div class="zona-card">
+    <button class="theme-toggle gate-theme" type="button" data-theme-toggle onclick="alternarTema()" aria-label="Activar tema oscuro" aria-pressed="false">
+      <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.4 8.4 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+      <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+      <span data-theme-label>Tema oscuro</span>
+    </button>
+    <div class="gate-brand">
+      <img src="/golunch-lateral.png" alt="CICSA GoLunch">
+      <span aria-hidden="true"></span>
+      <img src="/glovis-logo.png" alt="Hyundai Glovis">
+    </div>
+    <h1>¿Qué ruta atiende este equipo?</h1>
+    <p>Solo verás los pedidos de la zona que elijas. Se guarda en este equipo y no se vuelve a preguntar.</p>
+    <div id="zona-opciones">
+      <button class="btn zona-opcion" type="button" data-zona="zona_vdc" onclick="elegirZona('zona_vdc')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <span><b>Glovis VDC</b><small>Asignar esta ruta al equipo</small></span>
+        <svg class="zona-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+      <button class="btn zona-opcion" type="button" data-zona="zona_refris" onclick="elegirZona('zona_refris')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <span><b>Glovis REFRIS</b><small>Asignar esta ruta al equipo</small></span>
+        <svg class="zona-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+    <button id="zona-cancelar" class="btn-texto oculto" type="button" onclick="cerrarSelectorZona()">Cancelar</button>
+    <div id="zona-picker-aviso" class="aviso oculto"></div>
+  </div>
+</div>
+
 <div id="app" class="oculto">
   <header class="app-header">
     <div class="brand-lockup">
@@ -224,7 +274,23 @@
       <img src="/glovis-logo.png" alt="Hyundai Glovis">
     </div>
     <div class="app-heading"><b>Entrega</b><span id="cab-fecha">—</span></div>
-    <span class="conexion on" id="conexion">EN LÍNEA</span>
+    <div class="header-actions">
+      <span class="conexion on" id="conexion">EN LÍNEA</span>
+      <button class="theme-toggle header-theme" type="button" data-theme-toggle onclick="alternarTema()" aria-label="Activar tema oscuro" aria-pressed="false">
+        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.4 8.4 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+        <span data-theme-label>Tema</span>
+      </button>
+    </div>
+    <!-- Zona activa siempre a la vista: es lo que distingue este equipo del
+         otro, y equivocarse de tablet es el error fácil de cometer.
+         ESTRUCTURA PARA ESTILIZAR: #zona-activa el contenedor,
+         #zona-activa-txt el nombre, #btn-cambiar-zona la acción. -->
+    <div class="zona-activa" id="zona-activa">
+      <svg class="zona-activa-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      <span class="zona-activa-copy"><small>Zona activa</small><b id="zona-activa-txt">—</b></span>
+      <button id="btn-cambiar-zona" class="btn-texto" type="button" onclick="abrirSelectorZona()">Cambiar zona</button>
+    </div>
   </header>
 
   <div class="marcador">
@@ -334,15 +400,30 @@
   const ZONA_TXT  = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
   const TURNO_TXT = { turno_a: 'Turno A', turno_b: 'Turno B' };
 
+  const ZONAS_VALIDAS = Object.keys(ZONA_TXT);
+
   const LS = {
     clave:  'cicsa_entrega_clave',
-    datos:  'cicsa_entrega_datos',   // { fecha, pedidos: [...] }
-    cola:   'cicsa_entrega_cola',    // [{ numero_empleado, entregado_en }]
-    lector: 'cicsa_entrega_lector'   // modo pistola/escáner integrado
+    datos:  'cicsa_entrega_datos',   // LEGADO: { fecha, pedidos: [...] } de todas las zonas
+    cola:   'cicsa_entrega_cola',    // [{ numero_empleado, entregado_en, fecha, zona }]
+    lector: 'cicsa_entrega_lector',  // modo pistola/escáner integrado
+    zona:   'cicsa_entrega_zona',    // 'zona_vdc' | 'zona_refris' — se fija por equipo
+    indice: 'cicsa_entrega_indice',  // { fecha, mapa: { numero: zona } } de TODAS las zonas
+    tema:   'cicsa_entrega_tema'
   };
+  // Una caché por zona: cambiar de VDC a REFRIS no debe mezclar listas ni
+  // contadores, y volver a la anterior no debe obligar a descargar de nuevo.
+  const claveDatos = z => LS.datos + '_' + z;
 
   let PEDIDOS = [];
   let FECHA = '';
+  let ZONA = '';
+  // El índice numero→zona de TODO el día. Es lo que permite decir "este pedido
+  // es de la otra ruta" en vez de "no existe" cuando no hay señal.
+  let INDICE_ZONAS = {};
+  // Cada cambio de zona invalida las respuestas en vuelo de la anterior: sin
+  // esto, una descarga lenta de VDC podía pintarse encima de REFRIS.
+  let EPOCA_ZONA = 0;
   let COLA = [];
   let CLAVE = '';
   // Horarios y motivos: llegan del servidor con la lista del día y se guardan
@@ -351,14 +432,40 @@
   let TOLERANCIA_MIN = 15;
   let MOTIVOS = {};
   let escaneando = false, stream = null, ultimoCodigo = '', ultimoTs = 0;
-  // Declarada aquí y no junto a sus funciones: el arranque corre antes de que
-  // el script termine de parsear, y un `let` más abajo la dejaría en zona
+  // Declaradas aquí y no junto a sus funciones: el arranque corre antes de que
+  // el script termine de parsear, y un `let` más abajo las dejaría en zona
   // muerta — la excepción mataba iniciar() en silencio antes de sincronizar.
+  // Volvió a pasar al agregar las zonas: arrancarApp() lee APP_ARRANCADA, y
+  // declararla junto a esa función tiraba el arranque en los equipos que ya
+  // tenían la clave guardada, que son todos después de la primera vez.
   let MODO_LECTOR = false;
+  let APP_ARRANCADA = false;
 
   const $ = id => document.getElementById(id);
   const leerLS  = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } };
   const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  function actualizarTema() {
+    const oscuro = document.documentElement.dataset.theme === 'dark';
+    document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+      btn.setAttribute('aria-pressed', String(oscuro));
+      btn.setAttribute('aria-label', oscuro ? 'Activar tema claro' : 'Activar tema oscuro');
+      const etiqueta = btn.querySelector('[data-theme-label]');
+      if (etiqueta) etiqueta.textContent = oscuro ? 'Tema claro' : 'Tema oscuro';
+    });
+    const meta = $('theme-color');
+    if (meta) meta.setAttribute('content', oscuro ? '#071426' : '#061b44');
+  }
+
+  function alternarTema() {
+    const oscuro = document.documentElement.dataset.theme === 'dark';
+    if (oscuro) delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = 'dark';
+    try { localStorage.setItem(LS.tema, oscuro ? 'light' : 'dark'); } catch {}
+    actualizarTema();
+  }
+
+  actualizarTema();
 
   // ── Arranque ──────────────────────────────────────────────
   CLAVE = localStorage.getItem(LS.clave) || '';
@@ -372,32 +479,106 @@
     iniciar();
   }
 
+  // ── Zona del equipo ───────────────────────────────────────
+  function abrirSelectorZona() {
+    // Con escaneos sin subir, cambiar de zona dejaría esas entregas huérfanas
+    // en un equipo que ya no mira esa ruta. Primero se sincroniza.
+    if (COLA.length) {
+      $('zona-picker-aviso').textContent =
+        'Hay ' + COLA.length + ' entrega(s) sin subir. Conéctate y espera a que "Por subir" quede en 0 antes de cambiar de zona.';
+      $('zona-picker-aviso').className = 'aviso err';
+      $('zona-picker').classList.remove('oculto');
+      $('zona-cancelar').classList.remove('oculto');
+      $('zona-opciones').classList.add('oculto');
+      return;
+    }
+    $('zona-picker-aviso').className = 'aviso oculto';
+    $('zona-opciones').classList.remove('oculto');
+    $('zona-cancelar').classList.toggle('oculto', !ZONA);
+    $('zona-picker').classList.remove('oculto');
+  }
+
+  function cerrarSelectorZona() {
+    if (!ZONA) return;                    // sin zona no hay a dónde volver
+    $('zona-picker').classList.add('oculto');
+  }
+
+  async function elegirZona(z) {
+    if (!ZONAS_VALIDAS.includes(z)) return;
+    if (COLA.length) return abrirSelectorZona();   // el candado, por si acaso
+    if (z === ZONA) return cerrarSelectorZona();
+
+    ZONA = z;
+    localStorage.setItem(LS.zona, z);
+    EPOCA_ZONA++;                 // invalida cualquier descarga en vuelo
+    // Se limpia la pantalla, NO la caché de la otra zona: volver a ella no
+    // debe obligar a descargar de nuevo estando sin señal.
+    PEDIDOS = [];
+    FECHA = '';
+    await arrancarApp();
+  }
+
+  // Lee la caché de la zona activa. Si no existe pero sí la de la versión
+  // anterior —que guardaba todas las zonas juntas— se siembra filtrando por
+  // zona, para que al actualizar la app el equipo no se quede sin lista.
+  function cargarCacheDeZona() {
+    let cache = leerLS(claveDatos(ZONA), null);
+    if (!cache) {
+      const legado = leerLS(LS.datos, null);
+      if (legado && Array.isArray(legado.pedidos)) {
+        cache = { ...legado, pedidos: legado.pedidos.filter(p => p.zona === ZONA) };
+      }
+    }
+    const idx = leerLS(LS.indice, null);
+    INDICE_ZONAS = (idx && idx.mapa) || {};
+    if (!cache) return;
+    FECHA = cache.fecha; PEDIDOS = cache.pedidos || [];
+    if (cache.turno_hora) TURNO_HORA = cache.turno_hora;
+    if (cache.tolerancia_min != null) TOLERANCIA_MIN = cache.tolerancia_min;
+    if (cache.motivos) MOTIVOS = cache.motivos;
+  }
+
+  // Decide si se puede operar o si primero hay que preguntar la zona.
   async function iniciar() {
     $('gate').classList.add('oculto');
+    COLA = leerLS(LS.cola, []);
+    ZONA = localStorage.getItem(LS.zona) || '';
+
+    // Sin zona no se puede operar: se pregunta antes de mostrar el escáner.
+    if (!ZONAS_VALIDAS.includes(ZONA)) {
+      ZONA = '';
+      $('zona-opciones').classList.remove('oculto');
+      $('zona-cancelar').classList.add('oculto');
+      $('zona-picker').classList.remove('oculto');
+      return;
+    }
+    await arrancarApp();
+  }
+
+  // Arranque de la app ya con zona. Separado de iniciar() porque también se
+  // llega aquí desde el selector: los escuchas y el temporizador se instalan
+  // UNA vez, y elegir zona otra vez no debe duplicarlos.
+  async function arrancarApp() {
+    $('zona-picker').classList.add('oculto');
     $('app').classList.remove('oculto');
 
     // Primero lo guardado: la app abre y sirve aunque no haya señal
-    const cache = leerLS(LS.datos, null);
-    COLA = leerLS(LS.cola, []);
-    if (cache) {
-      FECHA = cache.fecha; PEDIDOS = cache.pedidos;
-      // Sin señal el retraso se juzga con lo último que se descargó
-      if (cache.turno_hora) TURNO_HORA = cache.turno_hora;
-      if (cache.tolerancia_min != null) TOLERANCIA_MIN = cache.tolerancia_min;
-      if (cache.motivos) MOTIVOS = cache.motivos;
-      pintar();
+    cargarCacheDeZona();
+    pintar();
+
+    if (!APP_ARRANCADA) {
+      APP_ARRANCADA = true;
+      // El modo lector se recuerda: se configura una vez por equipo
+      $('chk-lector').checked = leerLS(LS.lector, false);
+      alternarModoLector($('chk-lector').checked);
+
+      window.addEventListener('online',  estadoConexion);
+      window.addEventListener('offline', estadoConexion);
+      estadoConexion();
+      setInterval(sincronizar, 60000);
     }
 
-    // El modo lector se recuerda: se configura una vez por equipo
-    $('chk-lector').checked = leerLS(LS.lector, false);
-    alternarModoLector($('chk-lector').checked);
-
-    window.addEventListener('online',  estadoConexion);
-    window.addEventListener('offline', estadoConexion);
-    estadoConexion();
-
     await sincronizar();          // sube lo pendiente y baja lo del día
-    setInterval(sincronizar, 60000);
   }
 
   function estadoConexion() {
@@ -409,6 +590,19 @@
     $('app').classList.toggle('sin-conexion', !on);
   }
 
+  // Zona de un elemento de la cola. Los escaneos de la versión anterior no la
+  // traen: se intenta deducir del pedido guardado o del índice del día. Si no
+  // se puede, devuelve vacío y el elemento viaja SIN zona — el servidor lo
+  // acepta sin verificar antes que perder una entrega que sí ocurrió.
+  function zonaDeElemento(e) {
+    if (e && e.zona) return e.zona;
+    const n = e && e.numero_empleado;
+    if (!n) return '';
+    const local = PEDIDOS.find(p => String(p.numero_empleado) === String(n));
+    if (local && local.zona) return local.zona;
+    return INDICE_ZONAS[n] || '';
+  }
+
   // ── Sincronización ────────────────────────────────────────
   async function sincronizar() {
     if (!navigator.onLine) return;
@@ -417,18 +611,29 @@
     //    ocurrió, y si el reparto se escaneó ayer y la app se abre hoy, esos
     //    escaneos deben registrarse en el día de ayer, no en el de hoy.
     if (COLA.length) {
-      const porFecha = {};
+      // Agrupado por FECHA y ZONA: el servidor verifica que cada pedido sea de
+      // la zona declarada, así que mezclar rutas en un lote haría que la otra
+      // se rechazara entera. Los escaneos viejos sin zona van en su propio
+      // grupo y viajan SIN el campo: el servidor omite la verificación en vez
+      // de rechazarlos, porque son entregas reales que ya ocurrieron.
+      const porLote = {};
       COLA.forEach(e => {
         const f = e.fecha || FECHA;   // escaneos viejos sin fecha: la de la app
-        (porFecha[f] = porFecha[f] || []).push(e);
+        const z = zonaDeElemento(e);
+        (porLote[f + '|' + (z || '')] = porLote[f + '|' + (z || '')] || []).push(e);
       });
 
-      for (const [fechaLote, lote] of Object.entries(porFecha)) {
+      for (const [llave, lote] of Object.entries(porLote)) {
+        const corte = llave.lastIndexOf('|');
+        const fechaLote = llave.slice(0, corte);
+        const zonaLote  = llave.slice(corte + 1) || null;
         try {
+          const cuerpo = { fecha: fechaLote, entregas: lote };
+          if (zonaLote) cuerpo.zona = zonaLote;
           const r = await fetch(API_BASE + '/api/entrega', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-admin-key': CLAVE },
-            body: JSON.stringify({ fecha: fechaLote, entregas: lote })
+            body: JSON.stringify(cuerpo)
           });
           if (!r.ok) continue;
           const d = await r.json();
@@ -437,20 +642,27 @@
           // existe). Un error del servidor o de red lo deja en la cola para
           // reintentar — borrarlo ahí sería perder una entrega real.
           const confirmados = new Set(d.resultados.filter(x => x.ok).map(x => x.numero_empleado));
-          const RECHAZO_DEFINITIVO = ['sin_pedido', 'empleado_no_encontrado', 'sin_numero'];
+          // 'zona_incorrecta' entra aquí a propósito: es un rechazo de negocio,
+          // no una falla pasajera. Dejarlo reintentando trabaría la cola para
+          // siempre y con ella el cambio de zona. Se avisa con nombre y apellido
+          // para que ese pedido se registre desde el equipo que sí le toca.
+          const RECHAZO_DEFINITIVO = ['sin_pedido', 'empleado_no_encontrado', 'sin_numero', 'zona_incorrecta'];
           const rechazados = d.resultados.filter(x => !x.ok && RECHAZO_DEFINITIVO.includes(x.motivo));
           const definitivos = new Set(rechazados.map(x => x.numero_empleado));
 
           COLA = COLA.filter(e => {
             const f = e.fecha || FECHA;
-            if (f !== fechaLote) return true;   // otro lote: no tocar
+            const z = zonaDeElemento(e) || null;
+            if (f !== fechaLote || z !== zonaLote) return true;   // otro lote: no tocar
             return !confirmados.has(e.numero_empleado) && !definitivos.has(e.numero_empleado);
           });
           guardar(LS.cola, COLA);
           if (rechazados.length) {
             mostrarAviso('avisoSync',
               rechazados.length + ' escaneo(s) no se pudieron registrar: ' +
-              rechazados.map(x => x.numero_empleado + ' (' + x.motivo + ')').join(', '), 'err');
+              rechazados.map(x => x.motivo === 'zona_incorrecta'
+                ? x.numero_empleado + ' es de ' + (ZONA_TXT[x.zona_esperada] || 'otra zona') + ' — regístralo desde ese equipo'
+                : x.numero_empleado + ' (' + x.motivo + ')').join(', '), 'err');
           }
         } catch {}
       }
@@ -461,15 +673,25 @@
     //    dejaba la app clavada en el día anterior al reabrirla al siguiente.
     //    La caché queda solo como respaldo si la consulta falla.
     try {
+      // Se apunta la zona y la época con que empezó esta descarga: si el
+      // repartidor cambia de zona mientras la petición viaja, lo que llegue
+      // pertenece a la zona anterior y NO debe pintarse encima de la nueva.
+      const zonaPeticion = ZONA;
+      const epocaPeticion = EPOCA_ZONA;
+      const vigente = () => zonaPeticion === ZONA && epocaPeticion === EPOCA_ZONA;
+
       const fechaObjetivo = (await fechaDeServicio()) || FECHA;
-      if (!fechaObjetivo) return;
+      if (!fechaObjetivo || !vigente()) return;
 
       // Si el día avanzó, lo de ayer ya no aplica: se limpia antes de pintar
       if (FECHA && fechaObjetivo !== FECHA) { PEDIDOS = []; }
-      const r = await fetch(API_BASE + '/api/entrega/' + fechaObjetivo, { headers: { 'x-admin-key': CLAVE } });
+      const url = API_BASE + '/api/entrega/' + fechaObjetivo +
+        (zonaPeticion ? '?zona=' + encodeURIComponent(zonaPeticion) : '');
+      const r = await fetch(url, { headers: { 'x-admin-key': CLAVE } });
       if (r.status === 401) return mostrarAviso('avisoSync', 'Clave incorrecta. Bórrala y vuelve a entrar.', 'err');
       if (!r.ok) return;
       const d = await r.json();
+      if (!vigente()) return;       // llegó tarde: la zona ya es otra
       FECHA = d.fecha;
       // Lo del servidor manda, EXCEPTO para lo que sigue en la cola local:
       // esas entregas ya ocurrieron aunque el servidor todavía no las tenga.
@@ -481,8 +703,14 @@
       if (d.turno_hora) TURNO_HORA = d.turno_hora;
       if (d.tolerancia_min != null) TOLERANCIA_MIN = d.tolerancia_min;
       if (d.motivos_tardia) MOTIVOS = d.motivos_tardia;
-      guardar(LS.datos, {
-        fecha: FECHA, pedidos: PEDIDOS,
+      // El índice de todas las zonas se guarda aparte: no es de una ruta, y es
+      // lo que permite avisar "esto es de la otra zona" cuando no hay señal.
+      if (d.indice_zonas) {
+        INDICE_ZONAS = d.indice_zonas;
+        guardar(LS.indice, { fecha: FECHA, mapa: INDICE_ZONAS });
+      }
+      guardar(claveDatos(zonaPeticion), {
+        fecha: FECHA, pedidos: PEDIDOS, zona: zonaPeticion,
         turno_hora: TURNO_HORA, tolerancia_min: TOLERANCIA_MIN, motivos: MOTIVOS
       });
       pintar();
@@ -518,15 +746,30 @@
     }
 
     const p = PEDIDOS.find(x => String(x.numero_empleado || '').toUpperCase() === numero);
-    if (!p) return flash('mal', 'No está en la lista', 'El número ' + numero + ' no tiene pedido para hoy.');
+    if (!p) {
+      // Antes de decir "no existe", revisar si es de la otra ruta. El índice
+      // del día se descargó con la lista, así que esto funciona sin señal y es
+      // la diferencia entre "búscalo en la otra tablet" y "este número no sirve".
+      const zonaOtra = INDICE_ZONAS[numero];
+      if (zonaOtra && zonaOtra !== ZONA) {
+        return flash('mal', 'Este pedido corresponde a ' + (ZONA_TXT[zonaOtra] || 'otra zona'),
+          'Regístralo desde el equipo de esa ruta. Aquí no se guardó nada.');
+      }
+      return flash('mal', 'No está en la lista', 'El número ' + numero + ' no tiene pedido para hoy.');
+    }
     if (p.entregado_en) return flash('dup', 'Ya estaba entregada', p.nombre + ' — se registró antes.');
 
     p.entregado_en = new Date().toISOString();
-    guardar(LS.datos, { fecha: FECHA, pedidos: PEDIDOS });
+    guardar(claveDatos(ZONA), {
+      fecha: FECHA, pedidos: PEDIDOS, zona: ZONA,
+      turno_hora: TURNO_HORA, tolerancia_min: TOLERANCIA_MIN, motivos: MOTIVOS
+    });
 
-    // Cada escaneo lleva SU fecha: si queda atorado en la cola y la app se
-    // reabre al día siguiente, debe subirse al día en que ocurrió, no al de hoy.
-    COLA.push({ numero_empleado: p.numero_empleado, entregado_en: p.entregado_en, fecha: FECHA });
+    // Cada escaneo lleva SU fecha y SU zona: si queda atorado en la cola y la
+    // app se reabre al día siguiente, debe subirse al día en que ocurrió; y la
+    // zona viaja para que el servidor verifique que el pedido sí era de esta
+    // ruta, sin confiar en el filtro del teléfono.
+    COLA.push({ numero_empleado: p.numero_empleado, entregado_en: p.entregado_en, fecha: FECHA, zona: p.zona || ZONA });
     guardar(LS.cola, COLA);
 
     const tardia = esTardia(p);
@@ -597,8 +840,8 @@
       const enCola = COLA.find(e => e.numero_empleado === pedidoEnMotivo.numero_empleado);
       if (enCola) enCola.motivo_tardia = id;
       guardar(LS.cola, COLA);
-      guardar(LS.datos, {
-        fecha: FECHA, pedidos: PEDIDOS,
+      guardar(claveDatos(ZONA), {
+        fecha: FECHA, pedidos: PEDIDOS, zona: ZONA,
         turno_hora: TURNO_HORA, tolerancia_min: TOLERANCIA_MIN, motivos: MOTIVOS
       });
     }
@@ -717,8 +960,15 @@
   // ── Pintado ───────────────────────────────────────────────
   function pintar() {
     $('cab-fecha').textContent = fechaLegible(FECHA) || 'Sin fecha de servicio';
-    const hechas = PEDIDOS.filter(p => p.entregado_en);
-    const faltan = PEDIDOS.filter(p => !p.entregado_en);
+    $('zona-activa-txt').textContent = ZONA_TXT[ZONA] || '—';
+    $('zona-activa').dataset.zona = ZONA || '';
+
+    // El servidor ya filtra por zona; este segundo filtro es por si quedó una
+    // caché mezclada de la versión anterior. Contadores, listas y "última
+    // entrega" salen todos de aquí, así que con esto ninguno cuenta de más.
+    const delDia = ZONA ? PEDIDOS.filter(p => !p.zona || p.zona === ZONA) : PEDIDOS;
+    const hechas = delDia.filter(p => p.entregado_en);
+    const faltan = delDia.filter(p => !p.entregado_en);
 
     $('n-entregado').textContent = hechas.length;
     $('n-falta').textContent = faltan.length;
