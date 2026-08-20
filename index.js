@@ -172,8 +172,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Red de seguridad, no permiso para escribir código descuidado. Node cierra el
+// proceso ante un rechazo sin capturar; aquí eso significa cortarle la sesión al
+// repartidor a media ruta y vaciarle la cola por un error que quizá afectaba a
+// una sola petición. Se registra fuerte y se sigue de pie: para el comedor,
+// seguir sirviendo vale más que morir limpio. Cada handler debe seguir teniendo
+// su propio try/catch — esto es lo que atrapa al que se nos escape.
+process.on('unhandledRejection', (razon) => {
+  console.error('[CICSA] Rechazo sin capturar (el proceso sigue):', razon);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[CICSA] Excepción sin capturar (el proceso sigue):', err);
+});
+
 app.listen(PORT, () => {
   console.log(`[CICSA] Servidor corriendo en puerto ${PORT}`);
   console.log(`[CICSA] Zona horaria: ${process.env.TZ || 'no definida'}`);
+  if (!process.env.ENTREGA_SESSION_SECRET) {
+    console.warn('[CICSA] ADVERTENCIA: ENTREGA_SESSION_SECRET no está configurada — ' +
+                 'los repartidores no podrán entrar con su clave personal.');
+  }
   iniciarCronCocina();
 });

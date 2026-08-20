@@ -90,7 +90,14 @@ entregaRouter.post('/login', async (req, res) => {
 // La tercera existe para no dejar tirados los equipos que ya tienen la clave
 // vieja guardada. No atribuye la entrega a nadie: queda como "Reparto general",
 // que es la verdad — con una clave compartida no se sabe quién fue.
+// El try/catch de afuera no es adorno. Express 4 no captura los rechazos de un
+// middleware async: lo que se escape de aquí sale como unhandled rejection y
+// Node se lleva el proceso entero. Como esto corre ANTES que toda ruta de
+// entrega, cualquier tropiezo aquí —un secreto sin configurar, un parpadeo de
+// Supabase al consultar el repartidor— tumbaba el servidor con una petición
+// sin credenciales. Ahora sale como 500 y la app sigue de pie.
 entregaRouter.use(async (req, res, next) => {
+ try {
   if (!process.env.ADMIN_KEY) {
     return res.status(500).json({ error: 'ADMIN_KEY no configurada en el servidor' });
   }
@@ -99,6 +106,14 @@ entregaRouter.use(async (req, res, next) => {
   const token = cabecera.startsWith('Bearer ') ? cabecera.slice(7) : null;
 
   if (token) {
+    // Se revisa aquí y no arriba a propósito: sin secreto no se pueden validar
+    // tokens, pero la clave compartida sí sigue sirviendo. Así una variable que
+    // falte frena el modo nuevo sin dejar tirados a los equipos que están
+    // migrando.
+    if (!process.env.ENTREGA_SESSION_SECRET) {
+      console.error('[Entrega] Llegó un token pero ENTREGA_SESSION_SECRET no está configurada');
+      return res.status(500).json({ error: 'Sesiones no configuradas en el servidor' });
+    }
     const datos = leerToken(token);
     if (!datos) return res.status(401).json({ error: 'Sesión inválida', motivo: 'token_invalido' });
     if (datos.vencido) return res.status(401).json({ error: 'Sesión vencida', motivo: 'token_vencido' });
@@ -130,6 +145,10 @@ entregaRouter.use(async (req, res, next) => {
   }
 
   return res.status(401).json({ error: 'No autorizado' });
+ } catch (err) {
+  console.error('[Entrega] Error autenticando:', err);
+  return res.status(500).json({ error: 'No se pudo verificar la sesión. Intenta de nuevo.' });
+ }
 });
 
 // Zonas que la sesión tiene permitidas. Un administrador y el modo legado no
