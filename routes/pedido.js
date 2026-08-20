@@ -10,6 +10,7 @@
 import express from 'express';
 import * as pedidos from '../services/pedidos.js';
 import * as db from '../services/supabase.js';
+import { hoyMenos } from '../services/menu.js';
 
 export const pedidoRouter = express.Router();
 
@@ -51,8 +52,10 @@ pedidoRouter.post('/identificar', async (req, res) => {
     // ¿Trae algo entregado sin calificar de los últimos días?
     let porCalificar = null;
     try {
-      const hace7 = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
-      porCalificar = await db.pedidoPorCalificar(empleado.telefono, hace7);
+      // En zona del comedor, no en UTC: con toISOString() el borde de la
+      // ventana se corría un día a partir de las 18:00 locales, justo en las
+      // dos horas en que la gente alcanza a pedir antes del corte de las 8 PM.
+      porCalificar = await db.pedidoPorCalificar(empleado.telefono, hoyMenos(7));
     } catch { /* calificar es opcional: nunca debe impedir pedir */ }
 
     res.json({

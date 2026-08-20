@@ -72,6 +72,13 @@ export function hoy() {
   return DateTime.now().setZone(ZONA).toISODate();
 }
 
+// Fecha civil de hace N días en la zona del comedor. Existe para no volver a
+// escribir `new Date(Date.now() - n*864e5).toISOString().slice(0,10)`, que
+// convierte a UTC y a partir de las 18:00 locales corre el borde un día.
+export function hoyMenos(dias) {
+  return DateTime.now().setZone(ZONA).minus({ days: dias }).toISODate();
+}
+
 // Fecha de mañana en la zona del comedor (YYYY-MM-DD)
 export function manana() {
   return DateTime.now().setZone(ZONA).plus({ days: 1 }).toISODate();

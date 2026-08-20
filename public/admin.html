@@ -1416,6 +1416,14 @@
     XLSX.writeFile(wb, 'CICSA_Formato_Plantilla.xlsx');
   }
 
+  // Para un teléfono que va dentro de una cadena de JavaScript dentro de un
+  // atributo HTML: onclick="editarTel('...')". escaparHtml NO sirve aquí,
+  // porque no escapa la comilla simple, que es justo la que cierra la cadena.
+  // Se reduce a dígitos, que es lo único que ese campo puede contener
+  // (formatoCanonico, en services/telefono.js). Hoy la base ya lo garantiza;
+  // esto deja de depender de una invariante que vive en otro archivo.
+  const telParaAtributo = t => String(t ?? '').replace(/\D/g, '');
+
   function escaparHtml(s) {
     return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1432,7 +1440,7 @@
       .join('');
     const alerta = valor ? '' : 'border-color:var(--dorado);background:#fdf5e6;';
     return `<select style="font-size:.78rem;padding:5px 6px;min-width:130px;${alerta}"
-              onchange="asignar('${telefono}','${campo}',this.value)">${opts}</select>`;
+              onchange="asignar('${telParaAtributo(telefono)}','${campo}',this.value)">${opts}</select>`;
   }
 
   async function asignar(telefono, campo, valor) {
@@ -1489,18 +1497,18 @@
       for (const e of empleados) {
         h += `<tr>
           <td>${escaparHtml(e.nombre)}</td><td>${escaparHtml(e.numero_empleado)}</td>
-          <td>${e.telefono}<button onclick="editarTel('${e.telefono}')" style="background:none;border:1px solid #003087;color:#003087;border-radius:4px;font-size:.65rem;padding:1px 5px;cursor:pointer;margin-left:6px">Editar</button></td>
+          <td>${escaparHtml(e.telefono)}<button onclick="editarTel('${telParaAtributo(e.telefono)}')" style="background:none;border:1px solid #003087;color:#003087;border-radius:4px;font-size:.65rem;padding:1px 5px;cursor:pointer;margin-left:6px">Editar</button></td>
           <td>${selectAsignacion(e.telefono, 'zona_default', e.zona_default, ZONA_TXT)}</td>
           <td>${selectAsignacion(e.telefono, 'turno_default', e.turno_default, TURNO_TXT)}</td>
           <td><span class="badge ${e.activo?'on':'off'}">${e.activo?'Activo':'Inactivo'}</span></td>
-          <td><button class="accion mini ${e.activo?'peligro':'sec'}" onclick="toggleEmp('${e.telefono}',${!e.activo})">${e.activo?'Desactivar':'Activar'}</button></td>
+          <td><button class="accion mini ${e.activo?'peligro':'sec'}" onclick="toggleEmp('${telParaAtributo(e.telefono)}',${!e.activo})">${e.activo?'Desactivar':'Activar'}</button></td>
           <!-- Solo viaja el teléfono: el nombre se busca dentro de la función.
                Meterlo aquí lo ponía dentro de una cadena de JavaScript dentro
                de un atributo HTML, y quitarle las comillas simples no bastaba
                —una comilla doble o una diagonal invertida en el nombre rompían
                el atributo—. Los nombres llegan del Excel de RRHH, que no es
                una fuente de confianza. -->
-          <td><button class="accion mini" style="background:#fff;border:1px solid var(--rojo);color:var(--rojo)" onclick="eliminarEmp('${e.telefono}')">Eliminar</button></td>
+          <td><button class="accion mini" style="background:#fff;border:1px solid var(--rojo);color:var(--rojo)" onclick="eliminarEmp('${telParaAtributo(e.telefono)}')">Eliminar</button></td>
         </tr>`;
       }
       box.innerHTML = h + '</table>';
