@@ -179,7 +179,8 @@ adminRouter.get('/reportes', async (req, res) => {
 
     const pedidos = await db.getPedidosRango(ini, fin);
 
-    const porDia = {}, porPlatillo = {}, rating = { si: 0, tal_vez: 0, no: 0, sin_responder: 0 };
+    const porDia = {}, porPlatillo = {}, porPlatilloRating = {};
+    const rating = { si: 0, tal_vez: 0, no: 0, sin_responder: 0 };
     let entregados = 0, tardios = 0, noEntregados = 0, pendientes = 0;
     const motivos = {};
 
@@ -203,6 +204,18 @@ adminRouter.get('/reportes', async (req, res) => {
 
       if (['si', 'tal_vez', 'no'].includes(p.rating)) rating[p.rating]++;
       else rating.sin_responder++;
+
+      // La encuesta pregunta por UN platillo, así que la respuesta se guarda
+      // junto a su platillo. Antes solo existía el total del periodo, que no
+      // contesta la única pregunta que justifica preguntar: cuál quitar.
+      // Se cuentan aparte los entregados, porque solo un platillo entregado
+      // se pudo calificar: es el denominador honesto de la participación.
+      const c = porPlatilloRating[plat] || (porPlatilloRating[plat] = {
+        platillo: plat, porciones: 0, entregados: 0, si: 0, tal_vez: 0, no: 0
+      });
+      c.porciones++;
+      if (p.entregado_en) c.entregados++;
+      if (['si', 'tal_vez', 'no'].includes(p.rating)) c[p.rating]++;
 
       // Sin turno no hay hora de entrega que vencer (pedidos viejos de
       // WhatsApp): se da por vencido cuando el día ya pasó.
@@ -284,6 +297,32 @@ adminRouter.get('/reportes', async (req, res) => {
       porciones_por_platillo: Object.entries(porPlatillo)
         .sort((a, b) => b[1] - a[1]).map(([platillo, n]) => ({ platillo, porciones: n })),
       rating,
+      // Qué platillo gustó y cuál no. La aprobación pesa las tres respuestas
+      // en una sola cifra comparable —"me gustó" vale 100, "estuvo bien" 50,
+      // "no me gustó" 0— y se ordena de peor a mejor, porque la decisión que
+      // alimenta es cuál sacar del menú. Los platillos que nadie calificó van
+      // al final con aprobación nula: no se puede juzgar lo que no se opinó,
+      // y ponerlos en 0 los haría parecer los peores.
+      rating_por_platillo: Object.values(porPlatilloRating)
+        .map(c => {
+          const respondidos = c.si + c.tal_vez + c.no;
+          return {
+            ...c,
+            respondidos,
+            sin_calificar: Math.max(0, c.entregados - respondidos),
+            aprobacion: respondidos
+              ? Math.round(((c.si * 100 + c.tal_vez * 50) / respondidos) * 10) / 10
+              : null,
+            participacion: c.entregados ? pct(respondidos, c.entregados) : 0
+          };
+        })
+        .sort((a, b) => {
+          if (a.aprobacion === null && b.aprobacion === null) return b.porciones - a.porciones;
+          if (a.aprobacion === null) return 1;
+          if (b.aprobacion === null) return -1;
+          // Peor primero; a igual aprobación manda el que tiene más opiniones
+          return a.aprobacion - b.aprobacion || b.respondidos - a.respondidos;
+        }),
       // pendientes = ya pedidos pero cuya hora de entrega aún no llega; van
       // dentro de no_entregados y por eso se informan aparte.
       entrega: { entregados, tardios, no_entregados: noEntregados, pendientes },

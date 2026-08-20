@@ -956,19 +956,49 @@
         d.porciones_por_platillo.map(x => ({ etiqueta: x.platillo, valor: x.porciones })),
         'var(--verde)'));
 
-      // 3 · Rating
+      // 3 · Calificaciones. Las etiquetas dicen lo mismo que la app le
+      // pregunta al empleado ("¿Qué te pareció ese platillo?"); antes decían
+      // "¿Volverías a pedirlo?", que era la pregunta de una versión anterior.
       const r = d.rating, respondidos = r.si + r.tal_vez + r.no;
-      h += bloque('¿Volverías a pedirlo?',
+      const colorAprob = a =>
+        a === null ? 'var(--gris-text)' : a < 40 ? 'var(--rojo)' : a < 65 ? '#b8860b' : 'var(--verde)';
+
+      h += bloque('¿Qué te pareció ese platillo?',
         respondidos
           ? barrasH([
-              { etiqueta: 'Sí', valor: r.si },
-              { etiqueta: 'Tal vez', valor: r.tal_vez },
-              { etiqueta: 'No volvería a pedirlo', valor: r.no }
+              { etiqueta: 'Me gustó mucho', valor: r.si },
+              { etiqueta: 'Estuvo bien', valor: r.tal_vez },
+              { etiqueta: 'No me gustó', valor: r.no }
             ], 'var(--dorado)') +
             '<p style="font-size:.78rem;color:var(--gris-text);margin-top:8px">' +
             respondidos + ' de ' + d.total + ' pedidos calificados · ' +
             r.sin_responder + ' sin responder</p>'
           : '<div class="vacio">Nadie ha calificado todavía en este periodo.</div>');
+
+      // 4 · Qué platillo gustó y cuál no. Este es el que contesta la pregunta
+      // de menú; el bloque de arriba solo da el total del periodo.
+      const rp = d.rating_por_platillo || [];
+      const conOpinion = rp.filter(x => x.respondidos > 0);
+      h += bloque('Qué platillo gustó y cuál no',
+        conOpinion.length
+          ? '<table><tr><th>Platillo</th><th>Porciones</th><th>Me gustó</th><th>Estuvo bien</th>' +
+            '<th>No me gustó</th><th>Opiniones</th><th>Aprobación</th></tr>' +
+            rp.map(x =>
+              '<tr><td>' + escaparHtml(x.platillo) + '</td>' +
+              '<td>' + x.porciones + '</td>' +
+              '<td>' + x.si + '</td><td>' + x.tal_vez + '</td>' +
+              '<td><strong>' + x.no + '</strong></td>' +
+              '<td>' + x.respondidos + (x.respondidos && x.respondidos < 3
+                  ? ' <span style="color:var(--gris-text);font-size:.72rem">(pocas)</span>' : '') + '</td>' +
+              '<td style="color:' + colorAprob(x.aprobacion) + ';font-weight:700">' +
+              (x.aprobacion === null ? 'sin opiniones' : x.aprobacion + '%') + '</td></tr>').join('') +
+            '</table>' +
+            '<p style="font-size:.78rem;color:var(--gris-text);margin-top:10px">' +
+            'Ordenado de peor a mejor calificado. La aprobación pesa las respuestas: ' +
+            '<strong>Me gustó</strong> vale 100, <strong>Estuvo bien</strong> 50 y ' +
+            '<strong>No me gustó</strong> 0. Los platillos con menos de tres opiniones se marcan ' +
+            '<em>(pocas)</em>: la cifra existe, pero todavía no dice mucho.</p>'
+          : '<div class="vacio">Todavía nadie califica platillos en este periodo.</div>');
 
       // 4 · Cumplimiento de entrega
       const e = d.entrega;
@@ -1685,7 +1715,19 @@
     }
     hoja('Tiempos_Ruta', f3, [14, 26, 12, 12, 12, 16]);
 
-    // Hoja 4 — de dónde salen los números, para que el reporte se explique solo
+    // Hoja 4 — qué platillo gustó, que es lo que decide el menú de la semana
+    const f4 = [['Platillo', 'Porciones', 'Entregados', 'Me_gusto', 'Estuvo_bien',
+                 'No_me_gusto', 'Opiniones', 'Aprobacion_%', 'Participacion_%']];
+    (d.rating_por_platillo || []).forEach(x => f4.push([
+      x.platillo, x.porciones, x.entregados, x.si, x.tal_vez, x.no,
+      x.respondidos, x.aprobacion === null ? '' : x.aprobacion, x.participacion
+    ]));
+    f4.push([], ['Aprobacion: "Me gustó" vale 100, "Estuvo bien" 50, "No me gustó" 0.'],
+      ['Participacion: qué porcentaje de los entregados fue calificado.'],
+      ['Ordenado de peor a mejor. Vacío en Aprobacion = nadie opinó ese platillo.']);
+    hoja('Calificaciones', f4, [38, 12, 12, 12, 13, 13, 11, 15, 16]);
+
+    // Hoja 5 — de dónde salen los números, para que el reporte se explique solo
     hoja('Resumen', [
       ['Periodo', d.ini + ' a ' + d.fin],
       ['Pedidos del periodo', d.total],
