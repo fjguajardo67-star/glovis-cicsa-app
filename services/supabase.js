@@ -347,12 +347,17 @@ export async function marcarEntregado(fecha, numeroEmpleado, entregadoEn, motivo
 // Guarda la calificación. Solo aplica a pedidos ya ENTREGADOS: calificar algo
 // que nunca se recibió no diría nada del platillo.
 export async function calificarPedido(fecha, telefono, rating) {
+  // La primera opinión es la que cuenta. Antes el UPDATE solo exigía que el
+  // pedido estuviera entregado, así que una calificación se podía reemplazar
+  // las veces que fuera —y el endpoint es público, identificado solo por
+  // número de empleado—. Con el candado, reenviar no cambia lo ya opinado.
   const { data, error } = await supabase
     .from('pedidos')
     .update({ rating })
     .eq('fecha_menu', fecha)
     .eq('empleado_telefono', telefono)
     .not('entregado_en', 'is', null)
+    .is('rating', null)
     .select('id');
   if (error) throw error;
   return !!(data && data.length);

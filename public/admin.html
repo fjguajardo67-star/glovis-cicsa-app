@@ -202,6 +202,15 @@
     .tabs { flex-direction: row; }
     .tab { white-space: nowrap; padding: 9px 14px; }
   }
+  /* La advertencia va pegada a la tabla y no en un pie de página que nadie
+     lee: el riesgo de este dato es que se tome como calificación del guisado. */
+  .caja-cautela {
+    margin-top: 12px; padding: 12px 14px; border-radius: 9px;
+    background: var(--dorado-light, #fdf5e6); border: 1px solid #e8d5a8;
+    font-size: .82rem; line-height: 1.5; color: var(--tinta);
+  }
+  .caja-cautela b { color: #8a6516; }
+
   .panel { display: none; }
   .panel.activo { display: block; }
 
@@ -979,25 +988,43 @@
       // de menú; el bloque de arriba solo da el total del periodo.
       const rp = d.rating_por_platillo || [];
       const conOpinion = rp.filter(x => x.respondidos > 0);
+      const minOp = d.min_opiniones || 5;
+      const celdaAprob = x => {
+        if (x.aprobacion === null)
+          return '<span style="color:var(--gris-text);font-weight:600">sin opiniones</span>';
+        if (x.muestra_corta)
+          return '<span style="color:var(--gris-text);font-weight:600" ' +
+                 'title="Menos de ' + minOp + ' opiniones: no alcanza para un porcentaje">muestra corta</span>';
+        return '<span style="color:' + colorAprob(x.aprobacion) + ';font-weight:700">' + x.aprobacion + '%</span>';
+      };
+
       h += bloque('Qué platillo gustó y cuál no',
         conOpinion.length
           ? '<table><tr><th>Platillo</th><th>Porciones</th><th>Me gustó</th><th>Estuvo bien</th>' +
             '<th>No me gustó</th><th>Opiniones</th><th>Aprobación</th></tr>' +
             rp.map(x =>
-              '<tr><td>' + escaparHtml(x.platillo) + '</td>' +
+              '<tr' + (x.respondidos === 0 || x.muestra_corta ? ' style="color:var(--gris-text)"' : '') + '>' +
+              '<td>' + escaparHtml(x.platillo) + '</td>' +
               '<td>' + x.porciones + '</td>' +
               '<td>' + x.si + '</td><td>' + x.tal_vez + '</td>' +
               '<td><strong>' + x.no + '</strong></td>' +
-              '<td>' + x.respondidos + (x.respondidos && x.respondidos < 3
-                  ? ' <span style="color:var(--gris-text);font-size:.72rem">(pocas)</span>' : '') + '</td>' +
-              '<td style="color:' + colorAprob(x.aprobacion) + ';font-weight:700">' +
-              (x.aprobacion === null ? 'sin opiniones' : x.aprobacion + '%') + '</td></tr>').join('') +
+              '<td>' + x.respondidos + '</td>' +
+              '<td>' + celdaAprob(x) + '</td></tr>').join('') +
             '</table>' +
+            '<div class="caja-cautela">' +
+            '<b>Esto no es una calificación del guisado: es una señal.</b> ' +
+            'La opinión cuelga del pedido, así que un <em>No me gustó</em> puede estar castigando ' +
+            'comida fría o una entrega tardía, y eso no se arregla con más respuestas. ' +
+            'Úsala para <strong>levantar la mano sobre un platillo</strong> y confírmalo contra lo que ' +
+            'la gente hace y no dice: su <strong>merma</strong> y cuántas porciones se piden cuando ' +
+            'vuelve a aparecer en el menú.' +
+            '</div>' +
             '<p style="font-size:.78rem;color:var(--gris-text);margin-top:10px">' +
-            'Ordenado de peor a mejor calificado. La aprobación pesa las respuestas: ' +
-            '<strong>Me gustó</strong> vale 100, <strong>Estuvo bien</strong> 50 y ' +
-            '<strong>No me gustó</strong> 0. Los platillos con menos de tres opiniones se marcan ' +
-            '<em>(pocas)</em>: la cifra existe, pero todavía no dice mucho.</p>'
+            'Ordenado de peor a mejor calificado, y los que no alcanzan muestra van al final. ' +
+            'La aprobación pesa las respuestas: <strong>Me gustó</strong> vale 100, ' +
+            '<strong>Estuvo bien</strong> 50 y <strong>No me gustó</strong> 0. Con menos de ' +
+            minOp + ' opiniones no se publica el porcentaje —dice <em>muestra corta</em>— porque ' +
+            'dos respuestas no deciden un menú.</p>'
           : '<div class="vacio">Todavía nadie califica platillos en este periodo.</div>');
 
       // 4 · Cumplimiento de entrega

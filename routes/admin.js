@@ -168,6 +168,14 @@ adminRouter.get('/resumen-cocina/:fecha', async (req, res) => {
   }
 });
 
+// Mínimo de opiniones para publicar un porcentaje de aprobación. La
+// calificación cuelga del PEDIDO, no del guisado: un "no me gustó" puede estar
+// castigando comida fría o una entrega tardía, y eso no se corrige con más
+// muestras. Por eso el dato sirve para levantar la mano sobre un platillo, no
+// para decidir solo, y por debajo de este número se muestran las respuestas
+// en crudo en vez de un porcentaje que invita a decidir.
+const MIN_OPINIONES = 5;
+
 // ── Reportes por periodo ────────────────────────────────────────
 // Un solo endpoint alimenta todas las vistas: pedidos por día, porciones por
 // platillo, rating, cumplimiento de entrega y las tres preguntas de operación
@@ -310,19 +318,30 @@ adminRouter.get('/reportes', async (req, res) => {
             ...c,
             respondidos,
             sin_calificar: Math.max(0, c.entregados - respondidos),
+            // Entero y no decimales: un 37.5% sobre cuatro opiniones aparenta
+            // una precisión que el dato no tiene.
             aprobacion: respondidos
-              ? Math.round(((c.si * 100 + c.tal_vez * 50) / respondidos) * 10) / 10
+              ? Math.round((c.si * 100 + c.tal_vez * 50) / respondidos)
               : null,
+            // Debajo de este mínimo la cifra no se publica como porcentaje: se
+            // muestran las respuestas en crudo. Un platillo con dos opiniones
+            // no debe encabezar una decisión de menú solo por salir en 0%.
+            muestra_corta: respondidos > 0 && respondidos < MIN_OPINIONES,
             participacion: c.entregados ? pct(respondidos, c.entregados) : 0
           };
         })
+        // Arriba lo que sí se puede leer —peor calificado primero—, luego lo de
+        // muestra corta y al final lo que nadie opinó. Así la cabeza de la
+        // tabla siempre es material de decisión y no ruido con pocas respuestas.
         .sort((a, b) => {
-          if (a.aprobacion === null && b.aprobacion === null) return b.porciones - a.porciones;
-          if (a.aprobacion === null) return 1;
-          if (b.aprobacion === null) return -1;
-          // Peor primero; a igual aprobación manda el que tiene más opiniones
-          return a.aprobacion - b.aprobacion || b.respondidos - a.respondidos;
+          const grupo = x => x.respondidos === 0 ? 2 : (x.muestra_corta ? 1 : 0);
+          const ga = grupo(a), gb = grupo(b);
+          if (ga !== gb) return ga - gb;
+          if (ga === 0) return a.aprobacion - b.aprobacion || b.respondidos - a.respondidos;
+          if (ga === 1) return b.respondidos - a.respondidos;
+          return b.porciones - a.porciones;
         }),
+      min_opiniones: MIN_OPINIONES,
       // pendientes = ya pedidos pero cuya hora de entrega aún no llega; van
       // dentro de no_entregados y por eso se informan aparte.
       entrega: { entregados, tardios, no_entregados: noEntregados, pendientes },

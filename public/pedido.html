@@ -2256,13 +2256,25 @@
     }
     try {
       const r = await fetch(API_BASE + '/pedido/estado');
+      // Sin esta comprobación, un error del servidor se presentaba como "el
+      // comedor aún no publica el menú": la respuesta de error también es JSON
+      // y tampoco trae fecha, así que caía en la misma pantalla. Una caída de
+      // la base se veía igual que un día normal antes de publicar, y por eso
+      // nadie la reportaba. Una falla técnica tiene que verse como falla.
+      if (!r.ok) { const e = new Error('respuesta ' + r.status); e.esFallaServidor = true; throw e; }
       estado = await r.json();
-    } catch {
+    } catch (err) {
+      const falla = err && err.esFallaServidor;
+      const msg = falla
+        ? 'El sistema no está respondiendo. Avisa en el comedor e intenta más tarde.'
+        : 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.';
       if (desdeCerrado) {
-        $('cerrado-ultima').textContent = 'No se pudo actualizar. Revisa tu conexión.';
+        $('cerrado-ultima').textContent = falla
+          ? 'El sistema no está respondiendo. Avisa en el comedor.'
+          : 'No se pudo actualizar. Revisa tu conexión.';
         $('cerrado-ultima').classList.add('error');
       } else {
-        $('cargando-text').textContent = 'No se pudo conectar. Revisa tu conexión e intenta de nuevo.';
+        $('cargando-text').textContent = msg;
         $('btn-reintentar').hidden = false;
       }
       return false;
