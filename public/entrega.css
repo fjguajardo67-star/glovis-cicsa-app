@@ -240,7 +240,7 @@ summary:focus-visible {
 }
 
 .theme-toggle {
-  min-height: 42px;
+  min-height: 44px;
   padding: 8px 11px;
   display: inline-flex;
   align-items: center;
@@ -284,7 +284,7 @@ summary:focus-visible {
 }
 
 .header-theme {
-  width: 42px;
+  width: 44px;
   padding: 8px;
 }
 
@@ -322,7 +322,7 @@ summary:focus-visible {
   gap: 6px;
   padding: 6px 9px;
   border-radius: 999px;
-  font-size: .72rem;
+  font-size: .75rem;
   font-weight: 800;
   letter-spacing: .01em;
   white-space: nowrap;
@@ -375,6 +375,8 @@ summary:focus-visible {
 }
 
 .marcador .n {
+  padding: 0;
+  border-radius: 0;
   color: var(--azul);
   font-size: 1.5rem;
   font-weight: 800;
@@ -384,8 +386,10 @@ summary:focus-visible {
 
 .marcador .e {
   margin-top: 6px;
+  padding: 0;
+  border-radius: 0;
   color: var(--gris-text);
-  font-size: .72rem;
+  font-size: .75rem;
   font-weight: 700;
 }
 
@@ -1439,12 +1443,12 @@ main {
   }
 
   .app-heading span {
-    font-size: .65rem;
+    font-size: .72rem;
   }
 
   .conexion {
     padding: 6px 7px;
-    font-size: .68rem;
+    font-size: .72rem;
   }
 
   .header-actions {
@@ -1452,8 +1456,8 @@ main {
   }
 
   .header-theme {
-    width: 38px;
-    min-height: 38px;
+    width: 44px;
+    min-height: 44px;
   }
 
   .gate {
@@ -1522,7 +1526,7 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border: 1px solid var(--gris-line);
+  border: 1px solid var(--azul-line);
   border-radius: 12px;
   background: var(--blanco);
 }
@@ -1542,7 +1546,7 @@ main {
   content: "Repartidor";
   display: block;
   color: var(--gris-text);
-  font-size: .62rem;
+  font-size: .72rem;
   font-weight: 800;
   letter-spacing: .07em;
   line-height: 1.2;
@@ -1551,11 +1555,16 @@ main {
 
 #btn-cerrar-sesion {
   flex: none;
-  min-height: 40px;
+  min-height: 44px;
+}
+
+.sesion-repartidor.legado {
+  border-color: #dfbd62;
+  background: var(--dorado-light);
 }
 
 .sesion-repartidor.legado #sesion-nombre {
-  color: var(--gris-text);
+  color: var(--dorado-texto);
 }
 
 #zona-picker.gate {
@@ -1627,7 +1636,7 @@ main {
 
 .zona-activa-copy small {
   color: var(--gris-text);
-  font-size: .65rem;
+  font-size: .72rem;
   font-weight: 800;
   letter-spacing: .07em;
   line-height: 1.2;
@@ -1644,7 +1653,7 @@ main {
 }
 
 .btn-texto {
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid var(--azul-line);
   border-radius: 10px;
   padding: 9px 12px;
@@ -1702,7 +1711,7 @@ main {
 .zona-opcion small {
   margin-top: 3px;
   color: var(--gris-text);
-  font-size: .74rem;
+  font-size: .78rem;
   font-weight: 600;
 }
 
@@ -1726,6 +1735,11 @@ main {
   background: #0e2039;
 }
 
+:root[data-theme="dark"] .sesion-repartidor.legado {
+  border-color: #806a34;
+  background: var(--dorado-light);
+}
+
 :root[data-theme="dark"] .zona-card {
   background: #0e2039;
 }
@@ -1736,9 +1750,14 @@ main {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .zona-opcion:hover,
+  .btn.zona-opcion:hover,
   .btn-texto:hover {
     background: var(--azul-light);
+  }
+
+  .btn.zona-opcion:hover {
+    border-color: var(--azul-vivo);
+    color: var(--azul);
   }
 }
 
@@ -1754,7 +1773,7 @@ main {
 
   #btn-cerrar-sesion {
     padding-inline: 10px;
-    font-size: .74rem;
+    font-size: .76rem;
   }
 
   .zona-card {
@@ -2032,47 +2051,6 @@ main {
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   USUARIOS DE REPARTO — ESTRUCTURA MÍNIMA, PENDIENTE DE ACABADO
-
-   Cada repartidor entra con su clave personal y la entrega queda
-   atribuida a él. Ganchos:
-
-     #gate-bienvenida / #gate-nombre   "Bienvenido, Luis" tras validar
-     #sesion-repartidor                quién opera esta tablet
-     #sesion-nombre                    su nombre (o "Reparto general")
-     #sesion-repartidor.legado         modo de clave compartida, sin persona
-     #btn-cerrar-sesion                cambiar usuario
-   ══════════════════════════════════════════════════════════════ */
-
-.gate-bienvenida {
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 11px;
-  background: var(--verde-light, #e6f4e6);
-  border: 1px solid var(--verde, #1e7a22);
-  color: var(--verde, #1e7a22);
-  text-align: center;
-  font-size: .92rem;
-}
-.gate-bienvenida b { display: block; font-size: 1.1rem; font-weight: 800; }
-
-.sesion-repartidor {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: .82rem;
-  font-weight: 700;
-}
-/* Con la clave compartida no hay persona detrás: se marca distinto para que
-   no se lea como si alguien estuviera identificado. */
-.sesion-repartidor.legado #sesion-nombre {
-  color: var(--dorado, #b8860b);
-  font-style: italic;
-}
-
 /* ── Versión ──────────────────────────────────────────────────
    Discreta a propósito: es un dato de diagnóstico, no algo que el repartidor
    necesite mirar mientras trabaja. Solo se vuelve visible —ámbar y con
@@ -2082,26 +2060,292 @@ main {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
-  padding: 2px 4px 0;
-  font-size: .68rem;
+  min-height: 24px;
+  padding: 0 2px;
+  font-size: .75rem;
   font-weight: 700;
   color: var(--gris-text, #6b7280);
   letter-spacing: .02em;
 }
 
-.version-app .atrasada {
-  color: #92400e;
-  background: #fff9e6;
-  border-radius: 6px;
+.version-app #version-txt {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--gris-bg);
+}
+
+.version-app .atrasada {
+  border: 1px solid #dfbd62;
+  background: var(--dorado-light);
+  color: var(--dorado-texto);
 }
 
 .version-app .btn-texto {
-  min-height: 34px;
-  padding: 6px 11px;
-  font-size: .72rem;
-  border-color: #d9a441;
-  color: #92400e;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-color: #dfbd62;
+  color: var(--dorado-texto);
+  font-size: .76rem;
+}
+
+:root[data-theme="dark"] .version-app #version-txt {
+  background: #122640;
+}
+
+:root[data-theme="dark"] .version-app .atrasada {
+  border-color: #806a34;
+  background: var(--dorado-light);
+  color: var(--dorado-texto);
+}
+
+:root[data-theme="dark"] .version-app .btn-texto {
+  border-color: #806a34;
+  background: #0e2039;
+  color: var(--dorado-texto);
+}
+
+/* La operación vive primero en móvil: el encabezado conserva identidad,
+   responsable y ruta sin desplazar el escáner fuera de la vista. */
+@media (max-width: 719px) {
+  .app-header {
+    min-height: 0;
+    padding: 8px max(10px, env(safe-area-inset-right)) 7px max(10px, env(safe-area-inset-left));
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px 8px;
+  }
+
+  .app-header > .brand-lockup {
+    flex: 0 0 92px;
+    order: 1;
+  }
+
+  .app-header > .app-heading {
+    flex: 1 1 64px;
+    order: 1;
+  }
+
+  .app-header > .header-actions {
+    flex: 0 0 auto;
+    order: 1;
+  }
+
+  .app-header::before {
+    content: "";
+    flex: 0 0 100%;
+    height: 0;
+    order: 2;
+  }
+
+  .sesion-repartidor,
+  .zona-activa {
+    grid-column: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 62px;
+    border-radius: 12px;
+    order: 3;
+  }
+
+  .sesion-repartidor {
+    padding: 7px 7px 7px 10px;
+    gap: 6px;
+  }
+
+  .zona-activa {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    gap: 6px;
+    padding: 7px 7px 7px 9px;
+  }
+
+  .zona-activa-icon {
+    display: none;
+  }
+
+  #sesion-nombre,
+  .zona-activa-copy b {
+    font-size: .82rem;
+    line-height: 1.14;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  #sesion-nombre::before,
+  .zona-activa-copy small {
+    font-size: .66rem;
+    letter-spacing: .055em;
+  }
+
+  #btn-cerrar-sesion,
+  #btn-cambiar-zona {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    font-size: 0;
+  }
+
+  #btn-cerrar-sesion::before,
+  #btn-cambiar-zona::before {
+    content: "";
+    width: 21px;
+    height: 21px;
+    display: block;
+    background: currentColor;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+  }
+
+  #btn-cerrar-sesion::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round' d='M10 5H5v14h5M14 8l4 4-4 4m4-4H9'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round' d='M10 5H5v14h5M14 8l4 4-4 4m4-4H9'/%3E%3C/svg%3E");
+  }
+
+  #btn-cambiar-zona::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round' d='m7 7 3-3m-3 3 3 3M7 7h11M17 17l-3 3m3-3-3-3m3 3H6'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round' d='m7 7 3-3m-3 3 3 3M7 7h11M17 17l-3 3m3-3-3-3m3 3H6'/%3E%3C/svg%3E");
+  }
+
+  .version-app {
+    flex: 0 0 100%;
+    min-height: 20px;
+    margin-top: -2px;
+    padding: 0;
+    gap: 7px;
+    font-size: .66rem;
+    order: 4;
+  }
+
+  .version-app #version-txt {
+    min-height: 20px;
+    padding: 2px 7px;
+  }
+
+  .marcador > div {
+    padding: 8px 6px 9px;
+  }
+
+  .marcador > div + div::before {
+    top: 9px;
+    bottom: 9px;
+  }
+
+  .marcador .n {
+    font-size: 1.32rem;
+  }
+
+  .marcador .e {
+    margin-top: 3px;
+    font-size: .72rem;
+  }
+
+  main {
+    padding-top: 12px;
+  }
+
+}
+
+/* Tras registrar la llegada basta el comprobante; el escáner recupera el
+   espacio que ocupaban la explicación y el botón iniciales. */
+.barra-llegada:has(#btn-llegada.oculto) {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+}
+
+.barra-llegada:has(#btn-llegada.oculto) .llegada-encabezado {
+  display: none;
+}
+
+.barra-llegada:has(#btn-llegada.oculto) .llegada-estado {
+  min-height: 46px;
+  margin-top: 0;
+}
+
+/* En tablet hay espacio para mantener usuario y ruta juntos en un solo nivel
+   de información, sin convertir el encabezado en una pila de tarjetas. */
+@media (min-width: 720px) {
+  .app-header {
+    min-height: 0;
+    grid-template-columns: minmax(250px, .9fr) minmax(180px, 1fr) auto;
+    gap: 9px 12px;
+    padding-top: 10px;
+    padding-bottom: 8px;
+  }
+
+  .sesion-repartidor {
+    grid-column: 1;
+  }
+
+  .zona-activa {
+    grid-column: 2 / 4;
+  }
+
+  .version-app {
+    grid-column: 1 / 4;
+    min-height: 20px;
+    margin-top: -3px;
+  }
+}
+
+/* Las listas extensas se revelan a petición y usan el scroll de la página;
+   la flecha hace evidente que el bloque puede abrirse sin crear scroll anidado. */
+.pedidos-panel summary span {
+  margin-left: auto;
+}
+
+.pedidos-panel summary::after {
+  content: "";
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background: currentColor;
+  transition: transform 160ms var(--ease-out);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.pedidos-panel[open] summary::after {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 350px) {
+  .app-header > .brand-lockup {
+    flex-basis: 86px;
+  }
+
+  .conexion {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0;
+  }
+
+  .brand-lockup img:first-child {
+    width: 48px;
+  }
+
+  .brand-lockup img:last-child {
+    width: 28px;
+  }
+
 }
