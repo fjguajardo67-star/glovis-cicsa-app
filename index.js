@@ -1,6 +1,7 @@
 // index.js — Servidor principal de Go Lunch (comedor CICSA · Glovis)
 import 'dotenv/config';
 import express from 'express';
+import { readFileSync } from 'node:fs';
 import { webhookRouter } from './routes/webhook.js';
 import { adminRouter } from './routes/admin.js';
 import { pedidoRouter } from './routes/pedido.js';
@@ -39,6 +40,33 @@ app.get('/', (req, res) => res.redirect(302, '/pedido.html'));
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'go-lunch', ts: new Date().toISOString() });
+});
+
+// ── Versión ─────────────────────────────────────────────────────
+// Sirve para responder una sola pregunta: ¿este aparato está corriendo el
+// mismo código que el servidor? Un teléfono con el service worker viejo se ve
+// idéntico a uno al día, y así fue como un repartidor estuvo trabajando con la
+// fecha equivocada sin que nadie lo notara.
+//
+// La versión se LEE de public/sw.js en vez de escribirse aquí: ese número es el
+// que gobierna qué archivos tiene cacheados el cliente, así que es la única
+// cifra que responde de verdad la pregunta. Repetirla en dos lugares sería
+// crear la posibilidad de que no coincidan, que es justo el problema.
+const VERSION_APP = (() => {
+  try {
+    const sw = readFileSync(new URL('./public/sw.js', import.meta.url), 'utf8');
+    return sw.match(/const VERSION\s*=\s*['"]([^'"]+)['"]/)?.[1] || 'desconocida';
+  } catch { return 'desconocida'; }
+})();
+
+// El SHA lo pone Railway en cada despliegue. Es opcional: sin él la versión del
+// service worker basta para saber si alguien quedó atrás.
+const SHA = (process.env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7) || null;
+
+app.get('/api/version', (req, res) => {
+  // Sin caché: preguntar la versión y que respondan una guardada sería absurdo.
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ version: VERSION_APP, sha: SHA });
 });
 // Diagnóstico. Exige ADMIN_KEY: revela detalles de la infraestructura y
 // SUPABASE_KEY es la llave de service-role, que no debe asomarse en público

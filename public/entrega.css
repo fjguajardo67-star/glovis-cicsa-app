@@ -2072,3 +2072,36 @@ main {
   color: var(--dorado, #b8860b);
   font-style: italic;
 }
+
+/* ── Versión ──────────────────────────────────────────────────
+   Discreta a propósito: es un dato de diagnóstico, no algo que el repartidor
+   necesite mirar mientras trabaja. Solo se vuelve visible —ámbar y con
+   botón— cuando este aparato quedó atrás del servidor, que es el único
+   momento en que alguien tiene que hacer algo al respecto. */
+.version-app {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 4px 0;
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--gris-text, #6b7280);
+  letter-spacing: .02em;
+}
+
+.version-app .atrasada {
+  color: #92400e;
+  background: #fff9e6;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.version-app .btn-texto {
+  min-height: 34px;
+  padding: 6px 11px;
+  font-size: .72rem;
+  border-color: #d9a441;
+  color: #92400e;
+}

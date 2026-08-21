@@ -403,7 +403,7 @@
       </div>
     </div>
     <div class="header-right">
-      <span class="header-sub">Corte 8:00 PM · Lázaro Cárdenas, Mich.</span>
+      <span class="header-sub">Corte 8:00 PM · Lázaro Cárdenas, Mich. <span id="versionPanel" style="opacity:.75"></span></span>
       <button class="btn-salir" onclick="window.open('manual.html','_blank')" title="Manual de operación">📖 Manual</button>
       <button class="btn-salir" onclick="salir()">Cerrar sesión</button>
     </div>
@@ -946,11 +946,58 @@
 
   // ── Pedidos ──
   // ── Dashboard de control ──
-  async function verDashboard() {
+  // ── Refresco automático ──────────────────────────────────────
+  // El estatus de un pedido cambia cuando el repartidor escanea, y eso pasa
+  // mientras nadie está picando "Consultar". Sin esto, el operador ve una foto
+  // vieja sin saberlo, que es peor que ver una pantalla vacía.
+  //
+  // Se refresca solo bajo tres condiciones, y las tres importan:
+  //   · solo el día de HOY — el pasado ya no cambia y el futuro aún no ocurre;
+  //   · solo con la pestaña Dashboard abierta;
+  //   · solo con la ventana al frente — un panel olvidado en una tablet no
+  //     debe seguir consultando toda la noche contra el plan Free de Supabase.
+  const REFRESCO_MS = 30000;
+  let temporizadorDash = null, ultimoDash = null;
+
+  function esHoy() {
+    const f = document.getElementById('db-fecha');
+    return !!f && f.value === fechaComedor();
+  }
+
+  function dashboardVisible() {
+    const p = document.getElementById('p-dashboard');
+    return !!p && p.classList.contains('activo') && !document.hidden;
+  }
+
+  function programarRefresco() {
+    clearInterval(temporizadorDash);
+    temporizadorDash = setInterval(() => {
+      if (dashboardVisible() && esHoy()) verDashboard(true);
+    }, REFRESCO_MS);
+  }
+
+  // Al volver a la pestaña, refrescar de inmediato: lo que se ve pudo quedar
+  // congelado desde hace rato y esperar 30 s más sería enseñar datos viejos.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && dashboardVisible() && esHoy()) verDashboard(true);
+  });
+
+  function textoDesde(ts) {
+    if (!ts) return '';
+    const seg = Math.round((Date.now() - ts) / 1000);
+    if (seg < 10)  return 'hace un momento';
+    if (seg < 60)  return 'hace ' + seg + ' s';
+    const min = Math.round(seg / 60);
+    return 'hace ' + min + ' min';
+  }
+
+  // `silencioso` lo usa el refresco automático: repinta sin el parpadeo de
+  // "Cargando...", que a cada rato sería más molesto que útil.
+  async function verDashboard(silencioso = false) {
     const fecha = document.getElementById('db-fecha').value;
     const box = document.getElementById('dashboardBox');
     if (!fecha) { box.innerHTML = '<p class="aviso err">Selecciona una fecha.</p>'; return; }
-    box.innerHTML = '<p style="color:var(--gris-text)">Cargando...</p>';
+    if (!silencioso) box.innerHTML = '<p style="color:var(--gris-text)">Cargando...</p>';
     try {
       const data = await api('/api/dashboard/' + fecha);
       const r = data.resumen, filas = data.filas || [];
@@ -1021,11 +1068,46 @@
              '</td></tr>';
       });
       h += '</table></div>';
+
+      // Sello de frescura. Sin él, una pantalla que se actualiza sola y una
+      // congelada se ven idénticas, y la segunda engaña más que no tener nada.
+      ultimoDash = Date.now();
+      const vivo = esHoy();
+      h += '<p style="margin-top:12px;font-size:.74rem;color:var(--gris-text);text-align:right">' +
+           (vivo ? '<span style="color:var(--verde)">●</span> Se actualiza solo cada 30 s · '
+                 : 'Día cerrado, no cambia · ') +
+           'actualizado <span id="dashDesde">hace un momento</span></p>';
       box.innerHTML = h;
+      programarRefresco();
     } catch(e) {
+      // En refresco automático NO se borra la tabla: un parpadeo de red dejaría
+      // al operador sin nada, y lo que ya estaba en pantalla sigue siendo
+      // válido. El sello de "actualizado hace X" se encarga de delatar que la
+      // información se está quedando vieja.
+      if (silencioso) return;
       box.innerHTML = '<p class="aviso err">Error: ' + e.message + '</p>';
     }
   }
+
+  // El sello se reescribe cada 10 s aunque no haya consulta: así "hace 4 min"
+  // avisa que algo dejó de refrescarse, en vez de mentir con "hace un momento".
+  setInterval(() => {
+    const s = document.getElementById('dashDesde');
+    if (s && ultimoDash) s.textContent = textoDesde(ultimoDash);
+  }, 10000);
+
+  // Versión que sirve este servidor. El panel no usa service worker, así que
+  // siempre llega fresco de la red: lo que diga aquí ES lo que está corriendo,
+  // y sirve de referencia contra la que comparar el teléfono del repartidor.
+  (async () => {
+    try {
+      const r = await fetch(API_BASE + '/api/version', { cache: 'no-store' });
+      if (!r.ok) return;
+      const d = await r.json();
+      const el = document.getElementById('versionPanel');
+      if (el) el.textContent = '· ' + d.version + (d.sha ? ' (' + d.sha + ')' : '');
+    } catch { /* el panel funciona igual sin esto */ }
+  })();
 
   // ── Reportes del periodo ──
   // Las gráficas van en SVG a mano: el proyecto corre en Railway con recursos

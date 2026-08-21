@@ -305,6 +305,13 @@
       <span class="zona-activa-copy"><small>Zona activa</small><b id="zona-activa-txt">—</b></span>
       <button id="btn-cambiar-zona" class="btn-texto" type="button" onclick="abrirSelectorZona()">Cambiar zona</button>
     </div>
+    <!-- Versión que este aparato está corriendo de verdad. Un teléfono con el
+         service worker viejo se ve idéntico a uno al día, y así estuvo uno
+         trabajando con la fecha equivocada sin que nadie lo notara. -->
+    <div class="version-app" id="version-app">
+      <span id="version-txt">—</span>
+      <button id="btn-actualizar" class="btn-texto oculto" type="button" onclick="actualizarApp()">Actualizar</button>
+    </div>
   </header>
 
   <div class="marcador">
@@ -1587,6 +1594,74 @@
         .catch(err => console.warn('[SW] No se registró:', err.message));
     });
   }
+
+  // ── Versión ─────────────────────────────────────────────────
+  // La pregunta que responde: ¿este teléfono corre el mismo código que el
+  // servidor? No se puede contestar mirando la página, porque el service
+  // worker sirve la copia guardada y se ve idéntica a la buena.
+  //
+  // Por eso la versión local NO se escribe aquí, se le pregunta al propio
+  // caché: el nombre del almacén es 'golunch-vNN' y ese NN es literalmente el
+  // que decide qué archivos tiene el aparato. Es la única cifra que no puede
+  // mentir sobre lo que se está ejecutando.
+  let VERSION_LOCAL = null, VERSION_SERVIDOR = null;
+
+  async function versionEnCache() {
+    try {
+      if (!('caches' in window)) return null;
+      const nombres = await caches.keys();
+      const mio = nombres.filter(n => n.startsWith('golunch-')).sort().pop();
+      return mio ? mio.replace('golunch-', '') : null;
+    } catch { return null; }
+  }
+
+  async function revisarVersion() {
+    VERSION_LOCAL = await versionEnCache();
+    try {
+      const r = await fetch(API_BASE + '/api/version', { cache: 'no-store' });
+      if (!r.ok) return pintarVersion();
+      const d = await r.json();
+      VERSION_SERVIDOR = d.version || null;
+    } catch { /* sin señal: se pinta lo que se sepa y ya */ }
+    pintarVersion();
+  }
+
+  function pintarVersion() {
+    const txt = $('version-txt'), btn = $('btn-actualizar');
+    if (!txt) return;
+    // Sin service worker (navegador de escritorio) la página siempre viene de
+    // la red, así que la del servidor ES la que corre.
+    const local = VERSION_LOCAL || VERSION_SERVIDOR || '—';
+    const atrasada = VERSION_LOCAL && VERSION_SERVIDOR && VERSION_LOCAL !== VERSION_SERVIDOR;
+    txt.textContent = atrasada
+      ? 'Versión ' + local + ' · hay ' + VERSION_SERVIDOR
+      : 'Versión ' + local;
+    txt.classList.toggle('atrasada', !!atrasada);
+    if (btn) btn.classList.toggle('oculto', !atrasada);
+  }
+
+  // Nunca se actualiza solo. Recargar con escaneos sin subir podría perderlos,
+  // y esos son entregas que ya ocurrieron: valen más que estar a la última.
+  async function actualizarApp() {
+    if (COLA.length) {
+      return mostrarAviso('avisoSync',
+        'Tienes ' + COLA.length + ' escaneo(s) sin subir. Conéctate y espera a que se sincronicen antes de actualizar.', 'err');
+    }
+    try {
+      if ('caches' in window) {
+        for (const n of await caches.keys()) if (n.startsWith('golunch-')) await caches.delete(n);
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+    } catch { /* si algo falla, la recarga dura de abajo suele bastar */ }
+    location.reload();
+  }
+
+  revisarVersion();
+  // Se vuelve a mirar cada media hora: un turno dura más que un despliegue.
+  setInterval(revisarVersion, 30 * 60 * 1000);
 </script>
 </body>
 </html>
