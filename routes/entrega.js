@@ -14,10 +14,26 @@ import {
 import {
   MOTIVOS_TARDIA, MOTIVOS_TARDIA_VALIDOS,
   TURNO_HORA, TOLERANCIA_TARDIA_MIN,
-  ZONAS_VALIDAS, TURNOS_VALIDOS
+  ZONAS_VALIDAS, TURNOS_VALIDOS, hoy
 } from '../services/menu.js';
 
 export const entregaRouter = express.Router();
+
+// La fecha de REPARTO es hoy, y no tiene nada que ver con la de PEDIDO.
+//
+// `fechaServicio()` responde "el próximo día con menú" — o sea mañana o después,
+// nunca hoy: es la fecha para la que la gente está pidiendo. La app del
+// repartidor la usaba para decidir qué entregar, así que le mostraba los pedidos
+// de MAÑANA y dejaba marcarlos entregados un día antes. Eso destruye justo lo
+// que la evidencia debe probar: una hora de entrega no vale nada si se puede
+// sellar antes de que la comida exista.
+//
+// Se acepta `hoy` como fecha en la URL para que el aparato no tenga que
+// calcularla: el reloj de un teléfono puede estar mal, y quien manda es el
+// servidor, que ya vive en la zona del comedor.
+function fechaPedida(param) {
+  return (param === 'hoy' || !param) ? hoy() : param;
+}
 
 // Por encima de esta precisión el fix no viene de satélites sino de antenas o
 // wifi, y una coordenada de kilómetros no distingue el andén de la carretera:
@@ -180,7 +196,8 @@ entregaRouter.get('/:fecha', async (req, res) => {
       return res.status(403).json({ error: 'No tienes autorizada esa zona', zonas: zonasPermitidas(req) });
     }
 
-    const todos = await db.getPedidosPorFecha(req.params.fecha);
+    const fecha = fechaPedida(req.params.fecha);
+    const todos = await db.getPedidosPorFecha(fecha);
     const pedidos = zona ? todos.filter(p => p.zona === zona) : todos;
 
     // Llegadas ya registradas y punto de referencia del contrato. La app los
@@ -189,7 +206,7 @@ entregaRouter.get('/:fecha', async (req, res) => {
     // Si la tabla todavía no existe en la base, no se tumba el reparto: se
     // devuelven vacíos y la app opera como antes.
     let llegadas = [], puntos = [];
-    try { llegadas = await db.getLlegadasPorFecha(req.params.fecha, zona); } catch {}
+    try { llegadas = await db.getLlegadasPorFecha(fecha, zona); } catch {}
     try { puntos = await db.getPuntosEntrega(); } catch {}
 
     // Índice de TODAS las zonas del día, no solo la activa: es lo que permite
@@ -202,7 +219,7 @@ entregaRouter.get('/:fecha', async (req, res) => {
     }
 
     res.json({
-      fecha: req.params.fecha,
+      fecha,
       zona,
       total: pedidos.length,
       entregados: pedidos.filter(p => p.entregado_en).length,
@@ -316,6 +333,24 @@ entregaRouter.post('/', async (req, res) => {
     const { fecha, zona, entregas } = req.body || {};
     if (!fecha || !Array.isArray(entregas)) {
       return res.status(400).json({ error: 'Se requieren fecha y entregas[]' });
+    }
+
+    // No se puede entregar comida que todavía no existe. Sin esto, la app —que
+    // pedía la fecha de PEDIDO en vez de la de reparto— dejaba marcar como
+    // entregados los pedidos de mañana, y una hora de entrega que se puede
+    // sellar por anticipado no prueba nada ante el cliente.
+    //
+    // El corte va contra la fecha del servidor, no la del aparato: un teléfono
+    // con el reloj adelantado no debe poder abrir el día siguiente.
+    //
+    // Se rechaza el lote entero y de forma DEFINITIVA (no es un error pasajero),
+    // para que la cola del teléfono lo suelte en vez de reintentarlo por
+    // siempre. Fechas pasadas sí pasan: son las colas que se sincronizan tarde.
+    if (fecha > hoy()) {
+      return res.status(400).json({
+        error: 'No se puede registrar una entrega de una fecha futura',
+        motivo: 'fecha_futura', fecha, hoy: hoy(), definitivo: true
+      });
     }
     // La zona es opcional a propósito: los escaneos que quedaron en la cola de
     // la versión anterior no la traen, y rechazarlos perdería entregas reales.

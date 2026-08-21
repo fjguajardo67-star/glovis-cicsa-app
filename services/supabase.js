@@ -86,6 +86,19 @@ export async function setEmpleadoActivo(telefono, activo) {
   return data;
 }
 
+// Cuántos pedidos se llevaría por delante borrar a este empleado. Se consulta
+// por las tres variantes del teléfono porque la columna guardó formatos
+// distintos según la época (10 dígitos, 52+10, 521+10) y contar de menos aquí
+// sería autorizar un borrado que sí destruye historial.
+export async function contarPedidosDeEmpleado(telefono) {
+  const { count, error } = await supabase
+    .from('pedidos')
+    .select('id', { count: 'exact', head: true })
+    .in('empleado_telefono', variantesTelefono(telefono));
+  if (error) throw error;
+  return count || 0;
+}
+
 export async function deleteEmpleado(telefono) {
   const { error } = await supabase
     .from('empleados')

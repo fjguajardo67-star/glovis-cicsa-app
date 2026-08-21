@@ -1633,9 +1633,16 @@
 
   async function eliminarEmp(tel) {
     const nombre = (EMPLEADOS[tel] || {}).nombre;
-    if (!confirm('¿Eliminar a ' + (nombre||'este empleado') + ' permanentemente?\n\nEsta acción no se puede deshacer. Si solo quieres pausarlo, usa Desactivar.')) return;
+    if (!confirm('¿Eliminar a ' + (nombre||'este empleado') + ' permanentemente?\n\n' +
+                 'Se borrarán TAMBIÉN todos sus pedidos, incluidos los del día en curso ' +
+                 'que ya estén en la cocina. No se puede deshacer y no hay respaldo.\n\n' +
+                 'Si solo quieres sacarlo de las listas, usa Desactivar: eso conserva su historial.')) return;
     try { await api('/api/empleados/' + tel, { method:'DELETE' }); cargarEmpleados(); }
-    catch(e) { alert('Error: ' + e.message); }
+    catch(e) {
+      // El servidor rechaza con 409 a quien tiene historial. El mensaje ya
+      // explica qué hacer, así que se muestra tal cual en vez de "Error: ...".
+      alert(e.message);
+    }
   }
 
   // ── Cocina ──

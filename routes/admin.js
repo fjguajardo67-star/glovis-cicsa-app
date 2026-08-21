@@ -77,8 +77,25 @@ adminRouter.put('/empleados/:telefono/telefono', async (req, res) => {
   }
 });
 
+// Borrar un empleado se lleva TODOS sus pedidos por el ON DELETE CASCADE de la
+// llave foránea, incluidos los del día en curso que ya están en la cocina. Eso
+// destruyó un día entero de pedidos del piloto: se ven las consultas al menú
+// (la tabla accesos no tiene llave foránea y sobrevive) pero los pedidos ya no
+// están, y en el plan Free de Supabase no hay respaldo del que recuperarlos.
+//
+// Así que ya no se borra a quien tiene historial. Desactivar hace lo que la
+// gente quiere en la práctica —sacarlo de las listas— y conserva la evidencia
+// de las entregas, que es lo que respalda la facturación ante el cliente.
 adminRouter.delete('/empleados/:telefono', async (req, res) => {
   try {
+    const cuantos = await db.contarPedidosDeEmpleado(req.params.telefono);
+    if (cuantos > 0) {
+      return res.status(409).json({
+        error: `Este empleado tiene ${cuantos} pedido(s) registrados y borrarlo los eliminaría también. ` +
+               `Usa Desactivar: lo saca de las listas y conserva su historial.`,
+        motivo: 'tiene_pedidos', pedidos: cuantos
+      });
+    }
     await db.deleteEmpleado(req.params.telefono);
     res.json({ ok: true });
   } catch (err) {

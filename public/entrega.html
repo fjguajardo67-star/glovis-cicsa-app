@@ -1079,7 +1079,26 @@
             headers: cabecerasAuth({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(cuerpo)
           });
-          if (!r.ok) continue;
+          if (!r.ok) {
+            // Un rechazo del LOTE entero marcado como definitivo no se
+            // reintenta: sin esto la cola se traba para siempre y bloquea las
+            // entregas buenas que vengan detrás. Hoy el caso es 'fecha_futura'
+            // —escaneos de un día que todavía no llega—, que nunca van a ser
+            // válidos por más veces que se suban.
+            const err = await r.json().catch(() => ({}));
+            if (err.definitivo) {
+              COLA = COLA.filter(e => {
+                const f = e.fecha || FECHA;
+                const z = zonaDeElemento(e) || null;
+                return !(f === fechaLote && z === zonaLote);
+              });
+              guardar(LS.cola, COLA);
+              mostrarAviso('avisoSync',
+                'Se descartaron ' + lote.length + ' escaneo(s) del ' + fechaLote +
+                ': ' + (err.error || 'el servidor los rechazó') + '.', 'err');
+            }
+            continue;
+          }
           const d = await r.json();
           // Solo dos cosas sacan un escaneo de la cola: que el servidor lo
           // CONFIRME, o que lo rechace por regla de negocio (ese pedido no
@@ -1124,11 +1143,12 @@
       const epocaPeticion = EPOCA_ZONA;
       const vigente = () => zonaPeticion === ZONA && epocaPeticion === EPOCA_ZONA;
 
-      const fechaObjetivo = (await fechaDeServicio()) || FECHA;
-      if (!fechaObjetivo || !vigente()) return;
+      // Siempre 'hoy'. Quien la resuelve es el servidor y la devuelve en
+      // d.fecha; por eso el "si el día avanzó" se evalúa más abajo, contra la
+      // fecha que regresó y no contra la que se pidió.
+      const fechaObjetivo = FECHA_REPARTO;
+      if (!vigente()) return;
 
-      // Si el día avanzó, lo de ayer ya no aplica: se limpia antes de pintar
-      if (FECHA && fechaObjetivo !== FECHA) { PEDIDOS = []; }
       const url = API_BASE + '/api/entrega/' + fechaObjetivo +
         (zonaPeticion ? '?zona=' + encodeURIComponent(zonaPeticion) : '');
       const r = await fetch(url, { headers: cabecerasAuth() });
@@ -1136,6 +1156,10 @@
       if (!r.ok) return;
       const d = await r.json();
       if (!vigente()) return;       // llegó tarde: la zona ya es otra
+      // Si el día avanzó, lo de ayer ya no aplica: se limpia antes de pintar.
+      // Va aquí y no antes de pedir porque a la URL se le manda 'hoy' y la
+      // fecha real solo se conoce al responder el servidor.
+      if (FECHA && d.fecha && d.fecha !== FECHA) { PEDIDOS = []; }
       FECHA = d.fecha;
       // Lo del servidor manda, EXCEPTO para lo que sigue en la cola local:
       // esas entregas ya ocurrieron aunque el servidor todavía no las tenga.
@@ -1166,13 +1190,16 @@
     } catch {}
   }
 
-  async function fechaDeServicio() {
-    try {
-      const r = await fetch(API_BASE + '/pedido/estado');
-      const d = await r.json();
-      return d.fecha || null;
-    } catch { return null; }
-  }
+  // La fecha de REPARTO es hoy. Antes esto preguntaba a /pedido/estado, que
+  // responde la fecha de PEDIDO — el próximo día con menú, o sea MAÑANA. La app
+  // bajaba entonces los pedidos del día siguiente y dejaba marcarlos entregados
+  // un día antes, lo que vacía de valor la hora de entrega como evidencia.
+  //
+  // Se le pide 'hoy' al servidor en vez de calcularla aquí: el reloj de un
+  // teléfono puede estar mal o en otra zona, y quien manda es el servidor, que
+  // ya vive en la hora del comedor. Se resuelve en la misma llamada que trae la
+  // lista, así que no cuesta un viaje extra.
+  const FECHA_REPARTO = 'hoy';
 
   // ── Registrar una entrega ─────────────────────────────────
   function entregar(numero, origen) {
