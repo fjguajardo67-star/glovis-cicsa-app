@@ -89,6 +89,27 @@ export function manana() {
 }
 
 // ¿Estamos dentro del horario para pedir? (antes de las 20:00)
+//
+// ────────────────────────────────────────────────────────────────────
+// NO CAMBIAR ESTO POR UN CORTE ATADO A LA FECHA DE SERVICIO.
+//
+// Mirar solo la hora del día en curso hace que un menú publicado con varios
+// días de anticipación se cierre cada noche a las 20:00 y vuelva a abrir a la
+// mañana siguiente. Eso PARECE un defecto —la auditoría lo levantó como GL-005
+// con severidad HIGH— y no lo es: es el mecanismo de planeación de la cocina.
+//
+// La cocina de Glovis es la misma de Fertinal, y el menú de CICSA, Fertinal y
+// Glovis es el mismo. El cierre de cada noche entrega una foto estable del
+// conteo para poder planear los tres servicios; el corte de la víspera es el
+// que manda para cocinar. Un corte continuo hasta la víspera quitaría esas
+// fotas intermedias y con ellas la ventana de compra y preparación.
+//
+// Decisión del dueño, 21/ago/2026, tras revisar el hallazgo con la evidencia
+// en la mano. El conteo que llega a cocina ya sale correcto: el cron solo
+// imprime la comanda cuando la fecha de servicio es literalmente mañana
+// (ver services/cocina.js), así que las reaperturas del fin de semana no
+// alteran lo que se cocina.
+// ────────────────────────────────────────────────────────────────────
 export function dentroDeHorario() {
   const ahora = DateTime.now().setZone(ZONA);
   return ahora.hour < HORA_CORTE;
