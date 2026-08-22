@@ -107,19 +107,38 @@ pedidoRouter.post('/rating', async (req, res) => {
 // se hereda la asignación de RRHH.
 pedidoRouter.post('/', async (req, res) => {
   try {
-    const { numero_empleado, opcion_id, zona, turno } = req.body || {};
+    const { numero_empleado, opcion_id, zona, turno, fecha_esperada } = req.body || {};
     if (!numero_empleado || !opcion_id) {
       return res.status(400).json({ error: 'Falta tu número de empleado o el platillo.' });
     }
 
-    const resultado = await pedidos.crearPedido({ numero_empleado, opcion_id, zona, turno });
+    // Se EXIGE en la web, no solo se acepta. Una página tan vieja que ni
+    // siquiera la manda es justo la que trae el menú equivocado en pantalla:
+    // dejarla pasar sería mantener abierto el hueco para el único caso que
+    // esta comprobación existe para tapar. El mensaje dice qué hacer, y
+    // recargar cuesta un segundo. WhatsApp no pasa por aquí (va por
+    // routes/webhook.js), así que ese canal no se ve afectado.
+    if (!fecha_esperada) {
+      return res.status(409).json({
+        error: 'Tu página está desactualizada. Recárgala y vuelve a elegir tu platillo.',
+        motivo: 'estado_desactualizado'
+      });
+    }
+
+    const resultado = await pedidos.crearPedido({ numero_empleado, opcion_id, zona, turno, fecha_esperada });
 
     if (!resultado.ok) {
-      // 404 si no lo conocemos, 409 si el comedor ya cerró, 400 si el dato viene mal
+      // 404 si no lo conocemos, 409 si el comedor ya cerró o el estado quedó
+      // viejo, 400 si el dato viene mal
       const status = resultado.motivo === 'no_registrado' ? 404
-                   : resultado.motivo === 'fuera_de_horario' || resultado.motivo === 'sin_menu' ? 409
+                   : ['fuera_de_horario', 'sin_menu', 'estado_desactualizado'].includes(resultado.motivo) ? 409
                    : 400;
-      return res.status(status).json({ error: resultado.mensaje, motivo: resultado.motivo });
+      return res.status(status).json({
+        error: resultado.mensaje, motivo: resultado.motivo,
+        // Viajan para que la página pueda decir qué cambió en vez de un error
+        // pelón, y recargar sola sobre el menú correcto.
+        fecha_esperada: resultado.fecha_esperada, fecha_actual: resultado.fecha_actual
+      });
     }
 
     res.json(resultado);

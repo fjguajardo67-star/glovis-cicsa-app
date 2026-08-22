@@ -66,7 +66,21 @@ export async function estadoDelDia() {
 // `zona` y `turno` son opcionales: si no vienen, se heredan de la asignación
 // que dio RRHH. Mandarlos explícitamente es el caso de quien cubre otro turno,
 // y solo afecta a ese pedido — el registro del empleado no se toca.
-export async function crearPedido({ telefono, numero_empleado, opcion_id, zona, turno }) {
+// `fecha_esperada` es la fecha que el cliente TENÍA EN PANTALLA al elegir.
+//
+// Sin ella, una pestaña abierta de un día para otro guardaba un pedido que
+// nadie hizo: el servidor recalcula la fecha de servicio y saca el texto del
+// platillo del menú de ESA fecha, mientras que el cliente solo manda
+// `opcion_id`, que es un número de casilla y no un platillo. Reproducido: se
+// ve "22 de agosto · Hamburguesa", se confirma al día siguiente y se guarda
+// "23 de agosto · Pescado empanizado", con un 200 y sin una sola advertencia.
+// Pide una cosa, le llega otra, y no se entera ninguno de los dos.
+// (Hallazgo GL-004 de la auditoría.)
+//
+// Es OPCIONAL en esta función a propósito: WhatsApp entra por aquí sin
+// pantalla que se pueda quedar vieja, así que no tiene qué declarar. Quien la
+// exige es la ruta web (routes/pedido.js), que sí tiene ese riesgo.
+export async function crearPedido({ telefono, numero_empleado, opcion_id, zona, turno, fecha_esperada }) {
   const empleado = await identificar({ telefono, numero_empleado });
   if (!empleado) {
     return rechazo('no_registrado',
@@ -83,6 +97,17 @@ export async function crearPedido({ telefono, numero_empleado, opcion_id, zona, 
   if (!menu) {
     return rechazo('sin_menu',
       'Aún no se ha publicado el menú del próximo día de servicio. Intenta más tarde.');
+  }
+
+  // Se compara ANTES de escribir nada. Si lo que el cliente vio ya no es lo
+  // que hay, no se adivina: se rechaza y se le devuelve la fecha nueva para
+  // que vuelva a elegir sobre el menú correcto.
+  if (fecha_esperada && fecha_esperada !== fecha) {
+    return {
+      ...rechazo('estado_desactualizado',
+        'El menú cambió mientras tenías la página abierta. Vuelve a elegir tu platillo del día correcto.'),
+      fecha_esperada, fecha_actual: fecha
+    };
   }
 
   if (!OPCIONES_VALIDAS.includes(opcion_id)) {

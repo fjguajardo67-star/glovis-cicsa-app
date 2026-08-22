@@ -2548,10 +2548,45 @@
           numero_empleado: empleado.empleado.numero_empleado,
           opcion_id: sel.opcion_id,
           zona: sel.zona,
-          turno: sel.turno
+          turno: sel.turno,
+          // La fecha que ESTA pantalla tenía al elegir. El servidor la compara
+          // con la que corresponde ahora y rechaza si ya no coinciden.
+          //
+          // Sin esto, una pestaña abierta de un día para otro guardaba un
+          // pedido que nadie hizo: `opcion_id` es un número de casilla, no un
+          // platillo, así que al recalcular el servidor la casilla 1 del día
+          // siguiente puede ser otra comida. Se veía "22 de agosto ·
+          // Hamburguesa", se confirmaba al otro día y quedaba "23 de agosto ·
+          // Pescado empanizado", sin aviso para nadie.
+          fecha_esperada: estado.fecha
         })
       });
       const d = await r.json();
+
+      // El menú cambió mientras la página estuvo abierta. No es un error del
+      // usuario ni algo que pueda arreglar reintentando: hay que ponerlo de
+      // nuevo frente al menú correcto para que elija otra vez.
+      if (r.status === 409 && d.motivo === 'estado_desactualizado') {
+        // Se trae el estado nuevo y se repinta ANTES de avisar. Al revés no
+        // sirve: `cargarEstado()` arranca con `limpiarAviso()` y se llevaba el
+        // mensaje por delante, dejando al empleado con la selección borrada y
+        // sin ninguna explicación de por qué.
+        sel.opcion_id = null;
+        try {
+          const re = await fetch(API_BASE + '/pedido/estado');
+          if (re.ok) {
+            estado = await re.json();
+            pintarFecha();
+            pintarPlatillos();
+          }
+        } catch { /* sin señal: se queda lo que hay y el aviso lo explica */ }
+
+        mostrarAviso(d.fecha_actual
+          ? 'El menú cambió mientras tenías la página abierta: ahora se pide para otro día. Revisa las opciones y vuelve a elegir.'
+          : (d.error || 'Tu página está desactualizada. Vuelve a elegir tu platillo.'), 'err');
+        return;
+      }
+
       if (!r.ok) throw new Error(d.error || 'No se pudo registrar tu pedido.');
 
       $('listo-nombre').textContent = nombreParaSaludo(empleado.empleado.nombre);
