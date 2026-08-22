@@ -3,7 +3,7 @@ import express from 'express';
 import { DateTime } from 'luxon';
 import * as db from '../services/supabase.js';
 import * as wa from '../services/whatsapp.js';
-import { construirListMessage, esEntregaTardia, MOTIVOS_TARDIA, limiteEntrega, hoy } from '../services/menu.js';
+import { construirListMessage, esEntregaTardia, MOTIVOS_TARDIA, limiteEntrega, hoy, ZONA as ZONA_COMEDOR } from '../services/menu.js';
 import { diezDigitos } from '../services/telefono.js';
 import { resumenCocina } from '../services/cocina.js';
 import { fechaServicio } from '../services/pedidos.js';
@@ -306,7 +306,7 @@ adminRouter.get('/reportes', async (req, res) => {
 
     const porDia = {}, porPlatillo = {}, porPlatilloRating = {};
     const rating = { si: 0, tal_vez: 0, no: 0, sin_responder: 0 };
-    let entregados = 0, tardios = 0, noEntregados = 0, pendientes = 0;
+    let entregados = 0, tardios = 0, noEntregados = 0, pendientes = 0, indeterminados = 0;
     const motivos = {};
 
     // Merma y recurrencia solo cuentan pedidos que YA se pudieron recoger. Un
@@ -381,17 +381,27 @@ adminRouter.get('/reportes', async (req, res) => {
         if (t > r.ultima)  r.ultima  = t;
       }
 
-      if (esEntregaTardia(p.fecha_menu, p.turno, p.entregado_en)) {
+      // Tres estados, no dos. `esEntregaTardia` devuelve null cuando NO PUEDE
+      // saberlo —turno inválido, hora ilegible—, y ese null caía en el `else`
+      // y se contaba como entregado a tiempo. O sea que el número de
+      // puntualidad que se le enseña al cliente salía optimista por defecto,
+      // justo en la cifra de la que cuelga la penalización del 30%.
+      // Ante la duda no se presume a favor: se cuenta aparte y se reporta.
+      // (Hallazgo GL-018 de la auditoría.)
+      const tardia = esEntregaTardia(p.fecha_menu, p.turno, p.entregado_en);
+      if (tardia === true) {
         tardios++;
         const m = p.motivo_tardia || 'sin_motivo';
         motivos[m] = (motivos[m] || 0) + 1;
-      } else {
+      } else if (tardia === false) {
         entregados++;
+      } else {
+        indeterminados++;
       }
     }
 
     const pct = (parte, total) => total ? Math.round((parte / total) * 1000) / 10 : 0;
-    const hhmm = d => d.setZone('America/Mexico_City').toFormat('HH:mm');
+    const hhmm = d => d.setZone(ZONA_COMEDOR).toFormat('HH:mm');
 
     const filasMerma = mapa => Object.entries(mapa)
       .map(([clave, c]) => ({ clave, ...c, pct_merma: pct(c.no_recogidos, c.evaluables) }))
@@ -461,7 +471,10 @@ adminRouter.get('/reportes', async (req, res) => {
       min_opiniones: MIN_OPINIONES,
       // pendientes = ya pedidos pero cuya hora de entrega aún no llega; van
       // dentro de no_entregados y por eso se informan aparte.
-      entrega: { entregados, tardios, no_entregados: noEntregados, pendientes },
+      // 'indeterminados' son entregas cuyo turno u hora no permiten decidir si
+      // fueron puntuales. Se informan aparte en vez de sumarse a los puntuales:
+      // un dato que no se tiene no debe verse como un dato a favor.
+      entrega: { entregados, tardios, indeterminados, no_entregados: noEntregados, pendientes },
       motivos_tardia: Object.entries(motivos)
         .sort((a, b) => b[1] - a[1])
         .map(([id, n]) => ({ motivo: MOTIVOS_TARDIA[id] || 'Sin motivo indicado', veces: n })),

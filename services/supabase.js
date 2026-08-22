@@ -37,6 +37,26 @@ export async function getEmpleadoPorNumero(numeroEmpleado) {
   return data?.[0] || null;
 }
 
+// Igual que la de arriba pero SIN exigir `activo`. Existe solo para entregar.
+//
+// `activo` gobierna quién puede PEDIR, no quién puede recibir comida que ya
+// pidió. Si a alguien lo dan de baja el miércoles y tenía pedido del martes, la
+// comida se cocinó, se cargó al vehículo y se entregó: negar el registro no
+// deshace nada, solo borra la prueba. Y era peor de lo que parece, porque
+// `empleado_no_encontrado` está en la lista de rechazos DEFINITIVOS de la app:
+// el escaneo se descartaba de la cola para siempre, sin aviso. Entrega física
+// sin registro, merma falsa en el reporte y un hueco en lo que se le factura
+// al cliente. (Hallazgo GL-007 de la auditoría.)
+export async function getEmpleadoPorNumeroIncluyendoBajas(numeroEmpleado) {
+  const { data, error } = await supabase
+    .from('empleados')
+    .select('*')
+    .eq('numero_empleado', String(numeroEmpleado || '').trim())
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
 export async function listEmpleados() {
   const { data, error } = await supabase
     .from('empleados')
@@ -489,7 +509,10 @@ export async function guardarPuntoEntrega({ zona, punto = '', nombre, direccion,
 }
 
 export async function marcarEntregado(fecha, numeroEmpleado, entregadoEn, motivoTardia = null, zonaEsperada = null, extra = {}) {
-  const emp = await getEmpleadoPorNumero(numeroEmpleado);
+  // Incluye a los dados de baja a propósito: ver la nota en la función. Lo que
+  // se está registrando es que una comida ya pedida se entregó, y eso no
+  // depende de que la persona siga en la plantilla hoy.
+  const emp = await getEmpleadoPorNumeroIncluyendoBajas(numeroEmpleado);
   if (!emp) return { ok: false, motivo: 'empleado_no_encontrado' };
 
   // Con dos repartidores trabajando a la vez, cada equipo declara su zona y el

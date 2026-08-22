@@ -1,7 +1,11 @@
 // services/menu.js — Lógica de horario y construcción del menú
 import { DateTime } from 'luxon';
 
-const ZONA = process.env.TZ || 'America/Mexico_City';
+// Una sola definición de zona horaria para todo el sistema. Se exporta porque
+// el panel la tenía escrita a mano en su propio formateo de horas, y dos
+// fuentes de verdad para la hora del comedor es exactamente como se producen
+// reportes que no cuadran con la operación (hallazgo GL-018).
+export const ZONA = process.env.TZ || 'America/Mexico_City';
 const HORA_CORTE = 20; // 20:00 hrs (8:00 PM)
 
 // Etiquetas legibles de cada opción

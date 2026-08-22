@@ -35,6 +35,38 @@ function fechaPedida(param) {
   return (param === 'hoy' || !param) ? hoy() : param;
 }
 
+// La hora de entrega la pone el reloj del TELÉFONO, y tiene que ser así: el
+// reparto ocurre sin señal y lo que importa es el instante del escaneo, no el
+// de la sincronización. Pero ese reloj no se validaba de ninguna forma, y esa
+// hora es exactamente la que decide la penalización del 30% del contrato: un
+// aparato con la fecha mal puesta —o alguien mandando un POST a mano— podía
+// sellar cualquier cosa. (Hallazgo GL-008 de la auditoría.)
+//
+// La regla es la más estrecha que no estorba: una entrega del día X tiene que
+// haber ocurrido dentro del día civil X en la hora del comedor. Una cola que
+// sincroniza al día siguiente sigue trayendo la hora original del escaneo, que
+// cae dentro de su propio día, así que no la afecta.
+//
+// Lo que no pasa la prueba NO se rechaza —la comida sí se entregó— sino que se
+// sella con la hora de recepción del servidor. Vale más una hora aproximada y
+// honesta que una inventada por un reloj descompuesto. La hora del servidor ya
+// se guarda aparte en `entrega_recibido_en`, así que la desviación es auditable.
+function horaEntregaConfiable(entregadoEn, fechaServicio) {
+  const ahora = new Date().toISOString();
+  if (typeof entregadoEn !== 'string') return { hora: ahora, estimada: true, motivo: 'sin_hora' };
+  const t = Date.parse(entregadoEn);
+  if (Number.isNaN(t)) return { hora: ahora, estimada: true, motivo: 'hora_invalida' };
+  // Día civil de la fecha de servicio, en la zona del comedor.
+  const dia = new Intl.DateTimeFormat('en-CA', {
+    timeZone: process.env.TZ || 'America/Mexico_City',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date(t));
+  if (dia !== fechaServicio) {
+    return { hora: ahora, estimada: true, motivo: 'fuera_del_dia', declarada: entregadoEn };
+  }
+  return { hora: entregadoEn, estimada: false };
+}
+
 // Por encima de esta precisión el fix no viene de satélites sino de antenas o
 // wifi, y una coordenada de kilómetros no distingue el andén de la carretera:
 // como evidencia no sirve, y presentarla es peor que no tener nada.
@@ -393,8 +425,13 @@ entregaRouter.post('/', async (req, res) => {
         // radio el dato vino de antenas y no de satélites: aparenta prueba y
         // no la es, así que se descarta en vez de contaminar la evidencia.
         const util = e?.precision_m == null || e.precision_m <= PRECISION_MAXIMA_M;
+        const reloj = horaEntregaConfiable(e?.entregado_en, fecha);
+        if (reloj.estimada) {
+          console.warn('[Entrega] Hora del equipo descartada (' + reloj.motivo + ') para',
+                       numero, 'del', fecha, '— declarada:', reloj.declarada || '(ninguna)');
+        }
         const r = await db.marcarEntregado(
-          fecha, numero, e.entregado_en || new Date().toISOString(), motivo, zonaItem || null,
+          fecha, numero, reloj.hora, motivo, zonaItem || null,
           {
             lat: util ? e?.lat : null,
             lon: util ? e?.lon : null,
@@ -420,7 +457,12 @@ entregaRouter.post('/', async (req, res) => {
           ya_entregado: r.ya_entregado || false,
           motivo: r.motivo || null,
           nombre: r.pedido?.empleados?.nombre || null,
-          entregado_en: r.pedido?.entregado_en || null
+          entregado_en: r.pedido?.entregado_en || null,
+          // Avisa que la hora guardada NO es la del escaneo sino la del
+          // servidor, porque la del equipo no era creíble. La entrega vale
+          // igual; lo que no vale es presentar esa hora como exacta ante el
+          // cliente sin decirlo.
+          hora_estimada: reloj.estimada || false
         });
       } catch (err) {
         resultados.push({ numero_empleado: numero, ok: false, motivo: 'error_servidor', detalle: err.message });
