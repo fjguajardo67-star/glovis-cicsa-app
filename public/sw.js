@@ -9,12 +9,17 @@
 // Al cambiar los archivos de /public hay que subirle el número a VERSION: eso
 // tira el caché viejo. Las páginas van por red primero, así que se actualizan
 // solas; el número importa sobre todo para íconos y librerías.
-const VERSION = 'v20';
+const VERSION = 'v21';
 const CACHE = 'golunch-' + VERSION;
 
-// jsQR viene de un CDN y es lo que lee los códigos con la cámara: sin él la
-// página abre pero no escanea, así que se guarda igual que lo propio.
-const JSQR = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+// jsQR es lo que lee los códigos con la cámara. Vivía en un CDN, y por eso un
+// equipo NUEVO que estrenara la app dentro del puerto podía quedarse sin
+// escanear: si la red de allá bloquea jsdelivr —los firewalls corporativos lo
+// hacen— o el CDN falla, la página abre y la cámara no sirve, justo donde no
+// hay forma de arreglarlo. Ahora se sirve desde este mismo origen, así que
+// llega con el resto de la app o no llega nada. jsQR 1.4.0 minificado,
+// sha256 32214c74ee92d37de6d88276987690d996ce757668e82ca1709dba5e0be9fcce.
+const JSQR = '/jsQR.min.js';
 
 const PRECARGA = [
   '/entrega.html',
@@ -134,7 +139,14 @@ self.addEventListener('fetch', evento => {
     return;
   }
 
-  if (peticion.url === JSQR || (propio && ESTATICO.test(url.pathname))) {
+  // jsQR se compara por RUTA, no por url completa: `peticion.url` es absoluta
+  // y JSQR es relativa, así que compararlas directo nunca empata. Y hace falta
+  // nombrarlo aparte porque ESTATICO deja fuera `.js` a propósito —para no
+  // interceptar /sw.js—, de modo que sin esta línea el archivo quedaría en el
+  // caché pero jamás se serviría desde ahí: sin señal, no escanea.
+  const esJSQR = propio && url.pathname === JSQR;
+
+  if (esJSQR || (propio && ESTATICO.test(url.pathname))) {
     evento.respondWith(cachePrimero(peticion));
   }
   // Lo demás —la API en /api y en /pedido— ni se toca: la lista del día y el

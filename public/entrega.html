@@ -21,7 +21,10 @@
     }
   } catch {}
 </script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<!-- Servido desde este mismo origen, NO desde un CDN: un equipo nuevo dentro
+     del puerto podía quedarse sin escanear si la red de allá bloquea jsdelivr.
+     Ver la nota en sw.js. -->
+<script src="/jsQR.min.js"></script>
 <style>
   :root {
     --azul: #003087; --azul-mid: #1a4ba0; --azul-light: #e8eef8; --azul-line: #c5d3ec;
