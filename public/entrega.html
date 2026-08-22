@@ -317,6 +317,11 @@
     </div>
   </header>
 
+  <!-- Aviso de lista vieja. Va arriba de todo y en rojo a propósito: el
+       repartidor no puede distinguir la lista de hoy de la de ayer, y
+       escanear contra la equivocada le quema la mañana. -->
+  <div class="lista-vieja oculto" id="lista-vieja"></div>
+
   <div class="marcador">
     <div class="m-entregado"><div class="n" id="n-entregado">0</div><div class="e">Entregadas</div></div>
     <div class="m-falta"><div class="n" id="n-falta">0</div><div class="e">Pendientes</div></div>
@@ -1163,9 +1168,16 @@
         (zonaPeticion ? '?zona=' + encodeURIComponent(zonaPeticion) : '');
       const r = await fetch(url, { headers: cabecerasAuth() });
       if (r.status === 401) return sesionRechazada(await r.json().catch(() => ({})));
-      if (!r.ok) return;
+      // Un fallo aquí NO puede pasar callado. Antes decía `return` a secas y la
+      // pantalla se quedaba con la fecha y la lista del día anterior, con la
+      // misma cara de dato bueno. El 22/ago el repartidor estuvo intentando
+      // escanear contra la lista del 21 sin ninguna señal de que estaba viendo
+      // ayer. La lista vieja se conserva —sirve de respaldo sin señal— pero
+      // desde ahora se dice en pantalla.
+      if (!r.ok) { marcarListaVieja('no se pudo actualizar (error ' + r.status + ')'); return; }
       const d = await r.json();
       if (!vigente()) return;       // llegó tarde: la zona ya es otra
+      listaAlDia();
       // Si el día avanzó, lo de ayer ya no aplica: se limpia antes de pintar.
       // Va aquí y no antes de pedir porque a la URL se le manda 'hoy' y la
       // fecha real solo se conoce al responder el servidor.
@@ -1197,7 +1209,51 @@
         turno_hora: TURNO_HORA, tolerancia_min: TOLERANCIA_MIN, motivos: MOTIVOS
       });
       pintar();
-    } catch {}
+    } catch {
+      // Sin señal. La lista guardada sigue sirviendo —para eso se guarda—
+      // pero hay que decir que es la de la última vez, no la de ahora.
+      marcarListaVieja('sin conexión');
+    }
+  }
+
+  // ── ¿La lista que se ve es la de hoy? ─────────────────────────
+  // Un repartidor no puede distinguir una lista recién bajada de una que quedó
+  // de ayer: se ven idénticas. El 22/ago eso hizo que estuviera intentando
+  // escanear contra la lista del día anterior sin ninguna señal de que pasaba.
+  //
+  // Se avisa por dos caminos porque fallan distinto: cuando la consulta no se
+  // pudo hacer, y cuando la fecha en pantalla ya quedó atrás según el reloj del
+  // propio aparato. Ese reloj no sirve como evidencia de entrega, pero para
+  // responder "¿esto es de ayer?" alcanza de sobra.
+  function fechaDelAparato() {
+    try {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
+    } catch { return null; }
+  }
+
+  function marcarListaVieja(motivo) {
+    const caja = $('lista-vieja');
+    if (!caja) return;
+    caja.textContent = 'Estás viendo la lista del ' + (fechaLegible(FECHA) || 'último día descargado') +
+                       ' — ' + motivo + '. Conéctate y vuelve a abrir la app para ver la de hoy.';
+    caja.classList.remove('oculto');
+  }
+
+  function listaAlDia() {
+    const caja = $('lista-vieja');
+    if (!caja) return;
+    // Aunque la descarga salga bien, si la fecha en pantalla es anterior a hoy
+    // algo quedó atrás y hay que decirlo igual.
+    const hoyAparato = fechaDelAparato();
+    if (FECHA && hoyAparato && FECHA < hoyAparato) {
+      caja.textContent = 'Esta lista es del ' + (fechaLegible(FECHA) || FECHA) +
+                         ', no de hoy. Vuelve a abrir la app con señal.';
+      caja.classList.remove('oculto');
+      return;
+    }
+    caja.classList.add('oculto');
   }
 
   // La fecha de REPARTO es hoy. Antes esto preguntaba a /pedido/estado, que

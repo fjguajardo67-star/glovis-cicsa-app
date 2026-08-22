@@ -2349,3 +2349,20 @@ main {
   }
 
 }
+
+/* ── Aviso de lista vieja ─────────────────────────────────────
+   Rojo y arriba de todo a propósito. Una lista de ayer y una de hoy se ven
+   idénticas, y el 22/ago un repartidor estuvo escaneando contra la del día
+   anterior sin ninguna señal. No basta con degradarse bien: hay que decirlo. */
+.lista-vieja {
+  margin: 0 0 12px;
+  padding: 11px 14px;
+  border-radius: 11px;
+  border: 1px solid #f0b4b4;
+  border-left: 4px solid var(--rojo, #c0392b);
+  background: #fdecec;
+  color: #8a2b22;
+  font-size: .84rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
