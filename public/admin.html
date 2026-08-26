@@ -343,11 +343,110 @@
   .row-fin > div { flex: 1; min-width: 130px; }
   .gate-err { color: var(--rojo); font-size: .82rem; margin-top: 10px; display: none; }
   .gate-err.show { display: block; }
+
+  /* ── Cocina: operación diaria separada de configuración y pruebas ── */
+  .cocina-encabezado {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 18px; margin-bottom: 18px;
+  }
+  .cocina-encabezado h2 {
+    font-size: 1.35rem; line-height: 1.2; letter-spacing: -.025em;
+    color: var(--tinta);
+  }
+  .cocina-encabezado p {
+    max-width: 62ch; margin-top: 5px; color: var(--gris-text); font-size: .84rem;
+  }
+  .cocina-subnav {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    padding: 4px; margin-bottom: 18px;
+    border: 1px solid var(--gris-line); border-radius: 11px;
+    background: var(--azul-light);
+  }
+  .cocina-subtab {
+    border: none; border-radius: 8px; padding: 10px 12px;
+    background: transparent; color: var(--gris-text);
+    font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer;
+    transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+  }
+  .cocina-subtab:hover { color: var(--azul); }
+  .cocina-subtab[aria-pressed="true"] {
+    background: var(--blanco); color: var(--azul);
+    box-shadow: 0 2px 7px rgba(13,27,62,.1);
+  }
+  .cocina-subtab:focus-visible {
+    outline: 3px solid var(--azul-line); outline-offset: 2px;
+  }
+  .cocina-vista[hidden] { display: none !important; }
+  .cocina-grid-diaria {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px; align-items: start;
+  }
+  .cocina-grid-diaria .card { margin-bottom: 0; }
+  .cocina-card-header {
+    display: flex; align-items: flex-start; gap: 11px;
+    margin-bottom: 18px; padding-bottom: 14px;
+    border-bottom: 1px solid var(--gris-line);
+  }
+  .cocina-card-header h3 { font-size: .95rem; color: var(--tinta); }
+  .cocina-card-header p { margin-top: 2px; color: var(--gris-text); font-size: .76rem; }
+  .cocina-icono {
+    width: 34px; height: 34px; flex: 0 0 auto;
+    display: grid; place-items: center; border-radius: 9px;
+    background: var(--azul-light); color: var(--azul);
+  }
+  .cocina-icono svg { width: 18px; height: 18px; }
+  .cocina-impresos { display: grid; gap: 9px; margin-top: 14px; }
+  button.cocina-accion {
+    width: 100%; margin: 0; padding: 11px 13px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    text-align: left;
+  }
+  .cocina-accion-contenido { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .cocina-accion-contenido svg { width: 17px; height: 17px; flex: 0 0 auto; }
+  .cocina-accion-contenido span { display: block; }
+  .cocina-accion-titulo { font-weight: 700; }
+  .cocina-accion-detalle {
+    margin-top: 1px; color: rgba(255,255,255,.72);
+    font-size: .7rem; font-weight: 500;
+  }
+  button.cocina-accion.sec .cocina-accion-detalle { color: var(--gris-text); }
+  .cocina-nota-diaria {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 13px 16px; margin-top: 14px;
+    border-top: 1px solid var(--gris-line); color: var(--gris-text); font-size: .77rem;
+  }
+  .cocina-link {
+    border: 0; padding: 4px; background: transparent; color: var(--azul);
+    font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .cocina-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .cocina-herramientas { display: grid; }
+  .cocina-herramienta {
+    display: flex; align-items: center; justify-content: space-between; gap: 18px;
+    padding: 15px 0; border-top: 1px solid var(--gris-line);
+  }
+  .cocina-herramienta:first-child { border-top: 0; padding-top: 0; }
+  .cocina-herramienta:last-child { padding-bottom: 0; }
+  .cocina-herramienta-info { display: flex; align-items: flex-start; gap: 11px; min-width: 0; }
+  .cocina-herramienta h4 { font-size: .86rem; color: var(--tinta); }
+  .cocina-herramienta p { margin-top: 2px; color: var(--gris-text); font-size: .75rem; }
+  .cocina-herramienta .accion { margin: 0; flex: 0 0 auto; }
+  .cocina-ayuda-pruebas {
+    margin-bottom: 16px; padding: 11px 13px; border-radius: 9px;
+    background: var(--dorado-light, #fdf5e6); border: 1px solid #e8d5a8;
+    color: #725514; font-size: .78rem;
+  }
+  .oculto { display: none !important; }
   
   @media (max-width: 640px) {
     .grid2, .grid3 { grid-template-columns: 1fr; }
     .header-title { display: none; }
     .wrap { padding: 16px; }
+    .cocina-encabezado { align-items: flex-start; flex-direction: column; }
+    .cocina-subnav { grid-template-columns: 1fr; }
+    .cocina-grid-diaria { grid-template-columns: 1fr; }
+    .cocina-nota-diaria, .cocina-herramienta { align-items: flex-start; flex-direction: column; }
+    .cocina-herramienta .accion { width: 100%; }
   }
 </style>
 </head>
@@ -610,102 +709,193 @@
 
     <!-- COCINA -->
     <section id="p-cocina" class="panel">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-icon">🍳</div>
-          <h3>Resumen de producción</h3>
+      <div class="cocina-encabezado">
+        <div>
+          <h2>Cocina</h2>
+          <p>Producción, impresos y operación de reparto en espacios separados.</p>
         </div>
-        <div class="row-fin">
-          <div><label>Fecha</label><input type="date" id="co-fecha" style="max-width:180px"></div>
-          <button class="accion" onclick="verCocina()">Ver producción</button>
-        </div>
-        <div id="cocinaBox" style="margin-top:18px"></div>
       </div>
 
-      <!-- Impresos del día: la clave va incluida, no hay que armar URLs -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-icon">🖨️</div>
-          <h3>Imprimir comanda y etiquetas</h3>
-        </div>
-        <div class="row-fin" style="align-items:flex-end;flex-wrap:wrap;gap:14px">
-          <div><label>Fecha de servicio</label><input type="date" id="im-fecha" style="max-width:180px"></div>
-          <div>
-            <label>Tamaño de etiqueta</label>
-            <select id="im-tamano" style="max-width:200px">
-              <option value="57x32" selected>57 × 32 mm (recomendado)</option>
-              <option value="62x29">62 × 29 mm</option>
-              <option value="50x25">50 × 25 mm</option>
-              <option value="62x40">62 × 40 mm</option>
-              <option value="100x50">100 × 50 mm</option>
-            </select>
+      <nav class="cocina-subnav" aria-label="Áreas de Cocina">
+        <button class="cocina-subtab" type="button" data-cocina-vista="diaria"
+                aria-pressed="true" onclick="cocinaVista('diaria')">Operación diaria</button>
+        <button class="cocina-subtab" type="button" data-cocina-vista="reparto"
+                aria-pressed="false" onclick="cocinaVista('reparto')">Reparto y puntos</button>
+        <button class="cocina-subtab" type="button" data-cocina-vista="pruebas"
+                aria-pressed="false" onclick="cocinaVista('pruebas')">Pruebas y soporte</button>
+      </nav>
+
+      <!-- Lo que cocina usa cada noche: consultar cantidades e imprimir. -->
+      <div class="cocina-vista" data-cocina-panel="diaria">
+        <div class="cocina-grid-diaria">
+          <div class="card">
+            <div class="cocina-card-header">
+              <div class="cocina-icono" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 11h14v2a7 7 0 0 1-7 7 7 7 0 0 1-7-7v-2Z"/><path d="M8 7c0-1.4 1.1-2.1 2-3M12 7c0-1.4 1.1-2.1 2-3M4 11h16"/>
+                </svg>
+              </div>
+              <div><h3>Producción</h3><p>Totales por platillo, turno y zona.</p></div>
+            </div>
+            <div class="row-fin">
+              <div><label>Fecha de producción</label><input type="date" id="co-fecha" style="max-width:180px"></div>
+              <button class="accion" onclick="verCocina()">Ver producción</button>
+            </div>
+            <div id="cocinaBox" style="margin-top:18px"></div>
+          </div>
+
+          <!-- Impresos del día: la clave va incluida, no hay que armar URLs. -->
+          <div class="card">
+            <div class="cocina-card-header">
+              <div class="cocina-icono" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/><path d="M18 12h.01"/>
+                </svg>
+              </div>
+              <div><h3>Impresión</h3><p>Solo los documentos de uso diario.</p></div>
+            </div>
+            <div class="grid2">
+              <div><label>Fecha de servicio</label><input type="date" id="im-fecha"></div>
+              <div>
+                <label>Tamaño de etiqueta</label>
+                <select id="im-tamano">
+                  <option value="57x32" selected>57 × 32 mm (recomendado)</option>
+                  <option value="62x29">62 × 29 mm</option>
+                  <option value="50x25">50 × 25 mm</option>
+                  <option value="62x40">62 × 40 mm</option>
+                  <option value="100x50">100 × 50 mm</option>
+                </select>
+              </div>
+            </div>
+            <div class="cocina-impresos">
+              <button class="accion cocina-accion" onclick="abrirImpreso('comanda')">
+                <span class="cocina-accion-contenido">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h6M9 9h6M9 13h4"/><path d="M6 3h12a2 2 0 0 1 2 2v16l-3-2-2 2-3-2-3 2-3-2-2 2V5a2 2 0 0 1 2-2Z"/></svg>
+                  <span><span class="cocina-accion-titulo">Comanda de cocina</span><span class="cocina-accion-detalle">Resumen separado por turnos</span></span>
+                </span>
+                <span aria-hidden="true">→</span>
+              </button>
+              <button class="accion cocina-accion" onclick="abrirImpreso('etiquetas')">
+                <span class="cocina-accion-contenido">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12 12 20l-9-9V4h7l10 8Z"/><circle cx="7.5" cy="8.5" r="1"/></svg>
+                  <span><span class="cocina-accion-titulo">Etiquetas del servicio</span><span class="cocina-accion-detalle">Rollo para todos los pedidos</span></span>
+                </span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+            <p style="font-size:.74rem;color:var(--gris-text);margin-top:12px">
+              Las pruebas de impresión y las herramientas del repartidor están en <b>Pruebas y soporte</b>.
+            </p>
           </div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
-          <button class="accion" onclick="abrirImpreso('comanda')">🍳 Comanda de cocina</button>
-          <button class="accion" onclick="abrirImpreso('etiquetas')">🏷️ Etiquetas (rollo)</button>
-          <button class="accion sec" onclick="abrirImpreso('etiquetas-hoja')">Etiquetas en papel carta (prueba)</button>
-          <button class="accion sec" onclick="window.open('instalar-entrega.html','_blank')">🚚 Hoja de instalación del repartidor</button>
-          <button class="accion sec" onclick="window.open('pedido.html?prueba=cliente','_blank')">Abrir cliente de prueba</button>
-          <button class="accion sec" onclick="window.open('qr.html?prueba=entrega','_blank')">QR permanente de prueba del escáner</button>
+        <div class="cocina-nota-diaria">
+          <span>Usuarios, claves, geolocalización y herramientas de prueba ya no interrumpen el trabajo diario.</span>
+          <button class="cocina-link" type="button" onclick="cocinaVista('reparto')">Administrar reparto →</button>
         </div>
-        <p style="font-size:.76rem;color:var(--gris-text);margin-top:12px">
-          Cada botón abre la vista lista para imprimir, con la clave ya incluida.
-          La prueba en papel carta sirve para validar la medida contra el contenedor antes de comprar rollos.
-          El cliente de prueba recorre el menú y la confirmación incluso después del corte, sin crear pedidos reales.
-        </p>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <div class="card-icon">🧑‍✈️</div>
-          <h3>Usuarios de reparto</h3>
+      <!-- Configuración que se modifica ocasionalmente. -->
+      <div class="cocina-vista" data-cocina-panel="reparto" hidden>
+        <div class="card">
+          <div class="cocina-card-header">
+            <div class="cocina-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="m17 11 2 2 4-4"/></svg>
+            </div>
+            <div><h3>Usuarios de reparto</h3><p>Altas, zonas autorizadas, claves y estado de acceso.</p></div>
+          </div>
+          <p style="font-size:.85rem;color:var(--gris-text);margin:-4px 0 14px;line-height:1.55">
+            Cada repartidor entra con su clave personal y la entrega queda registrada
+            a su nombre. <b>Tú asignas la clave; él no la crea.</b> Se muestra una sola
+            vez al darlo de alta o al restablecerla — después solo queda guardado su
+            resguardo cifrado y ya no se puede consultar.
+          </p>
+          <div class="row-fin">
+            <div><label>Nombre completo</label><input type="text" id="rp-nombre" placeholder="Luis Hernández"></div>
+            <div>
+              <label>Zonas que atiende</label>
+              <div style="display:flex;gap:14px;align-items:center;padding-top:6px">
+                <label style="display:flex;gap:6px;align-items:center;font-weight:600;font-size:.88rem">
+                  <input type="checkbox" id="rp-vdc" style="width:18px;height:18px"> Glovis VDC</label>
+                <label style="display:flex;gap:6px;align-items:center;font-weight:600;font-size:.88rem">
+                  <input type="checkbox" id="rp-refris" style="width:18px;height:18px"> Glovis REFRIS</label>
+              </div>
+            </div>
+            <div><label>Clave (opcional)</label><input type="text" id="rp-clave" placeholder="Se genera sola"></div>
+            <button class="accion" onclick="crearRepartidor()">Dar de alta</button>
+          </div>
+          <div id="rpAviso" class="aviso"></div>
+          <div id="rpClaveNueva" class="oculto" style="margin:12px 0;padding:14px;border-radius:11px;background:var(--dorado-light);border:1px solid var(--dorado)">
+            <div style="font-size:.8rem;font-weight:700;color:#8a6516;margin-bottom:4px">
+              Anótala ahora: no se vuelve a mostrar
+            </div>
+            <div id="rpClaveTexto" style="font-family:ui-monospace,Menlo,monospace;font-size:1.5rem;font-weight:800;letter-spacing:.08em;color:var(--tinta)"></div>
+          </div>
+          <div id="rpBox" style="margin-top:14px"></div>
         </div>
-        <p style="font-size:.85rem;color:var(--gris-text);margin:-4px 0 14px;line-height:1.55">
-          Cada repartidor entra con su clave personal y la entrega queda registrada
-          a su nombre. <b>Tú asignas la clave; él no la crea.</b> Se muestra una sola
-          vez al darlo de alta o al restablecerla — después solo queda guardado su
-          resguardo cifrado y ya no se puede consultar.
-        </p>
-        <div class="row-fin">
-          <div><label>Nombre completo</label><input type="text" id="rp-nombre" placeholder="Luis Hernández"></div>
-          <div>
-            <label>Zonas que atiende</label>
-            <div style="display:flex;gap:14px;align-items:center;padding-top:6px">
-              <label style="display:flex;gap:6px;align-items:center;font-weight:600;font-size:.88rem">
-                <input type="checkbox" id="rp-vdc" style="width:18px;height:18px"> Glovis VDC</label>
-              <label style="display:flex;gap:6px;align-items:center;font-weight:600;font-size:.88rem">
-                <input type="checkbox" id="rp-refris" style="width:18px;height:18px"> Glovis REFRIS</label>
+
+        <div class="card">
+          <div class="cocina-card-header">
+            <div class="cocina-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            </div>
+            <div><h3>Puntos de entrega</h3><p>Coordenadas y radio permitido para VDC y REFRIS.</p></div>
+          </div>
+          <p style="font-size:.85rem;color:var(--gris-text);margin:-4px 0 14px;line-height:1.55">
+            La referencia contra la que se mide cada entrega. El contrato nombra
+            <b>Patio LZC VDC</b> (Calle Volcán Ajusco s/n, Isla del Cayacal) y
+            <b>REFIS</b> (Bulevar de las Bahías).
+            <b>Abre este panel desde la tablet, parado en el andén, y toca Capturar.</b>
+            Desde una computadora no se puede: ahí la ubicación sale del wifi y se
+            va cientos de metros.
+          </p>
+          <div id="puntosBox"></div>
+          <div id="puntoAviso" class="aviso"></div>
+        </div>
+      </div>
+
+      <!-- Utilidades que no forman parte del flujo diario. -->
+      <div class="cocina-vista" data-cocina-panel="pruebas" hidden>
+        <div class="card">
+          <div class="cocina-card-header">
+            <div class="cocina-icono" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v5l-5.5 9.5A2.3 2.3 0 0 0 6.5 21h11a2.3 2.3 0 0 0 2-3.5L14 8V3"/><path d="M8 15h8"/></svg>
+            </div>
+            <div><h3>Pruebas y soporte</h3><p>Instalación, diagnóstico y validaciones separadas de producción.</p></div>
+          </div>
+          <div class="cocina-ayuda-pruebas">
+            Las pruebas están identificadas y no crean pedidos reales. La prueba de etiquetas usa la fecha y el tamaño elegidos en <b>Operación diaria</b>.
+          </div>
+          <div class="cocina-herramientas">
+            <div class="cocina-herramienta">
+              <div class="cocina-herramienta-info">
+                <div class="cocina-icono" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="m16 14 2 2 4-4"/></svg></div>
+                <div><h4>Cliente virtual</h4><p>Recorre menú y confirmación incluso después del corte, sin guardar un pedido.</p></div>
+              </div>
+              <button class="accion mini sec" onclick="window.open('pedido.html?prueba=cliente','_blank')">Abrir prueba</button>
+            </div>
+            <div class="cocina-herramienta">
+              <div class="cocina-herramienta-info">
+                <div class="cocina-icono" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2M19 19h2v2M14 19h2v2"/></svg></div>
+                <div><h4>Prueba del escáner</h4><p>QR permanente para cámara, permisos, VDC, REFRIS y ambos turnos.</p></div>
+              </div>
+              <button class="accion mini sec" onclick="window.open('qr.html?prueba=entrega','_blank')">Ver QR</button>
+            </div>
+            <div class="cocina-herramienta">
+              <div class="cocina-herramienta-info">
+                <div class="cocina-icono" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div>
+                <div><h4>Instalación del repartidor</h4><p>Hoja imprimible para preparar una tablet nueva.</p></div>
+              </div>
+              <button class="accion mini sec" onclick="window.open('instalar-entrega.html','_blank')">Abrir hoja</button>
+            </div>
+            <div class="cocina-herramienta">
+              <div class="cocina-herramienta-info">
+                <div class="cocina-icono" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v10H4z"/><path d="M8 7v4M12 7v2M16 7v4"/></svg></div>
+                <div><h4>Calibrar etiquetas</h4><p>Prueba en papel carta antes de comprar o cambiar rollos.</p></div>
+              </div>
+              <button class="accion mini sec" onclick="abrirImpreso('etiquetas-hoja')">Imprimir prueba</button>
             </div>
           </div>
-          <div><label>Clave (opcional)</label><input type="text" id="rp-clave" placeholder="Se genera sola"></div>
-          <button class="accion" onclick="crearRepartidor()">Dar de alta</button>
         </div>
-        <div id="rpAviso" class="aviso"></div>
-        <div id="rpClaveNueva" class="oculto" style="margin:12px 0;padding:14px;border-radius:11px;background:var(--dorado-light);border:1px solid var(--dorado)">
-          <div style="font-size:.8rem;font-weight:700;color:#8a6516;margin-bottom:4px">
-            Anótala ahora: no se vuelve a mostrar
-          </div>
-          <div id="rpClaveTexto" style="font-family:ui-monospace,Menlo,monospace;font-size:1.5rem;font-weight:800;letter-spacing:.08em;color:var(--tinta)"></div>
-        </div>
-        <div id="rpBox" style="margin-top:14px"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-icon">📍</div>
-          <h3>Puntos de entrega</h3>
-        </div>
-        <p style="font-size:.85rem;color:var(--gris-text);margin:-4px 0 14px;line-height:1.55">
-          La referencia contra la que se mide cada entrega. El contrato nombra
-          <b>Patio LZC VDC</b> (Calle Volcán Ajusco s/n, Isla del Cayacal) y
-          <b>REFIS</b> (Bulevar de las Bahías).
-          <b>Abre este panel desde la tablet, parado en el andén, y toca Capturar.</b>
-          Desde una computadora no se puede: ahí la ubicación sale del wifi y se
-          va cientos de metros.
-        </p>
-        <div id="puntosBox"></div>
-        <div id="puntoAviso" class="aviso"></div>
       </div>
     </section>
 
@@ -838,9 +1028,23 @@
       const f = document.getElementById('db-fecha');
       if (f && !f.value) f.value = sumarDias(fechaComedor(), 1);
     }
-    // Los puntos de entrega se consultan al abrir Cocina, no al entrar al
-    // panel: son configuración que se toca una vez, no en cada sesión.
-    if (p === 'cocina') { cargarRepartidores(); cargarPuntos(); }
+    // Cocina abre siempre en el trabajo diario. Usuarios, claves y coordenadas
+    // se consultan solo cuando se entra a Reparto y puntos: son configuración
+    // ocasional y ya no bloquean ni ensucian la vista de producción.
+    if (p === 'cocina') cocinaVista('diaria');
+  }
+
+  function cocinaVista(nombre) {
+    document.querySelectorAll('.cocina-subtab').forEach(b => {
+      b.setAttribute('aria-pressed', b.dataset.cocinaVista === nombre ? 'true' : 'false');
+    });
+    document.querySelectorAll('.cocina-vista').forEach(v => {
+      v.hidden = v.dataset.cocinaPanel !== nombre;
+    });
+    if (nombre === 'reparto') {
+      cargarRepartidores();
+      cargarPuntos();
+    }
   }
 
   async function api(path, opts = {}) {
