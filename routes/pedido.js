@@ -18,7 +18,8 @@ export const pedidoRouter = express.Router();
 // No expone datos de ningún empleado, así que puede ser GET.
 pedidoRouter.get('/estado', async (req, res) => {
   try {
-    res.json(await pedidos.estadoDelDia());
+    const modoPrueba = req.query.prueba === 'cliente';
+    res.json(await pedidos.estadoDelDia({ modoPrueba }));
   } catch (err) {
     console.error('[Pedido] Error consultando estado:', err);
     res.status(500).json({ error: 'No se pudo consultar el menú. Intenta de nuevo.' });
@@ -29,9 +30,24 @@ pedidoRouter.get('/estado', async (req, res) => {
 // ya tenga registrado, para que la página pueda precargar todo.
 pedidoRouter.post('/identificar', async (req, res) => {
   try {
-    const { numero_empleado } = req.body || {};
+    const { numero_empleado, modo_prueba } = req.body || {};
     if (!numero_empleado) {
       return res.status(400).json({ error: 'Falta tu número de empleado.' });
+    }
+
+    // El cliente de prueba no vive en la plantilla: así nunca aparece en
+    // RRHH, accesos, cocina o reportes. La bandera sola no da acceso a otro
+    // empleado; ambas condiciones tienen que coincidir.
+    if (modo_prueba === true) {
+      if (!pedidos.esClientePrueba(numero_empleado)) {
+        return res.status(404).json({ error: 'Cliente de prueba no encontrado.' });
+      }
+      return res.json({
+        empleado: pedidos.CLIENTE_PRUEBA,
+        pedido_actual: null,
+        por_calificar: null,
+        modo_prueba: true
+      });
     }
 
     const empleado = await db.getEmpleadoPorNumero(numero_empleado);
@@ -107,7 +123,7 @@ pedidoRouter.post('/rating', async (req, res) => {
 // se hereda la asignación de RRHH.
 pedidoRouter.post('/', async (req, res) => {
   try {
-    const { numero_empleado, opcion_id, zona, turno, fecha_esperada } = req.body || {};
+    const { numero_empleado, opcion_id, zona, turno, fecha_esperada, modo_prueba } = req.body || {};
     if (!numero_empleado || !opcion_id) {
       return res.status(400).json({ error: 'Falta tu número de empleado o el platillo.' });
     }
@@ -125,7 +141,9 @@ pedidoRouter.post('/', async (req, res) => {
       });
     }
 
-    const resultado = await pedidos.crearPedido({ numero_empleado, opcion_id, zona, turno, fecha_esperada });
+    const resultado = modo_prueba === true
+      ? await pedidos.crearPedidoPrueba({ numero_empleado, opcion_id, zona, turno, fecha_esperada })
+      : await pedidos.crearPedido({ numero_empleado, opcion_id, zona, turno, fecha_esperada });
 
     if (!resultado.ok) {
       // 404 si no lo conocemos, 409 si el comedor ya cerró o el estado quedó

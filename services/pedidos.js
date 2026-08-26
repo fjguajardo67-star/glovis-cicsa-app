@@ -21,6 +21,23 @@ function rechazo(motivo, mensaje) {
   return { ok: false, motivo, mensaje };
 }
 
+// Cliente virtual para recorrer la página fuera del horario operativo. No vive
+// en Supabase: identificarlo no crea una fila de acceso y confirmar su pedido
+// devuelve el mismo recibo que producción, pero sin escribir en `pedidos`.
+// El número no es un secreto ni una puerta trasera; solo funciona cuando la
+// petición declara explícitamente el modo de prueba.
+export const CLIENTE_PRUEBA = Object.freeze({
+  nombre: 'CLIENTE DE PRUEBA',
+  numero_empleado: 'PRUEBA',
+  zona_default: null,
+  turno_default: null,
+  es_prueba: true
+});
+
+export function esClientePrueba(numeroEmpleado) {
+  return String(numeroEmpleado || '').trim().toUpperCase() === CLIENTE_PRUEBA.numero_empleado;
+}
+
 // ── Fecha de servicio ─────────────────────────────────────────────
 // El próximo día con menú publicado, no literalmente "mañana". Así los fines
 // de semana y los días festivos se resuelven solos, sin calendario laboral en
@@ -42,17 +59,22 @@ export async function identificar({ telefono, numero_empleado }) {
 // ── Estado del día: qué puede pedir el empleado y hasta cuándo ─────
 // Lo consume la página web al abrirse y sirve para pintar la pantalla
 // completa (fecha, menú, si está abierto) en una sola llamada.
-export async function estadoDelDia() {
+export async function estadoDelDia({ modoPrueba = false } = {}) {
   const fecha = await fechaServicio();
   if (!fecha) {
-    return { abierto: false, motivo: 'sin_menu', fecha: null, menu: null, corte: horaCorteTexto() };
+    const estado = { abierto: false, motivo: 'sin_menu', fecha: null, menu: null, corte: horaCorteTexto() };
+    return modoPrueba ? { ...estado, modo_prueba: true } : estado;
   }
   const menu = await db.getMenu(fecha);
   if (!menu) {
-    return { abierto: false, motivo: 'sin_menu', fecha: null, menu: null, corte: horaCorteTexto() };
+    const estado = { abierto: false, motivo: 'sin_menu', fecha: null, menu: null, corte: horaCorteTexto() };
+    return modoPrueba ? { ...estado, modo_prueba: true } : estado;
   }
-  const abierto = dentroDeHorario();
-  return {
+  // El modo de prueba necesita recorrer el menú después del corte. La
+  // excepción solo cambia esta respuesta; el POST vuelve a exigir que el
+  // número sea el cliente virtual y nunca escribe el pedido.
+  const abierto = modoPrueba || dentroDeHorario();
+  const estado = {
     abierto,
     motivo: abierto ? null : 'fuera_de_horario',
     fecha,
@@ -60,6 +82,64 @@ export async function estadoDelDia() {
     menu,
     corte: horaCorteTexto()
   };
+  return modoPrueba ? { ...estado, modo_prueba: true } : estado;
+}
+
+async function validarEleccion({ empleado, opcion_id, zona, turno, fecha_esperada, ignorarHorario = false }) {
+  if (!ignorarHorario && !dentroDeHorario()) {
+    return rechazo('fuera_de_horario',
+      `Los pedidos cerraron a las ${horaCorteTexto()}. Vuelve mañana para pedir el siguiente día.`);
+  }
+
+  const fecha = await fechaServicio();
+  const menu  = fecha ? await db.getMenu(fecha) : null;
+  if (!menu) {
+    return rechazo('sin_menu',
+      'Aún no se ha publicado el menú del próximo día de servicio. Intenta más tarde.');
+  }
+
+  if (fecha_esperada && fecha_esperada !== fecha) {
+    return {
+      ...rechazo('estado_desactualizado',
+        'El menú cambió mientras tenías la página abierta. Vuelve a elegir tu platillo del día correcto.'),
+      fecha_esperada, fecha_actual: fecha
+    };
+  }
+
+  if (!OPCIONES_VALIDAS.includes(opcion_id)) {
+    return rechazo('opcion_invalida', 'Esa opción de menú no existe. Vuelve a elegir tu platillo.');
+  }
+
+  const zonaFinal  = zona  || empleado.zona_default;
+  const turnoFinal = turno || empleado.turno_default;
+
+  if (!ZONAS_VALIDAS.includes(zonaFinal)) {
+    return rechazo('zona_invalida', 'Falta indicar la zona de entrega.');
+  }
+  if (!TURNOS_VALIDOS.includes(turnoFinal)) {
+    return rechazo('turno_invalido', 'Falta indicar el turno de entrega.');
+  }
+
+  return { ok: true, fecha, menu, zonaFinal, turnoFinal };
+}
+
+function respuestaPedido({ empleado, pedido, fecha, zonaFinal, turnoFinal, modoPrueba = false }) {
+  const respuesta = {
+    ok: true,
+    fecha,
+    fecha_legible: fechaLegible(fecha),
+    pedido,
+    empleado: { nombre: empleado.nombre, numero_empleado: empleado.numero_empleado },
+    resumen: {
+      platillo: pedido.opcion_texto,
+      zona:     textoDeZona(zonaFinal),
+      turno:    textoDeTurno(turnoFinal),
+      corte:    horaCorteTexto()
+    }
+  };
+  return modoPrueba
+    ? { ...respuesta, modo_prueba: true, persistido: false }
+    : respuesta;
 }
 
 // ── Registrar (o cambiar) el pedido ───────────────────────────────
@@ -87,42 +167,9 @@ export async function crearPedido({ telefono, numero_empleado, opcion_id, zona, 
       'No estás registrado en el sistema de comedor CICSA. Contacta a Recursos Humanos.');
   }
 
-  if (!dentroDeHorario()) {
-    return rechazo('fuera_de_horario',
-      `Los pedidos cerraron a las ${horaCorteTexto()}. Vuelve mañana para pedir el siguiente día.`);
-  }
-
-  const fecha = await fechaServicio();
-  const menu  = fecha ? await db.getMenu(fecha) : null;
-  if (!menu) {
-    return rechazo('sin_menu',
-      'Aún no se ha publicado el menú del próximo día de servicio. Intenta más tarde.');
-  }
-
-  // Se compara ANTES de escribir nada. Si lo que el cliente vio ya no es lo
-  // que hay, no se adivina: se rechaza y se le devuelve la fecha nueva para
-  // que vuelva a elegir sobre el menú correcto.
-  if (fecha_esperada && fecha_esperada !== fecha) {
-    return {
-      ...rechazo('estado_desactualizado',
-        'El menú cambió mientras tenías la página abierta. Vuelve a elegir tu platillo del día correcto.'),
-      fecha_esperada, fecha_actual: fecha
-    };
-  }
-
-  if (!OPCIONES_VALIDAS.includes(opcion_id)) {
-    return rechazo('opcion_invalida', 'Esa opción de menú no existe. Vuelve a elegir tu platillo.');
-  }
-
-  const zonaFinal  = zona  || empleado.zona_default;
-  const turnoFinal = turno || empleado.turno_default;
-
-  if (!ZONAS_VALIDAS.includes(zonaFinal)) {
-    return rechazo('zona_invalida', 'Falta indicar la zona de entrega.');
-  }
-  if (!TURNOS_VALIDOS.includes(turnoFinal)) {
-    return rechazo('turno_invalido', 'Falta indicar el turno de entrega.');
-  }
+  const validacion = await validarEleccion({ empleado, opcion_id, zona, turno, fecha_esperada });
+  if (!validacion.ok) return validacion;
+  const { fecha, menu, zonaFinal, turnoFinal } = validacion;
 
   const pedido = await db.upsertPedido({
     fecha_menu:        fecha,
@@ -133,18 +180,38 @@ export async function crearPedido({ telefono, numero_empleado, opcion_id, zona, 
     turno:             turnoFinal
   });
 
-  return {
-    ok: true,
-    fecha,
-    fecha_legible: fechaLegible(fecha),
-    pedido,
-    empleado: { nombre: empleado.nombre, numero_empleado: empleado.numero_empleado },
-    // Textos ya resueltos, para que cada canal solo los acomode
-    resumen: {
-      platillo: pedido.opcion_texto,
-      zona:     textoDeZona(zonaFinal),
-      turno:    textoDeTurno(turnoFinal),
-      corte:    horaCorteTexto()
-    }
+  return respuestaPedido({ empleado, pedido, fecha, zonaFinal, turnoFinal });
+}
+
+// Recorre la misma validación de fecha, menú, opción, zona y turno que un
+// pedido real. Solo difiere en dos puntos deliberados: ignora el corte y no
+// llama a Supabase. Por eso puede demostrarse hoy sin aparecer mañana en la
+// comanda ni esperar a que llegue su fecha de servicio.
+export async function crearPedidoPrueba({ numero_empleado, opcion_id, zona, turno, fecha_esperada }) {
+  if (!esClientePrueba(numero_empleado)) {
+    return rechazo('no_registrado', 'El modo de prueba solo está disponible para el cliente de prueba.');
+  }
+
+  const empleado = CLIENTE_PRUEBA;
+  const validacion = await validarEleccion({
+    empleado, opcion_id, zona, turno, fecha_esperada, ignorarHorario: true
+  });
+  if (!validacion.ok) return validacion;
+  const { fecha, menu, zonaFinal, turnoFinal } = validacion;
+
+  const pedido = {
+    id: null,
+    fecha_menu: fecha,
+    empleado_telefono: null,
+    opcion_id,
+    opcion_texto: textoDeOpcion(menu, opcion_id),
+    zona: zonaFinal,
+    turno: turnoFinal,
+    creado_en: new Date().toISOString(),
+    es_prueba: true
   };
+
+  return respuestaPedido({
+    empleado, pedido, fecha, zonaFinal, turnoFinal, modoPrueba: true
+  });
 }

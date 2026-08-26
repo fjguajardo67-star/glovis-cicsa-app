@@ -103,6 +103,63 @@
 
   main { flex: 1; width: 100%; max-width: 520px; margin: 0 auto; padding: 16px 18px 24px; }
 
+  /* Carril de prueba: deliberadamente distinto del aviso de éxito. Debe ser
+     imposible confundir una simulación con un pedido que cocina recibirá. */
+  .test-ribbon {
+    display: none;
+    width: 100%;
+    min-height: 54px;
+    padding: 10px 20px;
+    align-items: center;
+    gap: 11px;
+    background: #fff8df;
+    border-top: 1px solid #e8cb72;
+    border-bottom: 1px solid #e8cb72;
+    color: #604600;
+    font-family: "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  }
+  body.test-mode .test-ribbon { display: flex; }
+  .test-ribbon > svg {
+    width: 21px;
+    height: 21px;
+    flex: 0 0 auto;
+  }
+  .test-ribbon-copy { min-width: 0; flex: 1; }
+  .test-ribbon b,
+  .test-ribbon span { display: block; }
+  .test-ribbon b { font-size: .78rem; line-height: 1.25; }
+  .test-ribbon span { margin-top: 1px; font-size: .67rem; line-height: 1.35; }
+  .test-ribbon button {
+    flex: 0 0 auto;
+    padding: 7px 0;
+    border: 0;
+    border-bottom: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    font: 700 .68rem/1 "Poppins", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    cursor: pointer;
+  }
+  .test-ribbon button:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 3px;
+    border-bottom-color: transparent;
+  }
+  .login-view .test-ribbon {
+    max-width: 430px;
+    margin: -8px auto 22px;
+    border: 1px solid #e8cb72;
+    border-radius: 12px;
+    text-align: left;
+  }
+  #v-ajustar .test-ribbon {
+    margin: -20px -18px 20px;
+    width: calc(100% + 36px);
+  }
+  @media (max-width: 360px) {
+    .test-ribbon { padding-left: 16px; padding-right: 16px; }
+    .test-ribbon span { max-width: 24ch; }
+  }
+
   /* ── Barra de fecha de servicio ── */
   .fechabar {
     display: flex; align-items: center; gap: 12px;
@@ -1893,6 +1950,12 @@
         </div>
       </div>
 
+      <div class="test-ribbon" role="status">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 3h6M10 3v5l-5 9a2 2 0 0 0 1.75 3h10.5A2 2 0 0 0 19 17l-5-9V3M7.5 15h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="test-ribbon-copy"><b>Modo de prueba</b><span>Recorre el flujo sin enviar nada a cocina.</span></div>
+        <button type="button" onclick="salirModoPrueba()">Cerrar prueba</button>
+      </div>
+
       <div class="login-heading">
         <h1><span class="login-title-line">La comida de</span><span class="login-title-line"><em>mañana</em>, a un clic.</span></h1>
         <svg class="login-script" viewBox="0 0 340 96" role="img" aria-labelledby="login-script-title">
@@ -1914,7 +1977,7 @@
       </div>
 
       <form class="login-form" onsubmit="event.preventDefault(); identificar()">
-        <label class="login-label" for="num">Número de empleado</label>
+        <label class="login-label" id="login-label" for="num">Número de empleado</label>
         <div class="login-input-wrap">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm-7.5 8.25c0-3.73 3.36-6.75 7.5-6.75s7.5 3.02 7.5 6.75c0 .97-.78 1.75-1.75 1.75H6.25c-.97 0-1.75-.78-1.75-1.75Z"/>
@@ -1931,7 +1994,7 @@
         </button>
         <p class="login-security" id="login-help">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1Zm2 0h6V8a3 3 0 0 0-6 0v2Zm3 4a1.5 1.5 0 0 0-.75 2.8V19h1.5v-2.2A1.5 1.5 0 0 0 12 14Z"/></svg>
-          <span>Tu número se usa únicamente para localizar tu pedido.</span>
+          <span id="login-help-text">Tu número se usa únicamente para localizar tu pedido.</span>
         </p>
       </form>
 
@@ -2027,6 +2090,12 @@
         </button>
       </div>
 
+      <div class="test-ribbon" role="status">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 3h6M10 3v5l-5 9a2 2 0 0 0 1.75 3h10.5A2 2 0 0 0 19 17l-5-9V3M7.5 15h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="test-ribbon-copy"><b>Modo de prueba</b><span>Elige cualquier zona y turno; este pedido no se guarda.</span></div>
+        <button type="button" onclick="salirModoPrueba()">Cerrar prueba</button>
+      </div>
+
       <div class="menu-hero">
         <h1 id="saludo">Hola, <strong id="saludo-nombre">bienvenido</strong>.</h1>
         <p class="menu-hero-copy" id="menu-sub">Elige tu platillo para el próximo servicio.</p>
@@ -2087,8 +2156,13 @@
 
     <!-- 3. Ajustar entrega -->
     <section class="vista card" id="v-ajustar">
+      <div class="test-ribbon" role="status">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 3h6M10 3v5l-5 9a2 2 0 0 0 1.75 3h10.5A2 2 0 0 0 19 17l-5-9V3M7.5 15h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="test-ribbon-copy"><b>Modo de prueba</b><span>VDC, REFRIS y ambos turnos están disponibles.</span></div>
+        <button type="button" onclick="salirModoPrueba()">Cerrar prueba</button>
+      </div>
       <h1>Ajustar entrega</h1>
-      <p class="sub">Solo si hoy cubres otro turno o zona. Tu registro en RRHH no cambia.</p>
+      <p class="sub" id="ajustar-sub">Solo si hoy cubres otro turno o zona. Tu registro en RRHH no cambia.</p>
       <div class="grupo">Turno</div>
       <div id="turnos"></div>
       <div class="grupo">Zona</div>
@@ -2111,6 +2185,12 @@
         </button>
       </div>
 
+      <div class="test-ribbon" role="status">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 3h6M10 3v5l-5 9a2 2 0 0 0 1.75 3h10.5A2 2 0 0 0 19 17l-5-9V3M7.5 15h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="test-ribbon-copy"><b>Simulación completada</b><span>La confirmación funciona; no se creó un pedido real.</span></div>
+        <button type="button" onclick="salirModoPrueba()">Cerrar prueba</button>
+      </div>
+
       <div class="confirm-hero">
         <div class="confirm-check" aria-hidden="true">
           <svg viewBox="0 0 48 48" fill="none"><path d="m13 25 7 7 15-17" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2126,7 +2206,7 @@
               <h2 id="confirm-ticket-title">Tu pedido</h2>
               <span class="confirm-status">
                 <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="7.5" stroke="currentColor"/><path d="m5.5 9 2.2 2.2 4.8-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Confirmado
+                <span id="confirm-status-text">Confirmado</span>
               </span>
             </div>
             <span class="confirm-date" id="r-fecha">—</span>
@@ -2160,7 +2240,7 @@
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 16-.8 4 4-.8L18 8.4 15.6 6 4 16Zm10-9 2.4 2.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Cambiar mi pedido
         </button>
-        <p class="confirm-close-note">Tu pedido ya está guardado. Puedes cerrar esta página con tranquilidad.</p>
+        <p class="confirm-close-note" id="confirm-close-note">Tu pedido ya está guardado. Puedes cerrar esta página con tranquilidad.</p>
       </div>
     </section>
 
@@ -2227,6 +2307,14 @@
   // dirección nunca se escribe a mano. Cambiar de dominio es solo DNS.
   const API_BASE = '';
 
+  const PARAMETROS = new URLSearchParams(location.search);
+  const MODO_PRUEBA = PARAMETROS.get('prueba') === 'cliente';
+  const NUMERO_CLIENTE_PRUEBA = 'PRUEBA';
+  if (MODO_PRUEBA) {
+    document.body.classList.add('test-mode');
+    document.title = 'Go Lunch — Cliente de prueba';
+  }
+
   // Deben coincidir con services/menu.js
   const ZONAS  = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
   const ZONA_DESC = { zona_vdc: 'Zona 1 · Centro de distribución', zona_refris: 'Zona 2 · Línea de refrigeradores' };
@@ -2255,7 +2343,7 @@
       $('btn-reintentar').hidden = true;
     }
     try {
-      const r = await fetch(API_BASE + '/pedido/estado');
+      const r = await fetch(API_BASE + '/pedido/estado' + (MODO_PRUEBA ? '?prueba=cliente' : ''));
       // Sin esta comprobación, un error del servidor se presentaba como "el
       // comedor aún no publica el menú": la respuesta de error también es JSON
       // y tampoco trae fecha, así que caía en la misma pantalla. Una caída de
@@ -2283,6 +2371,8 @@
     $('cargando').style.display = 'none';
     $('contenido').style.display = 'block';
 
+    if (MODO_PRUEBA) prepararClientePrueba();
+
     if (!estado.fecha) {
       configurarVistaCerrada('sin-menu');
       ir('v-cerrado');
@@ -2305,12 +2395,17 @@
   function configurarVistaCerrada(tipo) {
     const porCorte = tipo === 'corte';
     $('v-cerrado').classList.toggle('modo-corte', porCorte);
-    $('cerrado-titulo').innerHTML = porCorte
-      ? 'Los pedidos por hoy <strong>ya cerraron.</strong>'
-      : 'El menú de <strong>mañana</strong> está tomando forma.';
-    $('cerrado-texto').textContent = porCorte
-      ? 'El corte fue a las ' + estado.corte + '. La cocina ya recibió su comanda. Vuelve mañana para pedir el siguiente día de servicio.'
-      : 'Cocina aún no publica las opciones. En cuanto estén listas, aparecerán aquí para que elijas tu platillo, turno y zona.';
+    if (MODO_PRUEBA && !estado.fecha) {
+      $('cerrado-titulo').innerHTML = 'Aún no hay un menú <strong>para probar.</strong>';
+      $('cerrado-texto').textContent = 'Publica el próximo menú desde el panel y vuelve a abrir el cliente de prueba.';
+    } else {
+      $('cerrado-titulo').innerHTML = porCorte
+        ? 'Los pedidos por hoy <strong>ya cerraron.</strong>'
+        : 'El menú de <strong>mañana</strong> está tomando forma.';
+      $('cerrado-texto').textContent = porCorte
+        ? 'El corte fue a las ' + estado.corte + '. La cocina ya recibió su comanda. Vuelve mañana para pedir el siguiente día de servicio.'
+        : 'Cocina aún no publica las opciones. En cuanto estén listas, aparecerán aquí para que elijas tu platillo, turno y zona.';
+    }
     $('cerrado-btn-label').textContent = porCorte ? 'Revisar de nuevo' : 'Actualizar menú';
     $('cerrado-ultima').classList.remove('error');
     $('cerrado-ultima').textContent = 'Última revisión: ' + formatearHoraActual();
@@ -2347,10 +2442,10 @@
     $('cal-d').textContent = String(d);
     $('fecha-val').textContent = estado.fecha_legible || estado.fecha;
     $('menu-fecha').textContent = estado.fecha_legible || estado.fecha;
-    $('menu-corte').textContent = estado.corte || '8:00 PM';
+    $('menu-corte').textContent = MODO_PRUEBA ? 'Sin límite en prueba' : (estado.corte || '8:00 PM');
     $('fechabar').style.display = 'flex';
     $('fechabar').classList.toggle('cerrado', !estado.abierto);
-    $('fecha-lbl').textContent = estado.abierto ? 'Tu pedido es para' : 'Pedidos cerrados para';
+    $('fecha-lbl').textContent = MODO_PRUEBA ? 'Menú real para' : (estado.abierto ? 'Tu pedido es para' : 'Pedidos cerrados para');
 
     // Si el servicio no es literalmente mañana, decirlo en vez de asumirlo
     const manana = new Date(); manana.setDate(manana.getDate() + 1);
@@ -2362,6 +2457,15 @@
   }
 
   // ── Identificación ──────────────────────────────────────────
+  function prepararClientePrueba() {
+    const campo = $('num');
+    campo.value = NUMERO_CLIENTE_PRUEBA;
+    campo.readOnly = true;
+    $('login-label').textContent = 'Cliente de prueba';
+    $('login-help-text').textContent = 'Esta identidad es temporal y no pertenece a la plantilla de empleados.';
+    $('ajustar-sub').textContent = 'Elige una zona y un turno para recorrer la simulación.';
+  }
+
   async function identificar() {
     const numero = $('num').value.trim();
     if (!numero) return;
@@ -2375,7 +2479,7 @@
       const r = await fetch(API_BASE + '/pedido/identificar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ numero_empleado: numero })
+        body: JSON.stringify({ numero_empleado: numero, modo_prueba: MODO_PRUEBA })
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'No se pudo verificar tu número.');
@@ -2402,9 +2506,11 @@
 
     $('saludo-nombre').textContent = nombreParaSaludo(emp.nombre);
     $('rating-nombre').textContent = nombreParaSaludo(emp.nombre);
-    $('menu-sub').textContent = previo
-      ? 'Tu pedido ya está guardado. Puedes cambiarlo antes del corte.'
-      : 'Elige tu platillo para el próximo servicio.';
+    $('menu-sub').textContent = MODO_PRUEBA
+      ? 'Recorre el menú real. Puedes cambiar libremente la zona y el turno.'
+      : (previo
+          ? 'Tu pedido ya está guardado. Puedes cambiarlo antes del corte.'
+          : 'Elige tu platillo para el próximo servicio.');
 
     pintarPlatillos();
     pintarAjustes();
@@ -2549,6 +2655,7 @@
           opcion_id: sel.opcion_id,
           zona: sel.zona,
           turno: sel.turno,
+          modo_prueba: MODO_PRUEBA,
           // La fecha que ESTA pantalla tenía al elegir. El servidor la compara
           // con la que corresponde ahora y rechaza si ya no coinciden.
           //
@@ -2573,7 +2680,7 @@
         // sin ninguna explicación de por qué.
         sel.opcion_id = null;
         try {
-          const re = await fetch(API_BASE + '/pedido/estado');
+          const re = await fetch(API_BASE + '/pedido/estado' + (MODO_PRUEBA ? '?prueba=cliente' : ''));
           if (re.ok) {
             estado = await re.json();
             pintarFecha();
@@ -2589,14 +2696,25 @@
 
       if (!r.ok) throw new Error(d.error || 'No se pudo registrar tu pedido.');
 
+      const esPrueba = d.modo_prueba === true;
       $('listo-nombre').textContent = nombreParaSaludo(empleado.empleado.nombre);
+      $('listo-titulo').childNodes[0].nodeValue = esPrueba ? '¡Prueba completada, ' : '¡Listo, ';
+      $('listo-sub').textContent = esPrueba
+        ? 'La confirmación se generó correctamente sin registrar un pedido real.'
+        : 'Tu pedido quedó confirmado para el próximo servicio.';
+      $('confirm-status-text').textContent = esPrueba ? 'Simulado' : 'Confirmado';
       $('r-fecha').textContent    = d.fecha_legible || d.fecha;
       $('r-platillo').textContent = d.resumen.platillo;
       $('r-turno').textContent    = d.resumen.turno;
       $('r-zona').textContent     = d.resumen.zona;
       $('r-emp').textContent      = '#' + d.empleado.numero_empleado;
-      $('r-nota').innerHTML       = 'Puedes cambiarlo hasta las <b>' + d.resumen.corte +
-                                    ' de hoy</b>. Usa el botón de abajo si necesitas hacer un cambio.';
+      $('r-nota').innerHTML = esPrueba
+        ? 'Prueba otra combinación de <b>zona, turno o platillo</b> usando el botón de abajo.'
+        : 'Puedes cambiarlo hasta las <b>' + d.resumen.corte +
+          ' de hoy</b>. Usa el botón de abajo si necesitas hacer un cambio.';
+      $('confirm-close-note').textContent = esPrueba
+        ? 'No se modificaron pedidos, comandas, etiquetas ni reportes.'
+        : 'Tu pedido ya está guardado. Puedes cerrar esta página con tranquilidad.';
       $('fechabar').style.display = 'none';
       ir('v-listo');
     } catch (e) {
@@ -2610,7 +2728,9 @@
 
   function volverAlMenu() {
     $('fechabar').style.display = 'flex';
-    $('menu-sub').textContent = 'Tu pedido ya está guardado. Puedes cambiarlo antes del corte.';
+    $('menu-sub').textContent = MODO_PRUEBA
+      ? 'Cambia cualquier dato y vuelve a comprobar la confirmación.'
+      : 'Tu pedido ya está guardado. Puedes cambiarlo antes del corte.';
     ir('v-menu');
   }
 
@@ -2662,7 +2782,7 @@
     empleado = null;
     PENDIENTE_RATING = null;
     sel = { opcion_id: null, zona: null, turno: null };
-    $('num').value = '';
+    $('num').value = MODO_PRUEBA ? NUMERO_CLIENTE_PRUEBA : '';
     $('platillos').innerHTML = '';
     $('asig-turno').textContent = '—';
     $('asig-hora').textContent = '—';
@@ -2674,6 +2794,10 @@
     if (estado) pintarFecha();          // la barra de fecha se restaura
     ir('v-id');
     enfocarNumeroSiConviene();
+  }
+
+  function salirModoPrueba() {
+    location.href = location.pathname;
   }
 
   function mostrarAviso(msg, tipo) {
