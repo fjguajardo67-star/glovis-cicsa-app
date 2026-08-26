@@ -166,6 +166,10 @@
 <div id="salida"></div>
 
 <script>
+  // Debe coincidir exactamente con QR_PRUEBA_ESCANER en entrega.html.
+  const QR_PRUEBA_ESCANER = 'GOLUNCH|PRUEBA_ESCANER|V1';
+  const MODO_PRUEBA_ENTREGA = new URLSearchParams(location.search).get('prueba') === 'entrega';
+
   const PASOS = [
     ['Escanea', 'Apunta la cámara de tu teléfono a este código'],
     ['Identifícate', 'Escribe el número de empleado de tu gafete'],
@@ -240,6 +244,31 @@
     </div>`;
   }
 
+  function cartelPruebaEntrega(destino) {
+    return `
+    <div class="hoja">
+      <div class="cartel prueba-entrega">
+        <div class="marca">
+          <img class="golunch" src="golunch-compacto.png" alt="CICSA GoLunch" onerror="this.style.display='none'">
+        </div>
+        <h1>Prueba del escáner de entrega</h1>
+        <p class="lema">Código técnico permanente · no representa a ningún empleado ni pedido</p>
+        ${hueco(250)}
+        <div class="corte">VDC · REFRIS &nbsp;|&nbsp; Turno A · Turno B</div>
+        <div class="pasos">
+          <div class="paso"><div class="n">1</div><div class="t"><b>Inicia sesión</b>Usa la clave personal del repartidor.</div></div>
+          <div class="paso"><div class="n">2</div><div class="t"><b>Elige su ruta</b>VDC o REFRIS, según sus permisos.</div></div>
+          <div class="paso"><div class="n">3</div><div class="t"><b>Abre la cámara</b>Centra este QR dentro del marco.</div></div>
+        </div>
+        <div class="instalar">
+          <div class="instalar-tit">Resultado esperado: “Prueba correcta”</div>
+          <p class="instalar-pie">Comprueba cámara, lectura, identidad y permiso de zona. No usa fecha, hora ni georreferencia; tampoco modifica pedidos, cola, contadores o reportes.</p>
+        </div>
+        <p class="url">${destino}</p>
+      </div>
+    </div>`;
+  }
+
   function tarjetas(destino) {
     const una = `
       <div class="tarjeta">
@@ -254,7 +283,18 @@
   // dominio, los QR nuevos apuntan solos al correcto. Sigue siendo editable
   // por si se quiere generar para otro sitio.
   const campoUrl = document.getElementById('url');
-  if (!campoUrl.value) campoUrl.value = location.origin + '/pedido.html';
+  if (MODO_PRUEBA_ENTREGA) {
+    document.title = 'Go Lunch — QR de prueba del escáner';
+    document.querySelector('.controles b').textContent = 'QR de prueba del escáner';
+    document.querySelector('.nota-uso').innerHTML =
+      '<b>No registra entregas.</b> Imprime esta hoja o muestra el código en otra pantalla para comprobar la cámara y los permisos del repartidor.';
+    document.querySelectorAll('.controles > div').forEach(el => { el.style.display = 'none'; });
+    document.getElementById('formato').value = 'cartel';
+    campoUrl.value = QR_PRUEBA_ESCANER;
+    campoUrl.readOnly = true;
+  } else if (!campoUrl.value) {
+    campoUrl.value = location.origin + '/pedido.html';
+  }
 
   function pintar() {
     const destino = document.getElementById('url').value.trim();
@@ -264,8 +304,12 @@
     if (!destino) { salida.innerHTML = '<div class="hoja">Escribe la dirección a la que debe apuntar el QR.</div>'; return; }
 
     let html = '';
-    if (formato === 'cartel' || formato === 'ambos') html += cartel(destino);
-    if (formato === 'tarjetas' || formato === 'ambos') html += tarjetas(destino);
+    if (MODO_PRUEBA_ENTREGA) {
+      html = cartelPruebaEntrega(QR_PRUEBA_ESCANER);
+    } else {
+      if (formato === 'cartel' || formato === 'ambos') html += cartel(destino);
+      if (formato === 'tarjetas' || formato === 'ambos') html += tarjetas(destino);
+    }
     salida.innerHTML = html;
 
     pintarQRs(destino);   // hasta ahora los huecos ya están en la página

@@ -463,6 +463,11 @@
   const ZONA_TXT  = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
   const TURNO_TXT = { turno_a: 'Turno A', turno_b: 'Turno B' };
 
+  // Debe coincidir exactamente con el que genera qr.html?prueba=entrega.
+  // No representa un empleado ni una entrega: solo prueba cámara, lector y
+  // permisos de la sesión activa, sin tocar cola, pedidos ni Supabase.
+  const QR_PRUEBA_ESCANER = 'GOLUNCH|PRUEBA_ESCANER|V1';
+
   const ZONAS_VALIDAS = Object.keys(ZONA_TXT);
 
   const LS = {
@@ -618,7 +623,11 @@
     // Sin sesión (modo legado o administrador) no hay restricción del lado del
     // equipo; el servidor manda de todas formas.
     const z = SESION?.repartidor?.zonas;
-    return Array.isArray(z) && z.length ? z : ZONAS_VALIDAS;
+    // Una sesión personal sin zonas NO equivale a acceso total. El servidor
+    // aplica la misma regla; mantenerla aquí evita que la pantalla prometa un
+    // permiso que después será rechazado al descargar o registrar.
+    if (SESION?.repartidor) return Array.isArray(z) ? z : [];
+    return ZONAS_VALIDAS;
   }
 
   async function entrar() {
@@ -1268,12 +1277,47 @@
   const FECHA_REPARTO = 'hoy';
 
   // ── Registrar una entrega ─────────────────────────────────
+  function comprobarEscaner(numero, origen) {
+    if (numero !== QR_PRUEBA_ESCANER) return false;
+
+    if (origen !== 'camara') {
+      flash('mal', 'Usa la cámara',
+        'Este QR comprueba únicamente el escáner visual de la PWA.',
+        'Prueba del escáner');
+      return true;
+    }
+
+    const repartidor = SESION?.repartidor;
+    if (!repartidor) {
+      flash('mal', 'Falta una sesión personal',
+        'Entra con la clave de un repartidor para comprobar sus permisos.',
+        'Prueba del escáner');
+      return true;
+    }
+
+    const autorizadas = zonasAutorizadas();
+    if (!ZONA || (Array.isArray(autorizadas) && !autorizadas.includes(ZONA))) {
+      flash('mal', 'Zona no autorizada',
+        'La sesión de ' + repartidor.nombre + ' no tiene permiso para esta ruta.',
+        'Prueba del escáner');
+      return true;
+    }
+
+    flash('ok', 'Prueba correcta',
+      'Escáner y permiso de ' + repartidor.nombre + ' para ' +
+      (ZONA_TXT[ZONA] || ZONA) + ' correctos. Válido para Turno A y Turno B. ' +
+      'No se registró ninguna entrega.',
+      'Prueba del escáner');
+    return true;
+  }
+
   function entregar(numero, origen) {
     // El campo se limpia SIEMPRE, no solo al acertar: con un lector, un rechazo
     // que dejara el texto haría que el siguiente escaneo se pegara al anterior.
     if (origen === 'manual') { $('manual').value = ''; enfocarLector(); }
     numero = String(numero || '').trim().toUpperCase();
     if (!numero) return;
+    if (comprobarEscaner(numero, origen)) return;
 
     // El QR trae "GL-001|2026-08-03": la fecha evita que la etiqueta de
     // ayer marque una entrega de hoy.
@@ -1596,11 +1640,11 @@
   };
   const ETIQUETAS_FLASH = { ok: 'Entrega registrada', dup: 'Revisar entrega', mal: 'No se registró' };
   let flashTimer = null;
-  function flash(tipo, titulo, detalle) {
+  function flash(tipo, titulo, detalle, etiqueta) {
     const el = $('flash');
     el.className = 'flash ver ' + tipo;
     $('flash-icon').innerHTML = ICONOS_FLASH[tipo] || ICONOS_FLASH.mal;
-    $('flash-eyebrow').textContent = ETIQUETAS_FLASH[tipo] || ETIQUETAS_FLASH.mal;
+    $('flash-eyebrow').textContent = etiqueta || ETIQUETAS_FLASH[tipo] || ETIQUETAS_FLASH.mal;
     $('flash-t').textContent = titulo;
     $('flash-s').textContent = detalle || '';
     el.parentElement.classList.add('mostrando-resultado');

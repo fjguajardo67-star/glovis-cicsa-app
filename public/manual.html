@@ -305,10 +305,23 @@
     <div class="paso"><div class="n">5</div><div class="t"><b>Con pistola Bluetooth o escáner integrado</b>, activa <b>"Lector Bluetooth"</b> una sola vez. La app mantiene el campo preparado y no abre el teclado en pantalla entre entregas.</div></div>
     <div class="paso"><div class="n">6</div><div class="t"><b>Al terminar, revisa que "Por subir" esté en 0</b> antes de cerrar la app. Si no está en cero, espera a tener señal — baja solo.</div></div>
 
+    <h3>Probar el escáner sin registrar una entrega</h3>
+    <p>Desde Panel → Cocina abre <b>“QR permanente de prueba del escáner”</b>.
+      Es el mismo código para todos los días y sirve en <b>VDC, REFRIS, Turno A y
+      Turno B</b>.</p>
+    <div class="paso"><div class="n">1</div><div class="t"><b>Entra con la clave personal del repartidor</b> y elige una de las rutas que tiene autorizadas.</div></div>
+    <div class="paso"><div class="n">2</div><div class="t"><b>Abre la cámara y escanea el QR de prueba.</b> No lo captures manualmente: la intención es comprobar la cámara.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Debe aparecer “Prueba correcta”</b> con el nombre del repartidor y la ruta seleccionada.</div></div>
+    <div class="caja tip">
+      Este QR no depende de empleado, pedido, fecha, hora, turno ni ubicación.
+      <b>No modifica Supabase, pedidos, cola, contadores o reportes.</b>
+    </div>
+
     <h3>Qué significa cada aviso</h3>
     <table>
       <tr><th>Aviso</th><th>Qué significa</th><th>Qué hacer</th></tr>
       <tr><td><b style="color:#1e7a22">Verde</b> con nombre</td><td>Entrega registrada</td><td>Nada — sigue con la siguiente</td></tr>
+      <tr><td><b style="color:#1e7a22">“Prueba correcta”</b></td><td>La cámara leyó el QR y el repartidor tiene permiso para la ruta mostrada</td><td>Nada se registró; puedes repetir en la otra ruta autorizada</td></tr>
       <tr><td><b style="color:#b8860b">"Ya estaba entregada"</b></td><td>Esa etiqueta ya se escaneó antes</td><td>Verifica que no estés entregando doble</td></tr>
       <tr><td><b style="color:#c0392b">"No está en la lista"</b></td><td>Ese número no tiene pedido hoy</td><td>Revisa el número; si insiste, avisa al administrador</td></tr>
       <tr><td><b style="color:#c0392b">"Etiqueta de otro día"</b></td><td>La etiqueta es de una fecha distinta</td><td>NO la entregues — es comida de otro día</td></tr>
@@ -460,6 +473,7 @@
       <tr><td>Panel de administración</td><td><code class="url-app" data-ruta="/admin.html">—</code></td><td>Administración</td></tr>
       <tr><td>App de entrega</td><td><code class="url-app" data-ruta="/entrega.html">—</code></td><td>Repartidor</td></tr>
       <tr><td>Hoja de instalación del repartidor</td><td><code class="url-app" data-ruta="/instalar-entrega.html">—</code></td><td>Administración (imprimir)</td></tr>
+      <tr><td>QR permanente de prueba del escáner</td><td><code class="url-app" data-ruta="/qr.html?prueba=entrega">—</code></td><td>Administración y reparto</td></tr>
       <tr><td>QR para imprimir (comedor)</td><td><code class="url-app" data-ruta="/qr.html">—</code></td><td>Administración (imprimir)</td></tr>
       <tr><td>Este manual</td><td><code class="url-app" data-ruta="/manual.html">—</code></td><td>Todos</td></tr>
     </table>
