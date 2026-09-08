@@ -11,6 +11,11 @@ espacios reducidos se usa el recorte fiel `public/golunch-aprobado-mark.png`.
 Los originales autorizados, incluido el trazo monocromático, viven en
 `assets/brand/` y no deben redibujarse desde CSS.
 
+El panel usa una familia propia de íconos `public/panel-*`: favicon compacto
+para pestañas y una placa azul corporativa, opaca y de borde a borde para el
+Dock de macOS. La versión maestra del Dock es de 1024 px; el isotipo aprobado
+se conserva intacto dentro de una placa blanca con margen de seguridad.
+
 ## Principios
 
 - Una pantalla, una tarea principal. Las funciones administrativas se agrupan
