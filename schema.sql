@@ -519,7 +519,8 @@ BEGIN
            estado = 'confirmada', cancelado_en = NULL,
            actualizado_en = NOW()
      WHERE id = v_solicitud_id;
-    DELETE FROM solicitudes_cobertura_items WHERE solicitud_id = v_solicitud_id;
+    DELETE FROM solicitudes_cobertura_items i
+     WHERE i.solicitud_id = v_solicitud_id;
   END IF;
 
   INSERT INTO solicitudes_cobertura_items (
@@ -540,7 +541,8 @@ BEGIN
       ON e.numero_empleado = trim(x->>'numero_empleado') AND e.activo = true;
 
   SELECT count(*) INTO v_total
-    FROM solicitudes_cobertura_items WHERE solicitud_id = v_solicitud_id;
+    FROM solicitudes_cobertura_items i
+   WHERE i.solicitud_id = v_solicitud_id;
   UPDATE solicitudes_cobertura
      SET total_porciones = v_total, actualizado_en = NOW()
    WHERE id = v_solicitud_id;

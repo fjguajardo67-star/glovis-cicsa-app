@@ -102,7 +102,15 @@ export async function guardarSolicitud(supervisorId, entrada) {
     });
     return db.getSolicitudCobertura(supervisorId, horario.fecha);
   } catch (err) {
-    throw traducirErrorBD(err);
+    const traducido = traducirErrorBD(err);
+    if (traducido.motivo === 'error_servidor') {
+      console.error('[Cobertura] Error inesperado guardando solicitud:', {
+        code: err?.code,
+        message: err?.message,
+        hint: err?.hint
+      });
+    }
+    throw traducido;
   }
 }
 
