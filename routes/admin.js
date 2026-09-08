@@ -202,6 +202,141 @@ adminRouter.post('/repartidores/:id/clave', async (req, res) => {
   }
 });
 
+// ── Coberturas del segundo turno ───────────────────────────────
+// Glovis decide quién está autorizado; CICSA lo selecciona de la plantilla
+// existente. No hay una segunda captura libre de nombre o número.
+adminRouter.get('/cobertura/supervisores', async (req, res) => {
+  try {
+    res.json({ supervisores: await db.listSupervisoresCobertura() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/cobertura/supervisores', async (req, res) => {
+  try {
+    const { empleado_telefono, clave, vigente_desde, vigente_hasta } = req.body || {};
+    if (!empleado_telefono) return res.status(400).json({ error: 'Selecciona un empleado de la plantilla.' });
+    if (vigente_desde && !/^\d{4}-\d{2}-\d{2}$/.test(vigente_desde)) {
+      return res.status(400).json({ error: 'La fecha de inicio no es válida.' });
+    }
+    if (vigente_hasta && !/^\d{4}-\d{2}-\d{2}$/.test(vigente_hasta)) {
+      return res.status(400).json({ error: 'La fecha de término no es válida.' });
+    }
+    if (vigente_desde && vigente_hasta && vigente_hasta < vigente_desde) {
+      return res.status(400).json({ error: 'La fecha de término no puede ser anterior al inicio.' });
+    }
+    const empleado = await db.getEmpleado(empleado_telefono);
+    if (!empleado) return res.status(404).json({ error: 'El empleado no existe o está inactivo.' });
+    const elegida = claveElegida(clave);
+    if (elegida.error) return res.status(400).json({ error: elegida.error });
+    const enClaro = elegida.usar || generarClave();
+    const supervisor = await db.crearSupervisorCobertura({
+      empleado_telefono: empleado.telefono,
+      clave_hash: await hashClave(enClaro),
+      vigente_desde,
+      vigente_hasta
+    });
+    res.json({ ok: true, supervisor, clave: enClaro });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'Ese empleado ya está autorizado como supervisor.' });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.put('/cobertura/supervisores/:id', async (req, res) => {
+  try {
+    const cambios = {};
+    if (req.body?.activo !== undefined) cambios.activo = !!req.body.activo;
+    if (req.body?.vigente_desde !== undefined) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(req.body.vigente_desde || '')) {
+        return res.status(400).json({ error: 'La fecha de inicio no es válida.' });
+      }
+      cambios.vigente_desde = req.body.vigente_desde;
+    }
+    if (req.body?.vigente_hasta !== undefined) {
+      if (req.body.vigente_hasta && !/^\d{4}-\d{2}-\d{2}$/.test(req.body.vigente_hasta)) {
+        return res.status(400).json({ error: 'La fecha de término no es válida.' });
+      }
+      cambios.vigente_hasta = req.body.vigente_hasta || null;
+    }
+    let supervisor = await db.actualizarSupervisorCobertura(req.params.id, cambios);
+    if (req.body?.activo === false) supervisor = await db.subirVersionSesionSupervisor(req.params.id);
+    res.json({ ok: true, supervisor });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/cobertura/supervisores/:id/clave', async (req, res) => {
+  try {
+    const elegida = claveElegida(req.body?.clave);
+    if (elegida.error) return res.status(400).json({ error: elegida.error });
+    const enClaro = elegida.usar || generarClave();
+    await db.actualizarSupervisorCobertura(req.params.id, { clave_hash: await hashClave(enClaro) });
+    const supervisor = await db.subirVersionSesionSupervisor(req.params.id);
+    res.json({ ok: true, supervisor, clave: enClaro });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.get('/cobertura/menu/:fecha', async (req, res) => {
+  try {
+    res.json({ menu: await db.getMenuCobertura(req.params.fecha) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.post('/cobertura/menu', async (req, res) => {
+  try {
+    const { fecha, opcion_1, opcion_2, opcion_3, activo } = req.body || {};
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '') || !opcion_1?.trim() || !opcion_2?.trim() || !opcion_3?.trim()) {
+      return res.status(400).json({ error: 'Se requieren la fecha y las tres opciones del menú especial.' });
+    }
+    const opciones = [opcion_1.trim(), opcion_2.trim(), opcion_3.trim()];
+    if (new Set(opciones.map(x => x.toLocaleUpperCase('es-MX'))).size !== 3) {
+      return res.status(400).json({ error: 'Las tres opciones del menú deben ser distintas.' });
+    }
+    const anterior = await db.getMenuCobertura(fecha);
+    const solicitudes = await db.contarSolicitudesCobertura(fecha);
+    const cambioTexto = anterior && [
+      anterior.opcion_1 !== opcion_1.trim(),
+      anterior.opcion_2 !== opcion_2.trim(),
+      anterior.opcion_3 !== opcion_3.trim()
+    ].some(Boolean);
+    if (solicitudes && cambioTexto) {
+      return res.status(409).json({
+        error: `Ya existen ${solicitudes} solicitud(es). No se puede cambiar el menú que esas personas confirmaron.`
+      });
+    }
+    const menu = await db.upsertMenuCobertura({
+      fecha, opcion_1: opcion_1.trim(), opcion_2: opcion_2.trim(), opcion_3: opcion_3.trim(), activo
+    });
+    res.json({ ok: true, menu });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+adminRouter.get('/cobertura/solicitudes/:fecha', async (req, res) => {
+  try {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(req.params.fecha || '')) {
+      return res.status(400).json({ error: 'Fecha inválida.' });
+    }
+    const solicitudes = await db.listSolicitudesCobertura(req.params.fecha);
+    res.json({
+      solicitudes,
+      total_solicitudes: solicitudes.filter(s => s.estado !== 'cancelada').length,
+      total_porciones: solicitudes.filter(s => s.estado !== 'cancelada')
+        .reduce((s, x) => s + (x.total_porciones || 0), 0)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Menús ───────────────────────────────────────────────────────
 
 adminRouter.get('/menu/:fecha', async (req, res) => {

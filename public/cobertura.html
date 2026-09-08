@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#061b44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Cobertura · Go Lunch</title>
+<link rel="manifest" href="/app-pedido.webmanifest">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/icono-180.png">
+<style>
+  :root{--navy:#061b44;--blue:#0d47d7;--bright:#2563eb;--mist:#eef5ff;--line:#d8e2f0;--ink:#0d1b3e;--muted:#64748b;--white:#fff;--green:#18733b;--green-bg:#e9f7ef;--red:#b42318;--red-bg:#fff0ee;--gold:#9a6814;--gold-bg:#fff6df}
+  *{box-sizing:border-box}html{background:#e8eef8}body{margin:0;min-height:100vh;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:var(--ink);background:linear-gradient(180deg,#f8fbff 0,#f2f6fc 68%,#e4efff 100%)}
+  button,input,select{font:inherit}button{cursor:pointer}.oculto{display:none!important}
+  .app{min-height:100vh;max-width:560px;margin:0 auto;background:rgba(255,255,255,.76);box-shadow:0 18px 48px rgba(15,23,42,.1)}
+  .brand{background:var(--navy);padding:max(18px,env(safe-area-inset-top)) 20px 18px;color:#fff}
+  .brand-lockup{display:flex;align-items:center;justify-content:space-between;gap:14px}.logos{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:9px 12px;min-height:52px}.logos img:first-child{width:auto;height:34px}.logos .divider{width:1px;height:29px;background:#dbe4f1}.logos img:last-child{width:auto;height:27px}.brand-copy{text-align:right}.brand-copy b,.brand-copy span{display:block}.brand-copy b{font-size:.85rem}.brand-copy span{font-size:.68rem;color:#a9c3ef;margin-top:2px}
+  main{padding:22px 18px 40px}.lead{padding:4px 2px 20px}.lead h1{font-size:1.8rem;line-height:1.08;letter-spacing:-.035em;margin:0;max-width:13ch}.lead p{color:var(--muted);font-size:.9rem;line-height:1.55;margin:10px 0 0;max-width:48ch}
+  .timing{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;margin-bottom:18px}.timing div{padding:12px 10px;text-align:center;border-left:1px solid var(--line)}.timing div:first-child{border-left:0}.timing b,.timing span{display:block}.timing b{font-size:.82rem;color:var(--navy)}.timing span{font-size:.65rem;color:var(--muted);margin-top:2px}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(6,27,68,.06);margin-bottom:14px}.panel h2{font-size:1.05rem;margin:0 0 5px;letter-spacing:-.015em}.panel>p{font-size:.8rem;color:var(--muted);line-height:1.5;margin:0 0 17px}
+  label{display:block;font-size:.7rem;font-weight:800;color:#4d5b73;text-transform:uppercase;letter-spacing:.055em;margin:14px 0 6px}.field{position:relative}.field svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:#7c8aa3}.field input{padding-left:42px}
+  input,select{width:100%;min-height:50px;border:1.5px solid var(--line);border-radius:11px;padding:11px 13px;background:#f8faff;color:var(--ink);outline:0}input:focus,select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px #dce9ff}input[aria-invalid=true]{border-color:var(--red);background:var(--red-bg)}
+  .btn{width:100%;min-height:52px;border:0;border-radius:12px;padding:12px 16px;font-weight:800;background:var(--blue);color:#fff;box-shadow:0 7px 18px rgba(13,71,215,.2);margin-top:17px}.btn:hover{background:#0a3ebf}.btn:disabled{background:#a9b7cc;box-shadow:none;cursor:not-allowed}.btn.sec{background:#fff;color:var(--blue);border:1.5px solid var(--blue);box-shadow:none}.btn.danger{color:var(--red);border-color:#efaaa4}.link{border:0;background:transparent;color:var(--blue);font-weight:750;padding:8px;text-decoration:none}
+  .error,.notice{border-radius:10px;padding:11px 13px;font-size:.8rem;line-height:1.45;margin-top:12px}.error{background:var(--red-bg);color:var(--red)}.notice{background:var(--gold-bg);color:var(--gold)}.success{background:var(--green-bg);color:var(--green)}
+  .session{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}.session strong,.session span{display:block}.session strong{font-size:1rem}.session span{font-size:.75rem;color:var(--muted);margin-top:2px}
+  .menu-strip{display:grid;gap:8px;margin:14px 0}.menu-option{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#f8faff}.menu-option i{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:var(--mist);color:var(--blue);font-style:normal;font-weight:900;font-size:.76rem}.menu-option b{font-size:.82rem}
+  .responsable-ok,.persona-nombre{min-height:19px;font-size:.76rem;color:var(--green);font-weight:700;margin-top:5px}.responsable-ok.error-text,.persona-nombre.error-text{color:var(--red)}
+  .personas{display:grid;gap:10px;margin-top:12px}.persona{border:1px solid var(--line);border-radius:13px;padding:13px;background:#fbfcff}.persona-top{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:8px}.persona-remove{border:0;border-radius:9px;background:#fff0ee;color:var(--red);font-weight:900}.persona label{margin-top:10px}.add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;margin-top:10px;border:1.5px dashed #93add6;border-radius:11px;background:#f6f9ff;color:var(--blue);font-weight:800}.add svg{width:17px;height:17px}
+  .summary{position:sticky;bottom:10px;background:var(--navy);color:#fff;border-radius:15px;padding:14px 15px;margin-top:16px;box-shadow:0 14px 30px rgba(6,27,68,.25);z-index:2}.summary-row{display:flex;justify-content:space-between;gap:12px;align-items:center}.summary b{font-size:.96rem}.summary span{font-size:.72rem;color:#b9cae8}.summary-row>div b,.summary-row>div span{display:block}.summary .btn{background:#fff;color:var(--navy);box-shadow:none;margin-top:12px}
+  .receipt-mark{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:var(--green-bg);color:var(--green);margin-bottom:13px}.receipt-mark svg{width:28px;height:28px}.receipt h2{font-size:1.25rem}.receipt-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-top:16px}.receipt-grid div{background:#fff;padding:12px}.receipt-grid span,.receipt-grid b{display:block}.receipt-grid span{font-size:.64rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.receipt-grid b{font-size:.82rem;margin-top:4px}.receipt-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .empty{text-align:center;padding:28px 16px}.empty svg{width:48px;height:48px;color:#7d9ac9}.empty h2{margin-top:12px}.empty p{max-width:34ch;margin:8px auto 0;color:var(--muted);font-size:.84rem;line-height:1.5}.footer{text-align:center;padding:6px 16px 26px}.footer a{color:var(--blue);font-size:.78rem;font-weight:750;text-decoration:none}
+  @media(max-width:400px){.brand-copy{display:none}.logos{margin:auto}.lead h1{font-size:1.55rem}.timing b{font-size:.75rem}.timing span{font-size:.6rem}.receipt-actions{grid-template-columns:1fr}}
+  @media(prefers-reduced-motion:no-preference){.panel{animation:in .3s cubic-bezier(.16,1,.3,1)}@keyframes in{from{transform:translateY(8px);opacity:.5}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<!--
+THESIS: Solicitar cobertura debe sentirse como armar una lista clara, no como llenar una orden administrativa.
+OWN-WORLD: Azul corporativo, placas blancas, líneas frías y controles amplios del Go Lunch existente.
+STORY: El supervisor entra, asigna una opción a cada empleado, confirma responsable y zona, y obtiene un folio.
+FIRST VIEWPORT: Marca compacta, propósito, horario inmutable y acceso; la acción principal queda al alcance del pulgar.
+FORM: Extensión móvil de operación del mundo existente; seed incumbent-extension.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+<div class="app">
+  <header class="brand">
+    <div class="brand-lockup">
+      <div class="logos">
+        <img src="/golunch-lateral.png" alt="CICSA GoLunch" width="372" height="195">
+        <span class="divider" aria-hidden="true"></span>
+        <img src="/glovis-logo.png" alt="Hyundai Glovis" width="220" height="56">
+      </div>
+      <div class="brand-copy"><b>Cobertura</b><span>Segundo turno</span></div>
+    </div>
+  </header>
+
+  <main>
+    <section id="login">
+      <div class="lead"><h1>Alimentos para quienes extienden su jornada.</h1><p>Acceso exclusivo para supervisores autorizados por Glovis.</p></div>
+      <div class="timing" aria-label="Horario del servicio"><div><b>3:00 PM</b><span>Cierre</span></div><div><b>4:30 PM</b><span>Salida</span></div><div><b>5:00 PM</b><span>Entrega</span></div></div>
+      <form class="panel" onsubmit="event.preventDefault();entrar()">
+        <h2>Acceso de supervisor</h2><p>Usa el número de tu gafete y la clave que te entregó CICSA.</p>
+        <label for="numero">Número de empleado</label>
+        <div class="field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></svg><input id="numero" autocomplete="username" inputmode="numeric" required></div>
+        <label for="clave">Clave personal</label>
+        <div class="field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input id="clave" type="password" autocomplete="current-password" required></div>
+        <div id="login-error" class="error oculto" role="alert"></div>
+        <button id="btn-login" class="btn">Entrar a cobertura</button>
+      </form>
+    </section>
+
+    <section id="contenido" class="oculto">
+      <div class="session"><div><strong id="supervisor-nombre">—</strong><span id="supervisor-numero">—</span></div><button class="link" onclick="salir()">Cerrar sesión</button></div>
+      <div id="estado-cerrado" class="panel empty oculto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <h2 id="cerrado-titulo">Solicitudes cerradas</h2><p id="cerrado-texto">El conteo quedó listo para producción.</p>
+      </div>
+
+      <div id="editor" class="oculto">
+        <div class="lead"><h1>Arma la cobertura de hoy.</h1><p id="fecha-servicio">Entrega hoy a las 5:00 PM.</p></div>
+        <section class="panel">
+          <h2>Menú especial</h2><p>Selecciona una opción para cada empleado. No admite modificaciones de preparación.</p>
+          <div id="menu-opciones" class="menu-strip"></div>
+        </section>
+        <section class="panel">
+          <h2>Entrega del lote</h2><p>El responsable puede ser el propio supervisor u otro empleado activo.</p>
+          <label for="zona">Zona</label><select id="zona"><option value="">Seleccionar zona</option><option value="zona_vdc">Glovis VDC</option><option value="zona_refris">Glovis REFRIS</option></select>
+          <label for="responsable">Número del responsable</label><input id="responsable" inputmode="numeric" onblur="buscarResponsable()"><div id="responsable-nombre" class="responsable-ok"></div>
+        </section>
+        <section class="panel">
+          <h2>Personas y alimentos</h2><p>Cada número genera una etiqueta individual con nombre y platillo.</p>
+          <div id="personas" class="personas"></div>
+          <button class="add" type="button" onclick="agregarPersona()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar empleado</button>
+          <div id="solicitud-error" class="error oculto" role="alert"></div>
+        </section>
+        <div class="summary"><div class="summary-row"><div><b id="total">0 alimentos</b><span id="cuenta-regresiva">Cierra a las 3:00 PM</span></div><span>Entrega 5:00 PM</span></div><button id="btn-guardar" class="btn" onclick="guardarSolicitud()">Confirmar solicitud</button></div>
+      </div>
+
+      <section id="recibo" class="panel receipt oculto">
+        <div class="receipt-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m6 12 4 4 8-9"/></svg></div>
+        <h2>Solicitud confirmada</h2><p>El conteo ya está visible para CICSA. Puedes modificarlo hasta las 3:00 PM.</p>
+        <div class="receipt-grid"><div><span>Folio</span><b id="rec-folio">—</b></div><div><span>Alimentos</span><b id="rec-total">—</b></div><div><span>Zona</span><b id="rec-zona">—</b></div><div><span>Responsable</span><b id="rec-responsable">—</b></div></div>
+        <div id="rec-acciones" class="receipt-actions"><button class="btn sec" onclick="editarSolicitud()">Modificar</button><button class="btn sec danger" onclick="cancelarSolicitud()">Cancelar</button></div>
+      </section>
+    </section>
+  </main>
+  <footer class="footer"><a href="/pedido.html">Volver al pedido personal</a></footer>
+</div>
+
+<script>
+  const API='';
+  const LS='golunch_cobertura_sesion';
+  const ZONAS={zona_vdc:'Glovis VDC',zona_refris:'Glovis REFRIS'};
+  const $=id=>document.getElementById(id);
+  let SESION=null,ESTADO=null,FILAS=[],RESPONSABLE=null;
+
+  try{SESION=JSON.parse(localStorage.getItem(LS)||'null')}catch{}
+  if(SESION?.token)cargar();
+
+  function auth(){return{'Authorization':'Bearer '+SESION.token,'Content-Type':'application/json'}}
+  function escapar(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function error(id,msg){const e=$(id);e.textContent=msg;e.classList.toggle('oculto',!msg)}
+
+  async function entrar(){
+    const btn=$('btn-login');btn.disabled=true;btn.textContent='Verificando…';error('login-error','');
+    try{
+      const r=await fetch(API+'/cobertura/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero_empleado:$('numero').value.trim(),clave:$('clave').value})});
+      const d=await r.json();if(!r.ok)throw new Error(d.error||'No se pudo entrar.');
+      SESION={token:d.token,expires_at:d.expires_at,supervisor:d.supervisor};localStorage.setItem(LS,JSON.stringify(SESION));$('clave').value='';await cargar();
+    }catch(e){error('login-error',e.message)}finally{btn.disabled=false;btn.textContent='Entrar a cobertura'}
+  }
+
+  async function cargar(){
+    try{
+      const r=await fetch(API+'/cobertura/estado',{headers:auth()});const d=await r.json();
+      if(r.status===401){salir(false);throw new Error(d.error||'Tu sesión terminó. Vuelve a entrar.')}if(!r.ok)throw new Error(d.error||'No se pudo cargar.');
+      ESTADO=d;$('login').classList.add('oculto');$('contenido').classList.remove('oculto');
+      $('supervisor-nombre').textContent=d.supervisor.nombre;$('supervisor-numero').textContent='#'+d.supervisor.numero_empleado+' · Supervisor autorizado';
+      prepararEstado();
+    }catch(e){if(!$('login').classList.contains('oculto'))error('login-error',e.message);else alert(e.message)}
+  }
+
+  function prepararEstado(){
+    const s=ESTADO.solicitud;
+    if(s&&s.estado!=='cancelada')cargarSolicitud(s);else iniciarNueva();
+    if(!ESTADO.menu){mostrarCerrado('Menú especial pendiente','CICSA todavía no publica las opciones de cobertura para hoy.');return}
+    if(!ESTADO.abierto){mostrarCerrado('El conteo cerró a las 3:00 PM','La solicitud queda visible para producción y se entregará a las 5:00 PM.');if(s&&s.estado!=='cancelada')mostrarRecibo(s,false);return}
+    $('estado-cerrado').classList.add('oculto');
+    if(s&&s.estado!=='cancelada')mostrarRecibo(s,true);else mostrarEditor();
+    pintarMenu();pintarFilas();actualizarTotal();actualizarReloj();
+  }
+
+  function iniciarNueva(){
+    FILAS=[{numero:'',nombre:'',opcion_id:''}];RESPONSABLE={numero:ESTADO.supervisor.numero_empleado,nombre:ESTADO.supervisor.nombre};
+    $('responsable').value=RESPONSABLE.numero;$('responsable-nombre').textContent=RESPONSABLE.nombre;$('zona').value='';
+  }
+  function cargarSolicitud(s){
+    FILAS=(s.items||[]).map(i=>({numero:i.empleado_numero_snapshot,nombre:i.empleado_nombre_snapshot,opcion_id:i.opcion_id}));
+    RESPONSABLE={numero:s.responsable_numero_snapshot,nombre:s.responsable_nombre_snapshot};$('responsable').value=RESPONSABLE.numero;$('responsable-nombre').textContent=RESPONSABLE.nombre;$('zona').value=s.zona;
+  }
+  function mostrarEditor(){$('editor').classList.remove('oculto');$('recibo').classList.add('oculto')}
+  function editarSolicitud(){mostrarEditor();pintarMenu();pintarFilas();actualizarTotal()}
+  function mostrarCerrado(titulo,texto){$('editor').classList.add('oculto');$('recibo').classList.add('oculto');$('estado-cerrado').classList.remove('oculto');$('cerrado-titulo').textContent=titulo;$('cerrado-texto').textContent=texto}
+  function mostrarRecibo(s,editable){
+    $('editor').classList.add('oculto');$('recibo').classList.remove('oculto');$('rec-folio').textContent=s.folio;$('rec-total').textContent=s.total_porciones;$('rec-zona').textContent=ZONAS[s.zona]||s.zona;$('rec-responsable').textContent=s.responsable_nombre_snapshot+' · #'+s.responsable_numero_snapshot;$('rec-acciones').classList.toggle('oculto',!editable)
+  }
+
+  function pintarMenu(){$('menu-opciones').innerHTML=ESTADO.menu.opciones.map((o,i)=>'<div class="menu-option"><i>'+(i+1)+'</i><b>'+escapar(o.texto)+'</b></div>').join('')}
+  function agregarPersona(){FILAS.push({numero:'',nombre:'',opcion_id:''});pintarFilas();actualizarTotal();setTimeout(()=>$('persona-num-'+(FILAS.length-1))?.focus(),0)}
+  function quitarPersona(i){if(FILAS.length===1){FILAS[0]={numero:'',nombre:'',opcion_id:''}}else FILAS.splice(i,1);pintarFilas();actualizarTotal()}
+  function pintarFilas(){
+    const opciones=ESTADO?.menu?.opciones||[];
+    $('personas').innerHTML=FILAS.map((f,i)=>'<div class="persona"><div class="persona-top"><input id="persona-num-'+i+'" value="'+escapar(f.numero)+'" inputmode="numeric" placeholder="Número de empleado" oninput="cambiarNumero('+i+',this.value)" onblur="buscarPersona('+i+')" aria-label="Número de empleado '+(i+1)+'"><button class="persona-remove" type="button" onclick="quitarPersona('+i+')" aria-label="Quitar empleado">×</button></div><div id="persona-nombre-'+i+'" class="persona-nombre '+(f.error?'error-text':'')+'">'+escapar(f.error||f.nombre||'')+'</div><label for="persona-op-'+i+'">Platillo</label><select id="persona-op-'+i+'" onchange="FILAS['+i+'].opcion_id=this.value;actualizarTotal()"><option value="">Seleccionar opción</option>'+opciones.map(o=>'<option value="'+o.id+'" '+(f.opcion_id===o.id?'selected':'')+'>'+escapar(o.texto)+'</option>').join('')+'</select></div>').join('')
+  }
+  function cambiarNumero(i,v){FILAS[i].numero=v.trim();FILAS[i].nombre='';FILAS[i].error=''}
+  async function buscarPersona(i){const f=FILAS[i];if(!f.numero)return;const el=$('persona-nombre-'+i);el.textContent='Buscando…';el.classList.remove('error-text');try{const r=await fetch(API+'/cobertura/empleado/'+encodeURIComponent(f.numero),{headers:auth()});const d=await r.json();if(!r.ok)throw new Error(d.error||'No encontrado');f.numero=d.empleado.numero_empleado;f.nombre=d.empleado.nombre;f.error='';el.textContent=f.nombre}catch(e){f.nombre='';f.error=e.message;el.textContent=e.message;el.classList.add('error-text')}}
+  async function buscarResponsable(){const n=$('responsable').value.trim();RESPONSABLE=null;const el=$('responsable-nombre');if(!n){el.textContent='';return}el.textContent='Buscando…';el.classList.remove('error-text');try{const r=await fetch(API+'/cobertura/empleado/'+encodeURIComponent(n),{headers:auth()});const d=await r.json();if(!r.ok)throw new Error(d.error||'No encontrado');RESPONSABLE={numero:d.empleado.numero_empleado,nombre:d.empleado.nombre};$('responsable').value=RESPONSABLE.numero;el.textContent=RESPONSABLE.nombre}catch(e){el.textContent=e.message;el.classList.add('error-text')}}
+  function actualizarTotal(){const n=FILAS.filter(f=>f.numero&&f.opcion_id).length;$('total').textContent=n+' alimento'+(n===1?'':'s')}
+  function actualizarReloj(){if(!ESTADO?.corte_iso)return;const min=Math.max(0,Math.ceil((new Date(ESTADO.corte_iso)-Date.now())/60000));$('cuenta-regresiva').textContent=min?'Cierra en '+min+' min':'Cerrado para producción'}
+  setInterval(actualizarReloj,30000);
+
+  async function guardarSolicitud(){
+    error('solicitud-error','');await buscarResponsable();
+    for(let i=0;i<FILAS.length;i++)if(FILAS[i].numero&&!FILAS[i].nombre)await buscarPersona(i);
+    const items=FILAS.filter(f=>f.numero||f.opcion_id);
+    if(!RESPONSABLE)return error('solicitud-error','Verifica el número del responsable.');
+    if(!$('zona').value)return error('solicitud-error','Selecciona la zona de entrega.');
+    if(!items.length||items.some(f=>!f.numero||!f.nombre||!f.opcion_id))return error('solicitud-error','Completa y verifica cada empleado y su platillo.');
+    const btn=$('btn-guardar');btn.disabled=true;btn.textContent='Confirmando…';
+    try{const r=await fetch(API+'/cobertura/solicitud',{method:'POST',headers:auth(),body:JSON.stringify({responsable_numero:RESPONSABLE.numero,zona:$('zona').value,items:items.map(f=>({numero_empleado:f.numero,opcion_id:f.opcion_id}))})});const d=await r.json();if(!r.ok)throw new Error(d.detalle?d.error+' '+d.detalle:d.error||'No se pudo guardar.');ESTADO.solicitud=d.solicitud;cargarSolicitud(d.solicitud);mostrarRecibo(d.solicitud,true)}catch(e){error('solicitud-error',e.message)}finally{btn.disabled=false;btn.textContent='Confirmar solicitud'}
+  }
+  async function cancelarSolicitud(){if(!confirm('¿Cancelar toda la cobertura de hoy?'))return;try{const r=await fetch(API+'/cobertura/solicitud',{method:'DELETE',headers:auth()});const d=await r.json();if(!r.ok)throw new Error(d.error||'No se pudo cancelar.');await cargar()}catch(e){alert(e.message)}}
+  function salir(recargar=true){SESION=null;localStorage.removeItem(LS);if(recargar)location.reload();else{$('contenido').classList.add('oculto');$('login').classList.remove('oculto')}}
+  if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+</script>
+</body>
+</html>

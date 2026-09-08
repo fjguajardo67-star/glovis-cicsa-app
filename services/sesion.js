@@ -65,14 +65,19 @@ export function generarClave(largo = 8) {
 // secreto. No llevan nada sensible — solo id, versión y expiración.
 const b64url = b => Buffer.from(b).toString('base64url');
 
-function secreto() {
-  const s = process.env.ENTREGA_SESSION_SECRET;
-  if (!s) throw new Error('ENTREGA_SESSION_SECRET no está configurada en el servidor');
+function secreto(nombre = 'ENTREGA_SESSION_SECRET') {
+  // La cobertura puede tener un secreto propio. Mientras se configura en
+  // Railway hereda el de reparto, pero el `scope` del token impide que una
+  // sesión de supervisor se use como si fuera de un repartidor (o al revés).
+  const s = nombre === 'SUPERVISOR_SESSION_SECRET'
+    ? (process.env.SUPERVISOR_SESSION_SECRET || process.env.ENTREGA_SESSION_SECRET)
+    : process.env[nombre];
+  if (!s) throw new Error(`${nombre} no está configurada en el servidor`);
   return s;
 }
 
-function firmar(datos) {
-  return crypto.createHmac('sha256', secreto()).update(datos).digest('base64url');
+function firmar(datos, nombreSecreto = 'ENTREGA_SESSION_SECRET') {
+  return crypto.createHmac('sha256', secreto(nombreSecreto)).update(datos).digest('base64url');
 }
 
 export const DURACION_SESION_HORAS = 16;
@@ -82,7 +87,9 @@ export function emitirToken(repartidor, horas = DURACION_SESION_HORAS) {
   // v = versión de sesión. Al restablecer la clave o desactivar al repartidor
   // se le sube el número en la base y todos los tokens viejos dejan de valer
   // sin tener que llevar una lista de tokens revocados.
-  const carga = b64url(JSON.stringify({ id: repartidor.id, v: repartidor.version_sesion || 1, exp }));
+  const carga = b64url(JSON.stringify({
+    id: repartidor.id, v: repartidor.version_sesion || 1, exp, scope: 'reparto'
+  }));
   return carga + '.' + firmar(carga);
 }
 
@@ -96,6 +103,41 @@ export function leerToken(token) {
   try {
     const d = JSON.parse(Buffer.from(carga, 'base64url').toString('utf8'));
     if (!d || typeof d.id === 'undefined' || !d.exp) return null;
+    // Los tokens anteriores no llevaban scope y siguen siendo válidos hasta
+    // vencer. Uno nuevo de cobertura nunca puede entrar por reparto.
+    if (d.scope && d.scope !== 'reparto') return null;
+    if (Date.now() > d.exp) return { vencido: true, id: d.id };
+    return d;
+  } catch { return null; }
+}
+
+// ── Sesión de supervisores de cobertura ───────────────────────
+// Comparte el formato probado de reparto, pero usa otro scope y, cuando está
+// disponible, otro secreto. Dura ocho horas: cubre la jornada completa sin
+// dejar abierta una autorización comercial durante días.
+export const DURACION_SUPERVISOR_HORAS = 8;
+
+export function emitirTokenSupervisor(supervisor, horas = DURACION_SUPERVISOR_HORAS) {
+  const exp = Date.now() + horas * 3600 * 1000;
+  const carga = b64url(JSON.stringify({
+    id: supervisor.id,
+    v: supervisor.version_sesion || 1,
+    exp,
+    scope: 'cobertura'
+  }));
+  return carga + '.' + firmar(carga, 'SUPERVISOR_SESSION_SECRET');
+}
+
+export function leerTokenSupervisor(token) {
+  if (typeof token !== 'string' || !token.includes('.')) return null;
+  const i = token.lastIndexOf('.');
+  const carga = token.slice(0, i), firma = token.slice(i + 1);
+  const esperada = firmar(carga, 'SUPERVISOR_SESSION_SECRET');
+  const a = Buffer.from(firma), b = Buffer.from(esperada);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const d = JSON.parse(Buffer.from(carga, 'base64url').toString('utf8'));
+    if (!d || d.scope !== 'cobertura' || typeof d.id === 'undefined' || !d.exp) return null;
     if (Date.now() > d.exp) return { vencido: true, id: d.id };
     return d;
   } catch { return null; }

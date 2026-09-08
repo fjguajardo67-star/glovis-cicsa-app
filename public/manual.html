@@ -127,6 +127,7 @@
       <li><a href="#general">Cómo funciona el sistema</a></li>
       <li><a href="#empleado">Para el empleado — pedir comida</a></li>
       <li><a href="#admin">Para el administrador — el panel</a></li>
+      <li><a href="#cobertura">Coberturas del segundo turno</a></li>
       <li><a href="#reparto">Para el personal de reparto — entregar y escanear</a></li>
       <li><a href="#problemas">Problemas comunes y su solución</a></li>
       <li><a href="#direcciones">Direcciones y claves</a></li>
@@ -177,7 +178,7 @@
     <span class="rol adm">Administración del comedor</span>
 
     <p>Entra al panel con tu <b>clave de administrador</b> (el campo Usuario puede quedar vacío).
-    El panel tiene seis pestañas; esto es lo que se hace en cada una:</p>
+    El panel tiene siete pestañas; esto es lo que se hace en cada una:</p>
 
     <h3>📋 Menú — la tarea diaria más importante</h3>
     <ul>
@@ -246,6 +247,12 @@
       Dos clics y quedó.
     </div>
 
+    <h3>🕒 Coberturas</h3>
+    <p>Administra el servicio del mismo día para personal del primer turno que
+      extiende su jornada. Aquí se publica el menú especial, se autorizan los
+      supervisores que indique Glovis, se consulta el conteo y se imprimen la
+      comanda y las etiquetas separadas del servicio regular.</p>
+
     <h3>Probar la pantalla del cliente</h3>
     <p>Desde Panel → Cocina → <b>Pruebas y soporte</b> abre <b>“Cliente virtual”</b>. El sistema
       precarga una identidad virtual llamada <b>Cliente de prueba</b> y utiliza
@@ -296,9 +303,43 @@
     los mismos pedidos.</p>
   </section>
 
-  <!-- ══════════════ 4. REPARTO ══════════════ -->
+  <!-- ══════════════ 4. COBERTURAS ══════════════ -->
+  <section id="cobertura">
+    <h2>4 · Coberturas del segundo turno</h2>
+    <span class="rol adm">Supervisores Glovis autorizados · CICSA</span>
+
+    <p>Este servicio es para empleados del primer turno que deben continuar en
+      el segundo. Se administra aparte del pedido personal: una persona puede
+      tener su comida regular y también una cobertura el mismo día.</p>
+
+    <h3>Preparación en el panel</h3>
+    <div class="paso"><div class="n">1</div><div class="t"><b>Panel → Coberturas:</b> elige la fecha de hoy y publica las tres opciones rápidas. Una vez que haya solicitudes, el texto del menú ya no puede cambiar.</div></div>
+    <div class="paso"><div class="n">2</div><div class="t"><b>Autoriza únicamente a los supervisores de la lista oficial de Glovis.</b> Selecciónalos desde la plantilla existente; no captures otro nombre manual. Define su vigencia y asigna o genera su clave personal.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t"><b>Anota la clave cuando aparece.</b> Después no se puede consultar; si se pierde, genera una nueva. Desactivar al supervisor o cambiar su clave cierra las sesiones abiertas.</div></div>
+
+    <h3>Solicitud del supervisor</h3>
+    <div class="paso"><div class="n">1</div><div class="t">Entra a <b>Cobertura</b> desde la pantalla principal con su número de empleado y clave personal.</div></div>
+    <div class="paso"><div class="n">2</div><div class="t">Selecciona <b>VDC o REFRIS</b>, captura el número del empleado responsable de recibir y agrega una fila por persona: número de empleado + uno de los tres platillos.</div></div>
+    <div class="paso"><div class="n">3</div><div class="t">Confirma una sola solicitud consolidada. Puede modificarla o cancelarla hasta las <b>3:00 PM</b>. A esa hora cierra el conteo; cocina produce hasta las <b>4:30 PM</b> y se entrega a las <b>5:00 PM</b>.</div></div>
+    <div class="caja importante">
+      La app del supervisor <b>no muestra precios, importes ni condiciones financieras</b>.
+      Esas condiciones pertenecen al catálogo de servicios acordado entre Glovis y CICSA.
+    </div>
+
+    <h3>Cocina y entrega</h3>
+    <ul>
+      <li>La comanda y las etiquetas de cobertura se imprimen desde <b>Panel → Coberturas</b>. No se mezclan con la comanda regular.</li>
+      <li>Cada alimento lleva su propia etiqueta y QR, con empleado, platillo, zona, folio y responsable.</li>
+      <li>El repartidor escanea <b>cada etiqueta</b>, igual que en el servicio regular.</li>
+      <li>En el primer paquete del folio, la tablet pregunta si recibe la persona indicada. Si sí, guarda su nombre para todo el lote.</li>
+      <li>Si recibe otra persona, toca <b>“Recibe otra persona”</b> y escanea una sola vez el QR de su gafete Glovis. El número y el nombre quedan registrados para los demás paquetes del mismo folio.</li>
+      <li>Las coberturas <b>no se incluyen en el cierre masivo de ruta</b>: cada una debe conservar el escaneo de su etiqueta y el receptor.</li>
+    </ul>
+  </section>
+
+  <!-- ══════════════ 5. REPARTO ══════════════ -->
   <section id="reparto">
-    <h2>4 · Para el personal de reparto — entregar y escanear</h2>
+    <h2>5 · Para el personal de reparto — entregar y escanear</h2>
     <span class="rol rep">Repartidor</span>
 
     <h3>Instalación (una sola vez por teléfono)</h3>
@@ -319,7 +360,7 @@
     <div class="paso"><div class="n">1</div><div class="t"><b>Antes de salir, abre la app</b> (con señal). La lista del día se descarga y queda guardada en el teléfono. Arriba se ven los contadores: <b>Entregadas · Pendientes · Por subir</b>.</div></div>
       <div class="paso"><div class="n">2</div><div class="t"><b>Al llegar al punto, toca "Llegué al punto de entrega".</b> Es el paso más importante del día: <b>de esa hora depende que el contrato aplique o no el descuento por entrega tardía</b>, y la app guarda además la coordenada donde estabas. Tócalo apenas llegues, antes de empezar a repartir — repartir 30 comidas toma diez minutos o más, y lo que cuenta es <b>a qué hora llegaste</b>, no cuánto tardaste en repartir.</div></div>
     <div class="paso"><div class="n">3</div><div class="t"><b>Al entregar cada comida</b>, toca <b>"Abrir cámara"</b> y centra el QR de la etiqueta dentro del marco. La barra azul se mueve mientras está buscando; al leer, la cámara se reemplaza por una confirmación grande con el nombre. El teléfono también vibra.</div></div>
-    <div class="paso"><div class="n">4</div><div class="t"><b>Si un QR no se deja leer</b> (etiqueta manchada o rota), toca <b>"Ingresar número manualmente"</b>, captura el número de empleado y presiona <b>"Registrar"</b>. También puedes abrir la lista de Pendientes y tocar <b>"Entregar"</b>.</div></div>
+    <div class="paso"><div class="n">4</div><div class="t"><b>Si un QR no se deja leer</b> (etiqueta manchada o rota), abre la lista de Pendientes y toca <b>"Entregar"</b> en el renglón correcto. Para un pedido regular también puedes usar <b>"Ingresar número manualmente"</b>; en cobertura usa la lista porque el mismo empleado podría tener dos comidas.</div></div>
     <div class="paso"><div class="n">5</div><div class="t"><b>Con pistola Bluetooth o escáner integrado</b>, activa <b>"Lector Bluetooth"</b> una sola vez. La app mantiene el campo preparado y no abre el teclado en pantalla entre entregas.</div></div>
     <div class="paso"><div class="n">6</div><div class="t"><b>Al terminar, revisa que "Por subir" esté en 0</b> antes de cerrar la app. Si no está en cero, espera a tener señal — baja solo.</div></div>
 
@@ -363,7 +404,8 @@
     <p>Si al terminar quedan comidas que su dueño no pasó a recoger, <b>no te las
     lleves de regreso</b>: déjalas con el supervisor y toca
     <b>"Cerrar ruta: entregar lo pendiente al supervisor"</b>. La app te pregunta
-    quién las recibió y las registra como entregadas.</p>
+    quién las recibió y las registra como entregadas. Este cierre aplica
+    <b>solo a pedidos regulares</b>; las coberturas siempre se escanean una por una.</p>
     <div class="caja importante">
       <b>Por qué importa:</b> el contrato descuenta de la factura las comidas
       <b>no entregadas</b>. Una comida que cocinaste, llevaste y dejaste en el
@@ -413,9 +455,9 @@
     </div>
   </section>
 
-  <!-- ══════════════ 5. PROBLEMAS ══════════════ -->
+  <!-- ══════════════ 6. PROBLEMAS ══════════════ -->
   <section id="problemas">
-    <h2>5 · Problemas comunes y su solución</h2>
+    <h2>6 · Problemas comunes y su solución</h2>
     <table>
       <tr><th>Síntoma</th><th>Causa más probable</th><th>Solución</th></tr>
       <tr>
@@ -481,13 +523,14 @@
     </table>
   </section>
 
-  <!-- ══════════════ 6. DIRECCIONES ══════════════ -->
+  <!-- ══════════════ 7. DIRECCIONES ══════════════ -->
   <section id="direcciones">
-    <h2>6 · Direcciones y claves</h2>
+    <h2>7 · Direcciones y claves</h2>
     <table>
       <tr><th>Qué</th><th>Dirección</th><th>Quién la usa</th></tr>
       <tr><td>Dirección corta (lleva a pedir)</td><td><code class="url-app" data-ruta="">—</code></td><td>La que se puede dictar de boca</td></tr>
       <tr><td>Página para pedir</td><td><code class="url-app" data-ruta="/pedido.html">—</code></td><td>Empleados (vía QR del comedor)</td></tr>
+      <tr><td>Solicitud de cobertura</td><td><code class="url-app" data-ruta="/cobertura.html">—</code></td><td>Supervisores autorizados por Glovis</td></tr>
       <tr><td>Panel de administración</td><td><code class="url-app" data-ruta="/admin.html">—</code></td><td>Administración</td></tr>
       <tr><td>App de entrega</td><td><code class="url-app" data-ruta="/entrega.html">—</code></td><td>Repartidor</td></tr>
       <tr><td>Hoja de instalación del repartidor</td><td><code class="url-app" data-ruta="/instalar-entrega.html">—</code></td><td>Administración (imprimir)</td></tr>
@@ -502,6 +545,7 @@
       <tr><th>Clave</th><th>Abre</th><th>Quién la tiene</th></tr>
       <tr><td><b>Clave de administrador</b></td><td>Panel completo, comanda, etiquetas y también la app de entrega</td><td>Solo administración. No se comparte ni se manda por mensaje.</td></tr>
       <tr><td><b>Clave personal de cada repartidor</b></td><td>Únicamente la app de entrega, y solo sus zonas asignadas</td><td>Una por persona. La asigna el administrador desde el panel.</td></tr>
+      <tr><td><b>Clave personal de supervisor</b></td><td>Únicamente la solicitud de cobertura del segundo turno</td><td>Una por supervisor autorizado. La asigna CICSA según la lista oficial de Glovis.</td></tr>
       <tr><td><b>Clave de reparto compartida</b> <em>(en retiro)</em></td><td>La app de entrega, sin identificar a nadie</td><td>Solo funciona si <code>ENTREGA_LEGACY_ENABLED=on</code>. Es temporal, para los equipos que aún no migran.</td></tr>
     </table>
 
@@ -531,6 +575,7 @@
       <tr><th>Variable</th><th>Para qué</th></tr>
       <tr><td><code>ADMIN_KEY</code></td><td>Panel, impresos y diagnóstico. Sin cambios.</td></tr>
       <tr><td><code>ENTREGA_SESSION_SECRET</code></td><td><b>Nueva y obligatoria.</b> Firma las sesiones de los repartidores. Una cadena larga y aleatoria; si se cambia, todos vuelven a entrar.</td></tr>
+      <tr><td><code>SUPERVISOR_SESSION_SECRET</code></td><td>Firma las sesiones de cobertura. Si no se configura, usa temporalmente <code>ENTREGA_SESSION_SECRET</code>; se recomienda separarla.</td></tr>
       <tr><td><code>ENTREGA_LEGACY_ENABLED</code></td><td><b>Nueva y temporal.</b> Ponla en <code>on</code> solo mientras migras. Sin ella, la clave compartida no funciona.</td></tr>
       <tr><td><code>ENTREGA_KEY</code></td><td>La clave compartida de siempre. Se retira al terminar la migración.</td></tr>
     </table>

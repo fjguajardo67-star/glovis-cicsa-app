@@ -17,6 +17,7 @@ Vive en **https://glovis.cicsacomedores.com.mx** (Railway; push a `main` = deplo
 | Página | Para quién |
 |---|---|
 | `/pedido.html` | El empleado — es la que abre el QR del cartel. La raíz redirige aquí |
+| `/cobertura.html` | El supervisor autorizado — solicita coberturas del segundo turno |
 | `/admin.html` | El encargado — empleados, menús, pedidos, reportes, comanda |
 | `/entrega.html` | El repartidor — escanea y confirma entregas (instalable como app) |
 | `/qr.html` | El QR de `pedido.html` para imprimir y pegar |
@@ -46,6 +47,14 @@ pide un motivo del catálogo (`acceso_puerto`, `trafico`, `cliente_ausente`,
 
 Turnos: **turno A 10:00**, **turno B 17:00**.
 
+**Cobertura del segundo turno.** Un supervisor autorizado entra con número de
+empleado y clave personal, y antes de las **15:00** arma una solicitud consolidada
+para personal que extenderá su jornada. Selecciona una de tres opciones rápidas
+por empleado, zona y responsable. Cocina produce hasta las 16:30 y entrega a las
+17:00. Las etiquetas usan `EX|uuid|fecha`, por lo que no chocan con un pedido
+regular del mismo empleado. El repartidor escanea cada recipiente y confirma una
+sola vez quién recibe el folio; si cambia el receptor, escanea su gafete Glovis.
+
 ## Base de datos
 
 Postgres en Supabase, proyecto **`glovis-cicsa-app`**
@@ -53,6 +62,8 @@ Postgres en Supabase, proyecto **`glovis-cicsa-app`**
 
 ```
 empleados   menus   pedidos   envios
+supervisores_cobertura   menus_cobertura
+solicitudes_cobertura    solicitudes_cobertura_items
 ```
 
 ⚠ **El proyecto es COMPARTIDO con Grill Express**, que vive en las mismas bases con
@@ -64,7 +75,8 @@ El SQL vive en `schema.sql` y se pega a mano en el SQL Editor de Supabase.
 
 ## Endpoints
 
-Todo `/api/*` exige el header `x-admin-key`.
+Las rutas administrativas exigen `x-admin-key`. Reparto y cobertura usan sesiones
+personales firmadas y con scopes separados.
 
 | Método | Ruta | Qué hace |
 |---|---|---|
@@ -90,6 +102,17 @@ tocar la de administración:
 | GET | `/api/entrega/:fecha` | Pedidos del día para el escáner |
 | POST | `/api/entrega` | Confirma entregas **en lote** |
 
+**Cobertura — sesión propia del supervisor:**
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| POST | `/cobertura/login` | Inicia sesión con número y clave personal |
+| GET | `/cobertura/estado` | Menú, horario y solicitud de hoy |
+| GET | `/cobertura/empleado/:numero` | Confirma un empleado de la plantilla |
+| POST/DELETE | `/cobertura/solicitud` | Guarda, modifica o cancela antes del corte |
+| GET | `/comanda-cobertura/:fecha` | Comanda especial imprimible |
+| GET | `/etiquetas-cobertura/:fecha` | Etiquetas especiales imprimibles |
+
 **Administración — `x-admin-key`:**
 
 | Método | Ruta | Qué hace |
@@ -104,6 +127,10 @@ tocar la de administración:
 | GET | `/api/resumen-cocina/:fecha` | Conteo por platillo |
 | GET | `/api/reportes` · `/api/dashboard/:fecha` | Reportes y tablero |
 | POST | `/api/enviar-menu` | Envío masivo por WhatsApp (inactivo hasta Meta) |
+| GET/POST | `/api/cobertura/supervisores` | Consulta y autoriza supervisores |
+| PUT/POST | `/api/cobertura/supervisores/:id` · `/:id/clave` | Estado, vigencia y clave |
+| GET/POST | `/api/cobertura/menu/:fecha` · `/api/cobertura/menu` | Menú especial del día |
+| GET | `/api/cobertura/solicitudes/:fecha` | Solicitudes y conteo de cobertura |
 
 ## Variables de entorno
 
@@ -115,6 +142,8 @@ no las necesita.
 | `SUPABASE_URL`, `SUPABASE_KEY` | Base de datos (key `service_role`) |
 | `ADMIN_KEY` | Panel y rutas `/api/*` |
 | `ENTREGA_KEY` | Solo el escáner del repartidor |
+| `ENTREGA_SESSION_SECRET` | Firma sesiones personales de reparto |
+| `SUPERVISOR_SESSION_SECRET` | Firma sesiones de cobertura; puede heredar temporalmente la de reparto |
 | `TZ` | `America/Mexico_City` (default si no se pone) |
 | `CRON_COCINA` | Comanda automática de las 20:05 |
 | `TELEFONO_COCINA` | A dónde llega la comanda |
@@ -127,6 +156,7 @@ no las necesita.
 - **Corte de pedidos:** 20:00 hrs — se pide para el día siguiente
 - **Comanda automática:** 20:05 hrs
 - **Turnos de entrega:** A 10:00 · B 17:00, con 15 min de tolerancia
+- **Cobertura:** solicitud hasta 15:00 · salida 16:30 · entrega 17:00
 - **Zona horaria:** `America/Mexico_City` (Lázaro Cárdenas, Michoacán)
 - **Escala actual:** ~125 empleados
 

@@ -6,7 +6,12 @@ import { webhookRouter } from './routes/webhook.js';
 import { adminRouter } from './routes/admin.js';
 import { pedidoRouter } from './routes/pedido.js';
 import { entregaRouter } from './routes/entrega.js';
+import { coberturaRouter } from './routes/cobertura.js';
 import { resumenCocina, htmlComanda, etiquetas, htmlEtiquetas, iniciarCronCocina } from './services/cocina.js';
+import {
+  resumenCobertura, htmlComandaCobertura,
+  etiquetasCobertura, htmlEtiquetasCobertura
+} from './services/cocina-cobertura.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -137,6 +142,10 @@ app.use('/api', adminRouter);
 // API pública de la página del empleado (identifica por número de empleado)
 app.use('/pedido', pedidoRouter);
 
+// Solicitudes grupales del mismo día para personal que cubre el segundo
+// turno. Tiene autenticación propia de supervisores y no toca /pedido.
+app.use('/cobertura', coberturaRouter);
+
 // Comanda de cocina imprimible (HTML). Se abre en el navegador con:
 //   /comanda/2026-07-20?key=ADMIN_KEY
 // Usa ?key= en lugar del header x-admin-key para poder abrirse directo
@@ -191,6 +200,46 @@ app.get('/etiquetas/:fecha', async (req, res) => {
   }
 });
 
+// Impresos separados: cocina los recibe junto con la operación del Turno B,
+// pero los datos no se mezclan con el pedido regular ni con su restricción de
+// una comida por empleado y fecha.
+app.get('/comanda-cobertura/:fecha', async (req, res) => {
+  if (!process.env.ADMIN_KEY || req.query.key !== process.env.ADMIN_KEY) {
+    return res.status(401).send('No autorizado');
+  }
+  const fecha = req.params.fecha;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).send('Fecha inválida');
+  try {
+    res.type('html').send(htmlComandaCobertura(await resumenCobertura(fecha)));
+  } catch (err) {
+    console.error('[Comanda cobertura] Error:', err);
+    res.status(500).send('Error generando la comanda de cobertura');
+  }
+});
+
+app.get('/etiquetas-cobertura/:fecha', async (req, res) => {
+  if (!process.env.ADMIN_KEY || req.query.key !== process.env.ADMIN_KEY) {
+    return res.status(401).send('No autorizado');
+  }
+  const fecha = req.params.fecha;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).send('Fecha inválida');
+  const num = (v, def, min, max) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= min && n <= max ? n : def;
+  };
+  try {
+    const datos = await etiquetasCobertura(fecha, {
+      ancho: num(req.query.ancho, 57, 20, 210),
+      alto: num(req.query.alto, 32, 15, 297),
+      modo: req.query.modo === 'hoja' ? 'hoja' : 'rollo'
+    });
+    res.type('html').send(htmlEtiquetasCobertura(datos));
+  } catch (err) {
+    console.error('[Etiquetas cobertura] Error:', err);
+    res.status(500).send('Error generando las etiquetas de cobertura');
+  }
+});
+
 // 404
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
@@ -219,6 +268,9 @@ app.listen(PORT, () => {
   if (!process.env.ENTREGA_SESSION_SECRET) {
     console.warn('[CICSA] ADVERTENCIA: ENTREGA_SESSION_SECRET no está configurada — ' +
                  'los repartidores no podrán entrar con su clave personal.');
+  } else if (!process.env.SUPERVISOR_SESSION_SECRET) {
+    console.warn('[CICSA] AVISO: SUPERVISOR_SESSION_SECRET no está configurada — ' +
+                 'las sesiones de cobertura usarán temporalmente el secreto de reparto.');
   }
   iniciarCronCocina();
 });

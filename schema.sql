@@ -259,6 +259,298 @@ CREATE TABLE IF NOT EXISTS envios (
 );
 CREATE INDEX IF NOT EXISTS idx_envios_msgid ON envios (message_id);
 
+-- ════════════════════════════════════════════════════════════════════
+-- COBERTURAS DEL SEGUNDO TURNO
+--
+-- Solicitudes grupales que hacen supervisores autorizados cuando personal
+-- del primer turno cubre el segundo. Se piden el MISMO día hasta las 15:00,
+-- se producen entre las 15:00 y las 16:30 y viajan con la ruta de las 17:00.
+-- Viven aparte de `pedidos`: una persona puede tener su comida regular y una
+-- cobertura el mismo día sin que el UNIQUE de pedidos reemplace ninguna.
+-- ════════════════════════════════════════════════════════════════════
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS supervisores_cobertura (
+    id                BIGSERIAL PRIMARY KEY,
+    empleado_telefono VARCHAR NOT NULL,
+    clave_hash        TEXT    NOT NULL,
+    activo            BOOLEAN NOT NULL DEFAULT true,
+    vigente_desde     DATE    NOT NULL DEFAULT CURRENT_DATE,
+    vigente_hasta     DATE,
+    version_sesion    INTEGER NOT NULL DEFAULT 1,
+    creado_en         TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    actualizado_en    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT supervisores_cobertura_empleado_unico UNIQUE (empleado_telefono),
+    CONSTRAINT supervisores_cobertura_empleado_fkey
+      FOREIGN KEY (empleado_telefono) REFERENCES empleados(telefono)
+      ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT supervisores_cobertura_vigencia_valida
+      CHECK (vigente_hasta IS NULL OR vigente_hasta >= vigente_desde)
+);
+
+CREATE INDEX IF NOT EXISTS idx_supervisores_cobertura_activo
+  ON supervisores_cobertura (activo);
+
+-- Tres opciones de preparación rápida. La fecha es la del MISMO día de
+-- entrega; no se mezcla con `menus`, que gobierna los pedidos regulares del
+-- próximo día publicado.
+CREATE TABLE IF NOT EXISTS menus_cobertura (
+    fecha        DATE PRIMARY KEY,
+    opcion_1     TEXT NOT NULL,
+    opcion_2     TEXT NOT NULL,
+    opcion_3     TEXT NOT NULL,
+    activo       BOOLEAN NOT NULL DEFAULT true,
+    creado_en    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    actualizado_en TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS solicitudes_cobertura (
+    id                          BIGSERIAL PRIMARY KEY,
+    folio                       TEXT NOT NULL UNIQUE,
+    fecha_servicio              DATE NOT NULL REFERENCES menus_cobertura(fecha),
+    supervisor_id               BIGINT NOT NULL REFERENCES supervisores_cobertura(id) ON DELETE RESTRICT,
+    supervisor_numero_snapshot  TEXT NOT NULL,
+    supervisor_nombre_snapshot  TEXT NOT NULL,
+    responsable_telefono        VARCHAR NOT NULL,
+    responsable_numero_snapshot TEXT NOT NULL,
+    responsable_nombre_snapshot TEXT NOT NULL,
+    zona                        VARCHAR NOT NULL,
+    turno                       VARCHAR NOT NULL DEFAULT 'turno_b',
+    total_porciones             INTEGER NOT NULL DEFAULT 0,
+    estado                      VARCHAR NOT NULL DEFAULT 'confirmada',
+    entregado_en                TIMESTAMP WITH TIME ZONE,
+    creado_en                   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    actualizado_en              TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    cancelado_en                TIMESTAMP WITH TIME ZONE,
+    CONSTRAINT solicitudes_cobertura_responsable_fkey
+      FOREIGN KEY (responsable_telefono) REFERENCES empleados(telefono)
+      ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT solicitud_cobertura_unica_por_supervisor
+      UNIQUE (fecha_servicio, supervisor_id),
+    CONSTRAINT solicitudes_cobertura_zona_valida
+      CHECK (zona IN ('zona_vdc','zona_refris')),
+    CONSTRAINT solicitudes_cobertura_turno_b
+      CHECK (turno = 'turno_b'),
+    CONSTRAINT solicitudes_cobertura_estado_valido
+      CHECK (estado IN ('confirmada','cancelada','entregada')),
+    CONSTRAINT solicitudes_cobertura_total_valido
+      CHECK (total_porciones >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_solicitudes_cobertura_fecha
+  ON solicitudes_cobertura (fecha_servicio, zona, estado);
+
+-- Una fila por recipiente. El QR usa `codigo_entrega`, no número+fecha:
+-- el mismo empleado puede tener un pedido regular y una cobertura ese día.
+CREATE TABLE IF NOT EXISTS solicitudes_cobertura_items (
+    id                       BIGSERIAL PRIMARY KEY,
+    solicitud_id             BIGINT NOT NULL REFERENCES solicitudes_cobertura(id) ON DELETE CASCADE,
+    fecha_servicio           DATE NOT NULL,
+    empleado_telefono        VARCHAR NOT NULL,
+    empleado_numero_snapshot TEXT NOT NULL,
+    empleado_nombre_snapshot TEXT NOT NULL,
+    opcion_id                VARCHAR NOT NULL,
+    opcion_texto             TEXT NOT NULL,
+    codigo_entrega           UUID NOT NULL DEFAULT gen_random_uuid(),
+    entregado_en             TIMESTAMP WITH TIME ZONE,
+    entrega_recibido_en      TIMESTAMP WITH TIME ZONE,
+    entrega_lat              DOUBLE PRECISION,
+    entrega_lon              DOUBLE PRECISION,
+    entrega_precision_m      REAL,
+    entregado_por_id         BIGINT,
+    entregado_por_nombre     TEXT,
+    receptor_numero          TEXT,
+    receptor_nombre          TEXT,
+    receptor_discrepante     BOOLEAN NOT NULL DEFAULT false,
+    receptor_verificado      BOOLEAN,
+    motivo_tardia            VARCHAR,
+    creado_en                TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT solicitudes_cobertura_item_empleado_fkey
+      FOREIGN KEY (empleado_telefono) REFERENCES empleados(telefono)
+      ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT solicitudes_cobertura_item_repartidor_fkey
+      FOREIGN KEY (entregado_por_id) REFERENCES repartidores(id) ON DELETE SET NULL,
+    CONSTRAINT solicitudes_cobertura_item_unico
+      UNIQUE (solicitud_id, empleado_telefono),
+    CONSTRAINT solicitudes_cobertura_codigo_unico UNIQUE (codigo_entrega),
+    CONSTRAINT solicitudes_cobertura_opcion_valida
+      CHECK (opcion_id IN ('especial_1','especial_2','especial_3'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_cobertura_items_fecha
+  ON solicitudes_cobertura_items (fecha_servicio, entregado_en);
+
+-- Guarda o reemplaza la única solicitud consolidada del supervisor para hoy.
+-- La función es transaccional: si un empleado no existe, está repetido o ya
+-- pertenece a otra cobertura, no queda media solicitud guardada.
+CREATE OR REPLACE FUNCTION guardar_solicitud_cobertura(
+  p_fecha DATE,
+  p_supervisor_id BIGINT,
+  p_folio TEXT,
+  p_responsable_numero TEXT,
+  p_zona VARCHAR,
+  p_items JSONB
+)
+RETURNS TABLE (solicitud_id BIGINT, solicitud_folio TEXT, total INTEGER)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_ahora TIMESTAMP;
+  v_solicitud_id BIGINT;
+  v_supervisor_tel VARCHAR;
+  v_supervisor_numero TEXT;
+  v_supervisor_nombre TEXT;
+  v_responsable_tel VARCHAR;
+  v_responsable_numero TEXT;
+  v_responsable_nombre TEXT;
+  v_menu menus_cobertura%ROWTYPE;
+  v_error TEXT;
+  v_total INTEGER;
+BEGIN
+  -- Serializa las ediciones del mismo día para que dos supervisores no puedan
+  -- asignar simultáneamente la misma comida a una persona.
+  PERFORM pg_advisory_xact_lock(hashtext('cobertura:' || p_fecha::TEXT));
+
+  v_ahora := timezone('America/Mexico_City', NOW());
+  IF v_ahora::DATE <> p_fecha THEN
+    RAISE EXCEPTION 'fecha_cobertura_invalida';
+  END IF;
+  IF v_ahora::TIME >= TIME '15:00' THEN
+    RAISE EXCEPTION 'cobertura_cerrada';
+  END IF;
+  IF p_zona NOT IN ('zona_vdc','zona_refris') THEN
+    RAISE EXCEPTION 'zona_invalida';
+  END IF;
+  IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' OR jsonb_array_length(p_items) = 0 THEN
+    RAISE EXCEPTION 'sin_alimentos';
+  END IF;
+
+  SELECT s.empleado_telefono, e.numero_empleado, e.nombre
+    INTO v_supervisor_tel, v_supervisor_numero, v_supervisor_nombre
+    FROM supervisores_cobertura s
+    JOIN empleados e ON e.telefono = s.empleado_telefono
+   WHERE s.id = p_supervisor_id
+     AND s.activo = true
+     AND e.activo = true
+     AND s.vigente_desde <= p_fecha
+     AND (s.vigente_hasta IS NULL OR s.vigente_hasta >= p_fecha);
+  IF NOT FOUND THEN RAISE EXCEPTION 'supervisor_no_autorizado'; END IF;
+
+  SELECT telefono, numero_empleado, nombre
+    INTO v_responsable_tel, v_responsable_numero, v_responsable_nombre
+    FROM empleados
+   WHERE numero_empleado = trim(p_responsable_numero) AND activo = true;
+  IF NOT FOUND THEN RAISE EXCEPTION 'responsable_no_encontrado'; END IF;
+
+  SELECT * INTO v_menu
+    FROM menus_cobertura
+   WHERE fecha = p_fecha AND activo = true;
+  IF NOT FOUND THEN RAISE EXCEPTION 'menu_cobertura_no_disponible'; END IF;
+
+  SELECT string_agg(numero, ', ')
+    INTO v_error
+    FROM (
+      SELECT trim(x->>'numero_empleado') AS numero
+        FROM jsonb_array_elements(p_items) x
+       GROUP BY trim(x->>'numero_empleado')
+      HAVING count(*) > 1
+    ) repetidos;
+  IF v_error IS NOT NULL THEN
+    RAISE EXCEPTION 'empleados_repetidos:%', v_error;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM jsonb_array_elements(p_items) x
+     WHERE x->>'opcion_id' NOT IN ('especial_1','especial_2','especial_3')
+  ) THEN
+    RAISE EXCEPTION 'opcion_especial_invalida';
+  END IF;
+
+  SELECT string_agg(trim(x->>'numero_empleado'), ', ')
+    INTO v_error
+    FROM jsonb_array_elements(p_items) x
+    LEFT JOIN empleados e
+      ON e.numero_empleado = trim(x->>'numero_empleado') AND e.activo = true
+   WHERE e.telefono IS NULL;
+  IF v_error IS NOT NULL THEN
+    RAISE EXCEPTION 'empleados_no_encontrados:%', v_error;
+  END IF;
+
+  SELECT id INTO v_solicitud_id
+    FROM solicitudes_cobertura
+   WHERE fecha_servicio = p_fecha AND supervisor_id = p_supervisor_id
+   FOR UPDATE;
+
+  SELECT string_agg(e.numero_empleado, ', ')
+    INTO v_error
+    FROM jsonb_array_elements(p_items) x
+    JOIN empleados e ON e.numero_empleado = trim(x->>'numero_empleado')
+    JOIN solicitudes_cobertura_items i
+      ON i.fecha_servicio = p_fecha AND i.empleado_telefono = e.telefono
+    JOIN solicitudes_cobertura s ON s.id = i.solicitud_id
+   WHERE s.estado <> 'cancelada'
+     AND (v_solicitud_id IS NULL OR s.id <> v_solicitud_id);
+  IF v_error IS NOT NULL THEN
+    RAISE EXCEPTION 'empleados_ya_asignados:%', v_error;
+  END IF;
+
+  IF v_solicitud_id IS NULL THEN
+    INSERT INTO solicitudes_cobertura (
+      folio, fecha_servicio, supervisor_id,
+      supervisor_numero_snapshot, supervisor_nombre_snapshot,
+      responsable_telefono, responsable_numero_snapshot,
+      responsable_nombre_snapshot, zona, turno, estado
+    ) VALUES (
+      p_folio, p_fecha, p_supervisor_id,
+      v_supervisor_numero, v_supervisor_nombre,
+      v_responsable_tel, v_responsable_numero,
+      v_responsable_nombre, p_zona, 'turno_b', 'confirmada'
+    ) RETURNING id INTO v_solicitud_id;
+  ELSE
+    IF EXISTS (SELECT 1 FROM solicitudes_cobertura WHERE id = v_solicitud_id AND estado = 'entregada') THEN
+      RAISE EXCEPTION 'solicitud_ya_entregada';
+    END IF;
+    UPDATE solicitudes_cobertura
+       SET responsable_telefono = v_responsable_tel,
+           responsable_numero_snapshot = v_responsable_numero,
+           responsable_nombre_snapshot = v_responsable_nombre,
+           zona = p_zona,
+           estado = 'confirmada', cancelado_en = NULL,
+           actualizado_en = NOW()
+     WHERE id = v_solicitud_id;
+    DELETE FROM solicitudes_cobertura_items WHERE solicitud_id = v_solicitud_id;
+  END IF;
+
+  INSERT INTO solicitudes_cobertura_items (
+    solicitud_id, fecha_servicio, empleado_telefono,
+    empleado_numero_snapshot, empleado_nombre_snapshot,
+    opcion_id, opcion_texto
+  )
+  SELECT v_solicitud_id, p_fecha, e.telefono,
+         e.numero_empleado, e.nombre,
+         x->>'opcion_id',
+         CASE x->>'opcion_id'
+           WHEN 'especial_1' THEN v_menu.opcion_1
+           WHEN 'especial_2' THEN v_menu.opcion_2
+           WHEN 'especial_3' THEN v_menu.opcion_3
+         END
+    FROM jsonb_array_elements(p_items) x
+    JOIN empleados e
+      ON e.numero_empleado = trim(x->>'numero_empleado') AND e.activo = true;
+
+  SELECT count(*) INTO v_total
+    FROM solicitudes_cobertura_items WHERE solicitud_id = v_solicitud_id;
+  UPDATE solicitudes_cobertura
+     SET total_porciones = v_total, actualizado_en = NOW()
+   WHERE id = v_solicitud_id;
+
+  RETURN QUERY
+    SELECT s.id, s.folio, s.total_porciones
+      FROM solicitudes_cobertura s WHERE s.id = v_solicitud_id;
+END;
+$$;
+
 -- Índices para acelerar consultas frecuentes
 CREATE INDEX IF NOT EXISTS idx_pedidos_fecha ON pedidos (fecha_menu);
 CREATE INDEX IF NOT EXISTS idx_empleados_activo ON empleados (activo);

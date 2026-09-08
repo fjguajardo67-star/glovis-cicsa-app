@@ -455,6 +455,27 @@
   </div>
 </div>
 
+<!-- Confirmación del receptor de una cobertura. Se pregunta una sola vez por
+     folio; si recibe alguien distinto, el siguiente código leído debe ser el
+     QR de su gafete Glovis. -->
+<div class="receptor-fondo" id="receptor-fondo" role="dialog" aria-modal="true" aria-labelledby="receptor-titulo">
+  <div class="receptor-caja">
+    <span class="receptor-marca" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/><path d="m16.5 13.5 1.5 1.5 3-3"/></svg>
+    </span>
+    <p class="receptor-eyebrow">Cobertura · segundo turno</p>
+    <h2 id="receptor-titulo">Confirma quién recibe</h2>
+    <p id="receptor-texto">—</p>
+    <div class="receptor-resumen" id="receptor-resumen"></div>
+    <div class="receptor-error oculto" id="receptor-error" role="alert"></div>
+    <div class="receptor-acciones" id="receptor-acciones">
+      <button class="btn receptor-si" id="receptor-si" type="button" onclick="confirmarReceptorEsperado()">Sí, es la persona indicada</button>
+      <button class="btn sec" type="button" onclick="solicitarGafeteReceptor()">Recibe otra persona</button>
+    </div>
+    <button class="btn-texto receptor-cancelar" type="button" onclick="cancelarReceptor()">Cancelar</button>
+  </div>
+</div>
+
 <script>
   // Mismo origen que la página: el backend sirve estas páginas, así que la
   // dirección nunca se escribe a mano. Cambiar de dominio es solo DNS.
@@ -473,7 +494,7 @@
   const LS = {
     clave:  'cicsa_entrega_clave',
     datos:  'cicsa_entrega_datos',   // LEGADO: { fecha, pedidos: [...] } de todas las zonas
-    cola:   'cicsa_entrega_cola',    // [{ numero_empleado, entregado_en, fecha, zona }]
+    cola:   'cicsa_entrega_cola',    // [{ tipo, codigo_entrega, numero_empleado, entregado_en, fecha, zona }]
     lector: 'cicsa_entrega_lector',  // modo pistola/escáner integrado
     zona:   'cicsa_entrega_zona',    // 'zona_vdc' | 'zona_refris' — se fija por equipo
     indice: 'cicsa_entrega_indice',  // { fecha, mapa: { numero: zona } } de TODAS las zonas
@@ -488,7 +509,10 @@
     // Sesión del repartidor: token firmado + su nombre y zonas. La CLAVE nunca
     // se guarda — si el equipo se pierde, lo que hay adentro caduca solo y el
     // administrador puede cerrarlo desde el panel.
-    sesion: 'cicsa_entrega_sesion'
+    sesion: 'cicsa_entrega_sesion',
+    // Receptor confirmado por folio de cobertura. Se recuerda durante el día
+    // para no preguntarlo en cada uno de los recipientes del mismo lote.
+    receptores: 'cicsa_entrega_receptores_cobertura'
   };
   // Una caché por zona: cambiar de VDC a REFRIS no debe mezclar listas ni
   // contadores, y volver a la anterior no debe obligar a descargar de nuevo.
@@ -522,6 +546,8 @@
   // Arriba por la misma razón que las anteriores: el arranque la lee antes
   // de que el script termine de parsear.
   let SESION = null;
+  let RECEPTORES = { fecha: '', mapa: {} };
+  let RECEPTOR_PENDIENTE = null; // { pedido, esperandoGafete }
 
   // ── Ubicación ─────────────────────────────────────────────
   // El contrato descuenta el 30% de lo entregado fuera de tiempo, y la defensa
@@ -580,6 +606,30 @@
   const $ = id => document.getElementById(id);
   const leerLS  = (k, def) => { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } };
   const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  function clavePedido(p) {
+    return p?.tipo === 'cobertura'
+      ? 'cobertura|' + String(p.codigo_entrega || '')
+      : 'regular|' + String(p?.numero_empleado || '');
+  }
+
+  function claveResultado(r) {
+    return r?.tipo === 'cobertura'
+      ? 'cobertura|' + String(r.codigo_entrega || '')
+      : 'regular|' + String(r?.numero_empleado || '');
+  }
+
+  function pedidoPorClave(clave) {
+    return PEDIDOS.find(p => clavePedido(p) === clave) || null;
+  }
+
+  function receptoresDelDia() {
+    if (RECEPTORES.fecha !== FECHA) {
+      RECEPTORES = { fecha: FECHA, mapa: {} };
+      guardar(LS.receptores, RECEPTORES);
+    }
+    return RECEPTORES.mapa;
+  }
 
   function actualizarTema() {
     const oscuro = document.documentElement.dataset.theme === 'dark';
@@ -806,6 +856,10 @@
   async function iniciar() {
     $('gate').classList.add('oculto');
     COLA = leerLS(LS.cola, []);
+    RECEPTORES = leerLS(LS.receptores, { fecha: '', mapa: {} });
+    if (!RECEPTORES || typeof RECEPTORES !== 'object' || !RECEPTORES.mapa) {
+      RECEPTORES = { fecha: '', mapa: {} };
+    }
     ZONA = localStorage.getItem(LS.zona) || '';
 
     // Con una sola zona autorizada no hay nada que preguntar: se toma sola.
@@ -959,7 +1013,10 @@
   // queda constancia de quién la recibió. Sin esto, el propio sistema
   // registraba esas comidas como faltantes — evidencia en contra.
   function cerrarRuta() {
-    const pend = PEDIDOS.filter(p => !p.entregado_en);
+    // Una cobertura nunca se cierra en masa: sus etiquetas deben escanearse y
+    // quedar ligadas al responsable declarado o al gafete del receptor real.
+    const especiales = PEDIDOS.filter(p => p.tipo === 'cobertura' && !p.entregado_en);
+    const pend = PEDIDOS.filter(p => p.tipo !== 'cobertura' && !p.entregado_en);
     if (!pend.length) return mostrarAviso('avisoSync', 'No queda nada pendiente por cerrar.', 'info');
 
     const previo = localStorage.getItem(LS.supervisor) || '';
@@ -978,6 +1035,7 @@
       p.entregado_a = 'supervisor';
       p.recibido_por = nombre;
       COLA.push({
+        tipo: 'regular', codigo_entrega: p.numero_empleado,
         numero_empleado: p.numero_empleado, entregado_en: ahora,
         fecha: FECHA, zona: p.zona || ZONA,
         entregado_a: 'supervisor', recibido_por: nombre,
@@ -989,6 +1047,9 @@
     guardar(LS.cola, COLA);
     guardarCacheZona();
     flash('ok', pend.length + ' entregadas al supervisor', 'Recibió: ' + nombre);
+    if (especiales.length) {
+      mostrarAviso('avisoSync', especiales.length + ' cobertura(s) siguen pendientes: escanea cada etiqueta para registrar al receptor.', 'info');
+    }
     pintar();
     if (navigator.onLine) sincronizar();
   }
@@ -1040,11 +1101,13 @@
 
   function zonaDeElemento(e) {
     if (e && e.zona) return e.zona;
-    const n = e && e.numero_empleado;
-    if (!n) return '';
-    const local = PEDIDOS.find(p => String(p.numero_empleado) === String(n));
+    const clave = clavePedido(e);
+    const local = pedidoPorClave(clave);
     if (local && local.zona) return local.zona;
-    return INDICE_ZONAS[n] || '';
+    const indice = e?.tipo === 'cobertura'
+      ? 'EX|' + String(e.codigo_entrega || '')
+      : String(e?.numero_empleado || '');
+    return INDICE_ZONAS[indice] || '';
   }
 
   // ── Sincronización ────────────────────────────────────────
@@ -1128,28 +1191,32 @@
           // CONFIRME, o que lo rechace por regla de negocio (ese pedido no
           // existe). Un error del servidor o de red lo deja en la cola para
           // reintentar — borrarlo ahí sería perder una entrega real.
-          const confirmados = new Set(d.resultados.filter(x => x.ok).map(x => x.numero_empleado));
+          const confirmados = new Set(d.resultados.filter(x => x.ok).map(claveResultado));
           // 'zona_incorrecta' entra aquí a propósito: es un rechazo de negocio,
           // no una falla pasajera. Dejarlo reintentando trabaría la cola para
           // siempre y con ella el cambio de zona. Se avisa con nombre y apellido
           // para que ese pedido se registre desde el equipo que sí le toca.
-          const RECHAZO_DEFINITIVO = ['sin_pedido', 'empleado_no_encontrado', 'sin_numero', 'zona_incorrecta'];
+          const RECHAZO_DEFINITIVO = [
+            'sin_pedido', 'sin_pedido_especial', 'solicitud_cancelada',
+            'empleado_no_encontrado', 'sin_numero', 'zona_incorrecta'
+          ];
           const rechazados = d.resultados.filter(x => !x.ok && RECHAZO_DEFINITIVO.includes(x.motivo));
-          const definitivos = new Set(rechazados.map(x => x.numero_empleado));
+          const definitivos = new Set(rechazados.map(claveResultado));
 
           COLA = COLA.filter(e => {
             const f = e.fecha || FECHA;
             const z = zonaDeElemento(e) || null;
             if (f !== fechaLote || z !== zonaLote) return true;   // otro lote: no tocar
-            return !confirmados.has(e.numero_empleado) && !definitivos.has(e.numero_empleado);
+            const clave = clavePedido(e);
+            return !confirmados.has(clave) && !definitivos.has(clave);
           });
           guardar(LS.cola, COLA);
           if (rechazados.length) {
             mostrarAviso('avisoSync',
               rechazados.length + ' escaneo(s) no se pudieron registrar: ' +
               rechazados.map(x => x.motivo === 'zona_incorrecta'
-                ? x.numero_empleado + ' es de ' + (ZONA_TXT[x.zona_esperada] || 'otra zona') + ' — regístralo desde ese equipo'
-                : x.numero_empleado + ' (' + x.motivo + ')').join(', '), 'err');
+                ? (x.numero_empleado || x.codigo_entrega) + ' es de ' + (ZONA_TXT[x.zona_esperada] || 'otra zona') + ' — regístralo desde ese equipo'
+                : (x.numero_empleado || x.codigo_entrega) + ' (' + x.motivo + ')').join(', '), 'err');
           }
         } catch {}
       }
@@ -1194,10 +1261,10 @@
       FECHA = d.fecha;
       // Lo del servidor manda, EXCEPTO para lo que sigue en la cola local:
       // esas entregas ya ocurrieron aunque el servidor todavía no las tenga.
-      const enCola = new Map(COLA.map(e => [e.numero_empleado, e.entregado_en]));
+      const enCola = new Map(COLA.map(e => [clavePedido(e), e.entregado_en]));
       PEDIDOS = d.pedidos.map(p =>
-        !p.entregado_en && enCola.has(p.numero_empleado)
-          ? { ...p, entregado_en: enCola.get(p.numero_empleado) }
+        !p.entregado_en && enCola.has(clavePedido(p))
+          ? { ...p, entregado_en: enCola.get(clavePedido(p)) }
           : p);
       if (d.turno_hora) TURNO_HORA = d.turno_hora;
       if (d.tolerancia_min != null) TOLERANCIA_MIN = d.tolerancia_min;
@@ -1311,41 +1378,157 @@
     return true;
   }
 
-  function entregar(numero, origen) {
+  function abrirReceptor(p) {
+    RECEPTOR_PENDIENTE = { pedido: p, esperandoGafete: false };
+    $('receptor-titulo').textContent = 'Confirma quién recibe';
+    $('receptor-texto').textContent = 'Esta persona fue indicada para recibir toda la cobertura. Solo se pregunta en el primer paquete del folio.';
+    $('receptor-resumen').innerHTML = '<span>Responsable indicado</span><b>' + esc(p.responsable_nombre || '—') + '</b><small>#' + esc(p.responsable_numero || '—') + ' · ' + esc(p.folio || '') + '</small>';
+    $('receptor-si').textContent = 'Sí, recibe ' + (p.responsable_nombre || 'la persona indicada');
+    $('receptor-error').classList.add('oculto');
+    $('receptor-acciones').classList.remove('oculto');
+    $('receptor-fondo').classList.add('ver');
+  }
+
+  function cerrarReceptor() {
+    $('receptor-fondo').classList.remove('ver');
+    $('receptor-acciones').classList.remove('oculto');
+    $('receptor-error').classList.add('oculto');
+  }
+
+  function cancelarReceptor() {
+    RECEPTOR_PENDIENTE = null;
+    cerrarReceptor();
+    enfocarLector();
+  }
+
+  function recordarReceptor(p, receptor) {
+    if (!p.folio) return;
+    receptoresDelDia()[p.folio] = receptor;
+    guardar(LS.receptores, RECEPTORES);
+  }
+
+  function confirmarReceptorEsperado() {
+    const pendiente = RECEPTOR_PENDIENTE;
+    if (!pendiente) return;
+    const p = pendiente.pedido;
+    const receptor = {
+      numero: p.responsable_numero,
+      nombre: p.responsable_nombre,
+      discrepante: false
+    };
+    recordarReceptor(p, receptor);
+    RECEPTOR_PENDIENTE = null;
+    cerrarReceptor();
+    registrarEntrega(p, receptor);
+  }
+
+  function solicitarGafeteReceptor() {
+    if (!RECEPTOR_PENDIENTE) return;
+    RECEPTOR_PENDIENTE.esperandoGafete = true;
+    $('receptor-titulo').textContent = 'Escanea el gafete Glovis';
+    $('receptor-texto').textContent = 'Lee ahora el QR de la persona que realmente recibe. Su número y nombre quedarán ligados a todos los paquetes de este folio.';
+    $('receptor-resumen').innerHTML = '<span>Esperando identificación</span><b>Cámara o lector listos</b><small>No vuelvas a escanear la etiqueta del alimento.</small>';
+    $('receptor-acciones').classList.add('oculto');
+    $('receptor-error').classList.add('oculto');
+    if (!escaneando) alternarCamara();
+    enfocarLector();
+  }
+
+  function datosGafete(codigo) {
+    const partes = String(codigo || '').split('|').map(x => x.trim()).filter(Boolean);
+    if (partes.length < 2 || /^(EX|GOLUNCH)$/i.test(partes[0])) return null;
+    const numero = partes.shift();
+    const nombre = partes.join(' | ').trim();
+    if (!numero || !/[A-ZÁÉÍÓÚÑ]/i.test(nombre)) return null;
+    return { numero, nombre, discrepante: true };
+  }
+
+  function leerGafeteReceptor(codigo) {
+    const pendiente = RECEPTOR_PENDIENTE;
+    if (!pendiente?.esperandoGafete) return false;
+    const receptor = datosGafete(codigo);
+    if (!receptor) {
+      $('receptor-error').textContent = 'No se pudo leer número y nombre. Centra el QR del gafete Glovis, no la etiqueta del alimento.';
+      $('receptor-error').classList.remove('oculto');
+      return true;
+    }
+    recordarReceptor(pendiente.pedido, receptor);
+    const p = pendiente.pedido;
+    RECEPTOR_PENDIENTE = null;
+    cerrarReceptor();
+    registrarEntrega(p, receptor);
+    return true;
+  }
+
+  function entregar(codigo, origen) {
     // El campo se limpia SIEMPRE, no solo al acertar: con un lector, un rechazo
     // que dejara el texto haría que el siguiente escaneo se pegara al anterior.
     if (origen === 'manual') { $('manual').value = ''; enfocarLector(); }
-    numero = String(numero || '').trim().toUpperCase();
-    if (!numero) return;
-    if (comprobarEscaner(numero, origen)) return;
+    codigo = String(codigo || '').trim();
+    if (!codigo) return;
+    if (RECEPTOR_PENDIENTE?.esperandoGafete && leerGafeteReceptor(codigo)) return;
+    // Mientras el diálogo espera una decisión, se ignoran lecturas repetidas
+    // de la etiqueta que sigue dentro del encuadre.
+    if (RECEPTOR_PENDIENTE) return;
+    codigo = codigo.toUpperCase();
+    if (comprobarEscaner(codigo, origen)) return;
 
-    // El QR trae "GL-001|2026-08-03": la fecha evita que la etiqueta de
-    // ayer marque una entrega de hoy.
+    // Regular: "GL-001|2026-08-03". Cobertura:
+    // "EX|uuid|2026-08-03". El UUID evita colisionar con el pedido regular
+    // del mismo empleado y la fecha evita usar una etiqueta de otro día.
+    let tipoCodigo = 'regular';
+    let identificador = codigo;
     let fechaCodigo = null;
-    if (numero.includes('|')) {
-      const partes = numero.split('|');
-      numero = partes[0].trim();
-      fechaCodigo = (partes[1] || '').trim();
+    const partes = codigo.split('|').map(x => x.trim());
+    if (partes[0] === 'EX') {
+      tipoCodigo = 'cobertura';
+      identificador = partes[1] || '';
+      fechaCodigo = partes[2] || null;
+    } else if (partes.length > 1) {
+      identificador = partes[0];
+      fechaCodigo = partes[1] || null;
     }
     if (fechaCodigo && FECHA && fechaCodigo !== FECHA) {
       return flash('mal', 'Etiqueta de otro día', 'Es del ' + fechaCodigo + ', hoy se reparte el ' + FECHA);
     }
 
-    const p = PEDIDOS.find(x => String(x.numero_empleado || '').toUpperCase() === numero);
+    const p = tipoCodigo === 'cobertura'
+      ? PEDIDOS.find(x => x.tipo === 'cobertura' && String(x.codigo_entrega || '').toUpperCase() === identificador)
+      : PEDIDOS.find(x => x.tipo !== 'cobertura' && String(x.numero_empleado || '').toUpperCase() === identificador);
     if (!p) {
       // Antes de decir "no existe", revisar si es de la otra ruta. El índice
       // del día se descargó con la lista, así que esto funciona sin señal y es
       // la diferencia entre "búscalo en la otra tablet" y "este número no sirve".
-      const zonaOtra = INDICE_ZONAS[numero];
+      const indice = tipoCodigo === 'cobertura' ? 'EX|' + identificador : identificador;
+      const zonaOtra = INDICE_ZONAS[indice];
       if (zonaOtra && zonaOtra !== ZONA) {
         return flash('mal', 'Este pedido corresponde a ' + (ZONA_TXT[zonaOtra] || 'otra zona'),
           'Regístralo desde el equipo de esa ruta. Aquí no se guardó nada.');
       }
-      return flash('mal', 'No está en la lista', 'El número ' + numero + ' no tiene pedido para hoy.');
+      return flash('mal', 'No está en la lista', tipoCodigo === 'cobertura'
+        ? 'Esta etiqueta de cobertura no pertenece a la lista de hoy.'
+        : 'El número ' + identificador + ' no tiene pedido para hoy.');
     }
     if (p.entregado_en) return flash('dup', 'Ya estaba entregada', p.nombre + ' — se registró antes.');
 
+    if (p.tipo === 'cobertura') {
+      const receptor = receptoresDelDia()[p.folio];
+      if (!receptor) return abrirReceptor(p);
+      return registrarEntrega(p, receptor);
+    }
+    registrarEntrega(p, null);
+  }
+
+  function registrarEntrega(p, receptor) {
+    if (!p || p.entregado_en) return;
+
     p.entregado_en = new Date().toISOString();
+    if (p.tipo === 'cobertura' && receptor) {
+      p.entregado_a = 'responsable';
+      p.recibido_por = receptor.nombre;
+      p.receptor_numero = receptor.numero;
+      p.receptor_discrepante = receptor.discrepante === true;
+    }
     guardar(claveDatos(ZONA), {
       fecha: FECHA, pedidos: PEDIDOS, zona: ZONA,
       turno_hora: TURNO_HORA, tolerancia_min: TOLERANCIA_MIN, motivos: MOTIVOS
@@ -1361,8 +1544,14 @@
     // vale más que su coordenada, y perderla por eso sería peor.
     const pos = posicionUtil();
     COLA.push({
+      tipo: p.tipo === 'cobertura' ? 'cobertura' : 'regular',
+      codigo_entrega: p.tipo === 'cobertura' ? p.codigo_entrega : p.numero_empleado,
       numero_empleado: p.numero_empleado, entregado_en: p.entregado_en,
-      fecha: FECHA, zona: p.zona || ZONA, entregado_a: 'empleado',
+      fecha: FECHA, zona: p.zona || ZONA,
+      entregado_a: p.tipo === 'cobertura' ? 'responsable' : 'empleado',
+      receptor_numero: receptor?.numero || null,
+      receptor_nombre: receptor?.nombre || null,
+      receptor_discrepante: receptor?.discrepante === true,
       // Quién lo escaneó. El servidor NO se fía de este campo para atribuir
       // —usa la sesión— pero sí lo compara: si otro repartidor intenta subir
       // esta cola, el elemento se rechaza en vez de atribuirse mal.
@@ -1374,7 +1563,9 @@
 
     const tardia = esTardia(p);
     flash(tardia ? 'dup' : 'ok', p.nombre,
-      p.platillo + ' · ' + (TURNO_TXT[p.turno] || '') + ' · ' + (ZONA_TXT[p.zona] || ''));
+      p.platillo + ' · ' + (p.tipo === 'cobertura' ? 'Cobertura · ' : '') +
+      (TURNO_TXT[p.turno] || '') + ' · ' + (ZONA_TXT[p.zona] || ''),
+      p.tipo === 'cobertura' ? 'Cobertura entregada' : undefined);
     pintar();
     if (navigator.onLine) sincronizar();
 
@@ -1385,6 +1576,15 @@
   }
 
   function entregarManual() { entregar($('manual').value, 'manual'); }
+
+  function entregarDesdeLista(claveCodificada) {
+    const p = pedidoPorClave(decodeURIComponent(claveCodificada));
+    if (!p) return;
+    const codigo = p.tipo === 'cobertura'
+      ? 'EX|' + p.codigo_entrega + '|' + FECHA
+      : p.numero_empleado;
+    entregar(codigo, 'lista');
+  }
 
   // ── Entrega tardía ────────────────────────────────────────
   // Se calcula en el equipo, con los horarios descargados, para que funcione
@@ -1408,8 +1608,8 @@
   let pedidoEnMotivo = null;
 
   // Para retomar una tardía que quedó sin motivo (la app se cerró a media)
-  function pedirMotivoPorNumero(num) {
-    const p = PEDIDOS.find(x => String(x.numero_empleado) === String(num));
+  function pedirMotivoPorClave(claveCodificada) {
+    const p = pedidoPorClave(decodeURIComponent(claveCodificada));
     if (p) pedirMotivo(p);
   }
 
@@ -1437,7 +1637,7 @@
     if (pedidoEnMotivo) {
       pedidoEnMotivo.motivo_tardia = id;
       // Adjuntarlo al escaneo que ya está en la cola, para que suba con él
-      const enCola = COLA.find(e => e.numero_empleado === pedidoEnMotivo.numero_empleado);
+      const enCola = COLA.find(e => clavePedido(e) === clavePedido(pedidoEnMotivo));
       if (enCola) enCola.motivo_tardia = id;
       guardar(LS.cola, COLA);
       guardar(claveDatos(ZONA), {
@@ -1582,7 +1782,9 @@
     // Cerrar ruta solo tiene sentido con algo pendiente y la ruta ya empezada:
     // ofrecerlo antes del primer escaneo invita a cerrar sin haber repartido.
     const cr = $('cerrar-ruta');
-    if (cr) cr.classList.toggle('oculto', !(faltan.length && hechas.length));
+    const faltanRegulares = faltan.filter(p => p.tipo !== 'cobertura');
+    const hechasRegulares = hechas.filter(p => p.tipo !== 'cobertura');
+    if (cr) cr.classList.toggle('oculto', !(faltanRegulares.length && hechasRegulares.length));
 
     $('n-entregado').textContent = hechas.length;
     $('n-falta').textContent = faltan.length;
@@ -1605,11 +1807,14 @@
       const tardia = hecho && esTardia(p);
       const faltaMotivo = tardia && !p.motivo_tardia;
       return `
-      <div class="fila ${hecho ? 'hecho' : ''} ${tardia ? 'tardia' : ''}">
+      <div class="fila ${hecho ? 'hecho' : ''} ${tardia ? 'tardia' : ''} ${p.tipo === 'cobertura' ? 'cobertura' : ''}">
         <span class="ic" aria-hidden="true">${hecho ? (tardia ? 'T' : 'OK') : 'P'}</span>
         <div class="d">
-          <b>${esc(p.nombre || '—')}</b>
+          <b>${esc(p.nombre || '—')} ${p.tipo === 'cobertura' ? '<em class="cobertura-badge">Cobertura</em>' : ''}</b>
           <span>${esc(p.platillo || '')} · ${esc(TURNO_TXT[p.turno] || '')} · ${esc(ZONA_TXT[p.zona] || '')}</span>
+          ${p.tipo === 'cobertura'
+            ? `<span class="cobertura-receptor">Recibe: ${esc(p.recibido_por || p.responsable_nombre || '—')}${p.receptor_discrepante ? ' · receptor distinto' : ''}</span>`
+            : ''}
           ${p.entregado_a === 'supervisor'
             ? `<span class="al-supervisor">Entregada al supervisor${p.recibido_por ? ' · ' + esc(p.recibido_por) : ''}</span>`
             : ''}
@@ -1619,9 +1824,9 @@
         </div>
         ${hecho
           ? (faltaMotivo
-              ? `<button class="btn-e alerta" onclick="pedirMotivoPorNumero('${esc(p.numero_empleado)}')">Motivo</button>`
+              ? `<button class="btn-e alerta" onclick="pedirMotivoPorClave('${encodeURIComponent(clavePedido(p))}')">Motivo</button>`
               : `<span class="hora ${tardia ? 'tarde' : ''}">${horaLocal(p.entregado_en)}</span>`)
-          : `<button class="btn-e" onclick="entregar('${esc(p.numero_empleado)}','lista')">Entregar</button>`}
+          : `<button class="btn-e" onclick="entregarDesdeLista('${encodeURIComponent(clavePedido(p))}')">Entregar</button>`}
       </div>`;
     };
 

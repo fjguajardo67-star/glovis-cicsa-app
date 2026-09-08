@@ -1849,6 +1849,28 @@
     flex: 0 0 auto;
     color: #94a3b8;
   }
+  .login-supervisor {
+    max-width: 330px;
+    min-height: 46px;
+    margin: 13px auto 0;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid var(--login-linea);
+    border-radius: 12px;
+    background: rgba(255,255,255,.82);
+    color: var(--login-cobalto);
+    font-size: .76rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+    text-decoration: none;
+  }
+  .login-supervisor svg { width: 17px; height: 17px; flex: 0 0 auto; }
+  .login-supervisor:hover { border-color: #abc2e3; background: #f7faff; }
+  .login-supervisor:focus-visible { outline: 3px solid rgba(37,99,235,.2); outline-offset: 2px; }
 
   @media (hover: hover) and (pointer: fine) {
     .btn.login-primary:hover:not(:disabled) {
@@ -1996,6 +2018,10 @@
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1Zm2 0h6V8a3 3 0 0 0-6 0v2Zm3 4a1.5 1.5 0 0 0-.75 2.8V19h1.5v-2.2A1.5 1.5 0 0 0 12 14Z"/></svg>
           <span id="login-help-text">Tu número se usa únicamente para localizar tu pedido.</span>
         </p>
+        <a class="login-supervisor" href="/cobertura.html">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 19c0-3.3 2.5-5.6 5.5-5.6 1.5 0 2.8.5 3.8 1.4M16 5l1.2 2.4L20 8l-2 1.9.5 2.8-2.5-1.3-2.5 1.3.5-2.8L12 8l2.8-.6L16 5Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Supervisores · solicitar cobertura del segundo turno</span>
+        </a>
       </form>
 
       <svg class="login-dots" viewBox="0 0 112 88" aria-hidden="true">

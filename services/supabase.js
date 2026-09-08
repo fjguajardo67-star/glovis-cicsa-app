@@ -644,4 +644,284 @@ export async function getPedidosRango(fechaIni, fechaFin) {
   return data;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Coberturas del segundo turno
+// ═══════════════════════════════════════════════════════════════
+
+const CAMPOS_SUPERVISOR_COBERTURA =
+  'id, empleado_telefono, activo, vigente_desde, vigente_hasta, version_sesion, creado_en, actualizado_en';
+
+export async function listSupervisoresCobertura() {
+  const { data, error } = await supabase
+    .from('supervisores_cobertura')
+    .select(`${CAMPOS_SUPERVISOR_COBERTURA}, empleados!supervisores_cobertura_empleado_fkey(nombre, numero_empleado, activo)`)
+    .order('creado_en');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function crearSupervisorCobertura({ empleado_telefono, clave_hash, vigente_desde, vigente_hasta }) {
+  const { data, error } = await supabase
+    .from('supervisores_cobertura')
+    .insert({
+      empleado_telefono,
+      clave_hash,
+      vigente_desde: vigente_desde || new Date().toISOString().slice(0, 10),
+      vigente_hasta: vigente_hasta || null,
+      activo: true
+    })
+    .select(CAMPOS_SUPERVISOR_COBERTURA)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function actualizarSupervisorCobertura(id, cambios) {
+  const permitidos = ['activo', 'vigente_desde', 'vigente_hasta', 'clave_hash', 'version_sesion'];
+  const limpios = { actualizado_en: new Date().toISOString() };
+  for (const k of permitidos) if (Object.prototype.hasOwnProperty.call(cambios, k)) limpios[k] = cambios[k];
+  const { data, error } = await supabase
+    .from('supervisores_cobertura')
+    .update(limpios)
+    .eq('id', id)
+    .select(CAMPOS_SUPERVISOR_COBERTURA)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// version_sesion no está en la lista editable pública, así que la invalidación
+// hace su actualización explícita y conserva el hash fuera de toda respuesta.
+export async function subirVersionSesionSupervisor(id) {
+  const { data: actual, error: e1 } = await supabase
+    .from('supervisores_cobertura')
+    .select('version_sesion')
+    .eq('id', id)
+    .limit(1);
+  if (e1) throw e1;
+  if (!actual?.length) throw new Error('Supervisor no encontrado');
+  const { data, error } = await supabase
+    .from('supervisores_cobertura')
+    .update({
+      version_sesion: (actual[0].version_sesion || 1) + 1,
+      actualizado_en: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select(CAMPOS_SUPERVISOR_COBERTURA)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getSupervisorCobertura(id) {
+  const { data, error } = await supabase
+    .from('supervisores_cobertura')
+    .select(`${CAMPOS_SUPERVISOR_COBERTURA}, clave_hash, empleados!supervisores_cobertura_empleado_fkey(nombre, numero_empleado, activo)`)
+    .eq('id', id)
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
+export async function getSupervisorCoberturaParaLogin(numeroEmpleado) {
+  const empleado = await getEmpleadoPorNumero(numeroEmpleado);
+  if (!empleado) return null;
+  const { data, error } = await supabase
+    .from('supervisores_cobertura')
+    .select(`${CAMPOS_SUPERVISOR_COBERTURA}, clave_hash`)
+    .eq('empleado_telefono', empleado.telefono)
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] ? { ...data[0], empleados: empleado } : null;
+}
+
+export async function getMenuCobertura(fecha) {
+  const { data, error } = await supabase
+    .from('menus_cobertura')
+    .select('*')
+    .eq('fecha', fecha)
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
+export async function upsertMenuCobertura(menu) {
+  const { data, error } = await supabase
+    .from('menus_cobertura')
+    .upsert({
+      fecha: menu.fecha,
+      opcion_1: menu.opcion_1,
+      opcion_2: menu.opcion_2,
+      opcion_3: menu.opcion_3,
+      activo: menu.activo !== false,
+      actualizado_en: new Date().toISOString()
+    }, { onConflict: 'fecha' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function contarSolicitudesCobertura(fecha) {
+  const { count, error } = await supabase
+    .from('solicitudes_cobertura')
+    .select('id', { count: 'exact', head: true })
+    .eq('fecha_servicio', fecha)
+    .neq('estado', 'cancelada');
+  if (error) throw error;
+  return count || 0;
+}
+
+export async function getSolicitudCobertura(supervisorId, fecha) {
+  const { data, error } = await supabase
+    .from('solicitudes_cobertura')
+    .select('*')
+    .eq('supervisor_id', supervisorId)
+    .eq('fecha_servicio', fecha)
+    .limit(1);
+  if (error) throw error;
+  const solicitud = data?.[0] || null;
+  if (!solicitud) return null;
+  const { data: items, error: e2 } = await supabase
+    .from('solicitudes_cobertura_items')
+    .select('id, empleado_numero_snapshot, empleado_nombre_snapshot, opcion_id, opcion_texto, codigo_entrega, entregado_en')
+    .eq('solicitud_id', solicitud.id)
+    .order('id');
+  if (e2) throw e2;
+  return { ...solicitud, items: items || [] };
+}
+
+export async function guardarSolicitudCobertura({
+  fecha, supervisor_id, folio, responsable_numero, zona, items
+}) {
+  const { data, error } = await supabase.rpc('guardar_solicitud_cobertura', {
+    p_fecha: fecha,
+    p_supervisor_id: supervisor_id,
+    p_folio: folio,
+    p_responsable_numero: responsable_numero,
+    p_zona: zona,
+    p_items: items
+  });
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
+export async function cancelarSolicitudCobertura(supervisorId, fecha) {
+  const { data, error } = await supabase
+    .from('solicitudes_cobertura')
+    .update({ estado: 'cancelada', cancelado_en: new Date().toISOString(), actualizado_en: new Date().toISOString() })
+    .eq('supervisor_id', supervisorId)
+    .eq('fecha_servicio', fecha)
+    .neq('estado', 'entregada')
+    .select()
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
+export async function listSolicitudesCobertura(fecha) {
+  const { data, error } = await supabase
+    .from('solicitudes_cobertura')
+    .select('*')
+    .eq('fecha_servicio', fecha)
+    .order('creado_en');
+  if (error) throw error;
+  const solicitudes = data || [];
+  if (!solicitudes.length) return [];
+  const ids = solicitudes.map(s => s.id);
+  const { data: items, error: e2 } = await supabase
+    .from('solicitudes_cobertura_items')
+    .select('*')
+    .in('solicitud_id', ids)
+    .order('id');
+  if (e2) throw e2;
+  const porSolicitud = new Map();
+  for (const item of items || []) {
+    if (!porSolicitud.has(item.solicitud_id)) porSolicitud.set(item.solicitud_id, []);
+    porSolicitud.get(item.solicitud_id).push(item);
+  }
+  return solicitudes.map(s => ({ ...s, items: porSolicitud.get(s.id) || [] }));
+}
+
+export async function getCoberturasParaEntrega(fecha) {
+  const solicitudes = (await listSolicitudesCobertura(fecha)).filter(s => s.estado !== 'cancelada');
+  return solicitudes.flatMap(s => s.items.map(item => ({
+    ...item,
+    folio: s.folio,
+    zona: s.zona,
+    turno: s.turno,
+    responsable_numero: s.responsable_numero_snapshot,
+    responsable_nombre: s.responsable_nombre_snapshot,
+    estado_solicitud: s.estado
+  })));
+}
+
+export async function marcarCoberturaEntregada(fecha, codigoEntrega, entregadoEn, motivoTardia, zonaEsperada, extra = {}) {
+  const { data: encontrados, error: e1 } = await supabase
+    .from('solicitudes_cobertura_items')
+    .select('*')
+    .eq('fecha_servicio', fecha)
+    .eq('codigo_entrega', codigoEntrega)
+    .limit(1);
+  if (e1) throw e1;
+  const item = encontrados?.[0];
+  if (!item) return { ok: false, motivo: 'sin_pedido_especial' };
+
+  const { data: solicitudes, error: e2 } = await supabase
+    .from('solicitudes_cobertura')
+    .select('*')
+    .eq('id', item.solicitud_id)
+    .limit(1);
+  if (e2) throw e2;
+  const solicitud = solicitudes?.[0];
+  if (!solicitud || solicitud.estado === 'cancelada') return { ok: false, motivo: 'solicitud_cancelada' };
+  if (zonaEsperada && solicitud.zona && solicitud.zona !== zonaEsperada) {
+    return { ok: false, motivo: 'zona_incorrecta', zona_esperada: solicitud.zona };
+  }
+  if (item.entregado_en) return { ok: true, ya_entregado: true, item, solicitud };
+
+  const cambios = {
+    entregado_en: entregadoEn,
+    entrega_recibido_en: new Date().toISOString(),
+    entrega_lat: extra.lat ?? null,
+    entrega_lon: extra.lon ?? null,
+    entrega_precision_m: extra.precision_m ?? null,
+    entregado_por_id: extra.repartidor_id ?? null,
+    entregado_por_nombre: extra.repartidor_nombre ?? null,
+    receptor_numero: extra.receptor_numero || solicitud.responsable_numero_snapshot,
+    receptor_nombre: extra.receptor_nombre || solicitud.responsable_nombre_snapshot,
+    receptor_discrepante: extra.receptor_discrepante === true,
+    receptor_verificado: extra.receptor_verificado ?? null,
+    motivo_tardia: motivoTardia || null
+  };
+  const { data: actualizado, error: e3 } = await supabase
+    .from('solicitudes_cobertura_items')
+    .update(cambios)
+    .eq('id', item.id)
+    .is('entregado_en', null)
+    .select()
+    .limit(1);
+  if (e3) throw e3;
+  const final = actualizado?.[0];
+  if (!final) {
+    const { data: ya } = await supabase.from('solicitudes_cobertura_items').select('*').eq('id', item.id).limit(1);
+    return { ok: true, ya_entregado: true, item: ya?.[0] || item, solicitud };
+  }
+
+  const { count: pendientes, error: e4 } = await supabase
+    .from('solicitudes_cobertura_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('solicitud_id', solicitud.id)
+    .is('entregado_en', null);
+  if (e4) throw e4;
+  if (!pendientes) {
+    await supabase
+      .from('solicitudes_cobertura')
+      .update({ estado: 'entregada', entregado_en: entregadoEn, actualizado_en: new Date().toISOString() })
+      .eq('id', solicitud.id)
+      .neq('estado', 'cancelada');
+  }
+  return { ok: true, item: final, solicitud };
+}
+
 export { supabase };

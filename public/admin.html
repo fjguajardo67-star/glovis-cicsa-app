@@ -437,6 +437,46 @@
     color: #725514; font-size: .78rem;
   }
   .oculto { display: none !important; }
+
+  /* ── Coberturas: operación del mismo día, aislada del pedido regular ── */
+  .cov-hero {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 24px; margin-bottom: 18px; padding: 4px 2px 2px;
+  }
+  .cov-hero h2 { font-size: 1.45rem; letter-spacing: -.03em; line-height: 1.15; }
+  .cov-hero p { max-width: 65ch; color: var(--gris-text); font-size: .84rem; margin-top: 6px; }
+  .cov-reloj {
+    flex: 0 0 auto; min-width: 180px; padding: 12px 14px;
+    border: 1px solid var(--azul-line); border-radius: 10px; background: var(--azul-light);
+  }
+  .cov-reloj b, .cov-reloj span { display: block; }
+  .cov-reloj b { color: var(--azul); font-size: .88rem; }
+  .cov-reloj span { color: var(--gris-text); font-size: .72rem; margin-top: 2px; }
+  .cov-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr); gap: 16px; align-items: start; }
+  .cov-grid .card { margin-bottom: 0; }
+  .cov-grid > .card { min-width: 0; }
+  .cov-full { grid-column: 1 / -1; }
+  .cov-menu-options { display: grid; gap: 8px; }
+  .cov-menu-options label { margin-top: 8px; }
+  .cov-resumen {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px; margin: 14px 0;
+  }
+  .cov-resumen div { padding: 12px; background: var(--gris-bg); border-radius: 9px; }
+  .cov-resumen strong { display: block; color: var(--azul); font-size: 1.25rem; line-height: 1; }
+  .cov-resumen span { display: block; color: var(--gris-text); font-size: .7rem; margin-top: 5px; }
+  .cov-clave {
+    margin-top: 12px; padding: 12px 14px; border-radius: 9px;
+    background: #e6f4e7; color: var(--verde); font-size: .83rem;
+  }
+  .cov-clave code { font-size: 1rem; font-weight: 900; letter-spacing: .08em; }
+  .cov-solicitud { border-top: 1px solid var(--gris-line); padding: 14px 0; }
+  .cov-solicitud:first-child { border-top: 0; padding-top: 0; }
+  .cov-solicitud-cab { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+  .cov-solicitud-cab b { color: var(--tinta); }
+  .cov-solicitud-cab p, .cov-items { color: var(--gris-text); font-size: .76rem; margin-top: 3px; }
+  .cov-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 12px; margin-top: 10px; }
+  .cov-items span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   
   @media (max-width: 640px) {
     .grid2, .grid3 { grid-template-columns: 1fr; }
@@ -447,6 +487,12 @@
     .cocina-grid-diaria { grid-template-columns: 1fr; }
     .cocina-nota-diaria, .cocina-herramienta { align-items: flex-start; flex-direction: column; }
     .cocina-herramienta .accion { width: 100%; }
+    .cov-hero { flex-direction: column; }
+    .cov-reloj { width: 100%; }
+    .cov-grid { grid-template-columns: 1fr; }
+    .cov-full { grid-column: auto; }
+    .cov-resumen { grid-template-columns: 1fr; }
+    .cov-items { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -522,6 +568,7 @@
       <button class="tab"        data-p="dashboard" onclick="tab('dashboard')">Dashboard</button>
       <button class="tab"        data-p="pedidos"   onclick="tab('pedidos')">Pedidos</button>
       <button class="tab"        data-p="empleados" onclick="tab('empleados')">Empleados</button>
+      <button class="tab"        data-p="coberturas" onclick="tab('coberturas')">Coberturas</button>
       <button class="tab"        data-p="cocina"    onclick="tab('cocina')">Cocina</button>
       <button class="tab"        data-p="reportes"  onclick="tab('reportes')">Reportes</button>
       </nav>
@@ -704,6 +751,80 @@
           <h3>Plantilla activa</h3>
         </div>
         <div id="empBox"><div class="vacio">Cargando plantilla…</div></div>
+      </div>
+    </section>
+
+    <!-- COBERTURAS DEL SEGUNDO TURNO -->
+    <section id="p-coberturas" class="panel">
+      <div class="cov-hero">
+        <div>
+          <h2>Cobertura del segundo turno</h2>
+          <p>Solicitudes del mismo día para personal que extiende su jornada. Los supervisores autorizados capturan hasta las 3:00 PM y la producción sale a las 4:30 PM para entregar a las 5:00 PM.</p>
+        </div>
+        <div class="cov-reloj" aria-label="Horario de cobertura">
+          <b>Cierre 3:00 PM</b>
+          <span>Salida 4:30 PM · Entrega 5:00 PM</span>
+        </div>
+      </div>
+
+      <div class="cov-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M6 10h12M8 14h8M10 18h4" stroke-linecap="round"/></svg></div>
+            <h3>Menú especial</h3>
+          </div>
+          <p style="font-size:.8rem;color:var(--gris-text);margin-bottom:12px">Tres opciones de preparación rápida disponibles únicamente para supervisores autorizados.</p>
+          <label>Fecha de servicio</label>
+          <input type="date" id="cov-fecha" style="max-width:190px" onchange="cargarCobertura()">
+          <div class="cov-menu-options">
+            <div><label>Opción 1</label><input type="text" id="cov-op1" placeholder="Hamburguesa"></div>
+            <div><label>Opción 2</label><input type="text" id="cov-op2" placeholder="Boneless"></div>
+            <div><label>Opción 3</label><input type="text" id="cov-op3" placeholder="Pescado empanizado"></div>
+          </div>
+          <button class="accion" onclick="guardarMenuCobertura()">Publicar menú especial</button>
+          <div id="covMenuAviso" class="aviso"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5M16 8h5M18.5 5.5v5" stroke-linecap="round"/></svg></div>
+            <h3>Supervisores autorizados</h3>
+          </div>
+          <p style="font-size:.8rem;color:var(--gris-text)">Selecciona únicamente empleados incluidos en la lista oficial de Glovis. La clave se muestra una sola vez.</p>
+          <label>Empleado de la plantilla</label>
+          <select id="cov-supervisor"><option value="">— Seleccionar empleado —</option></select>
+          <div class="grid2">
+            <div><label>Vigente desde</label><input type="date" id="cov-vig-desde"></div>
+            <div><label>Vigente hasta <span style="font-weight:400">(opcional)</span></label><input type="date" id="cov-vig-hasta"></div>
+          </div>
+          <label>Clave personal <span style="font-weight:400">(vacía = generar)</span></label>
+          <input type="password" id="cov-clave" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+          <button class="accion verde" onclick="autorizarSupervisorCobertura()">Autorizar supervisor</button>
+          <div id="covSupAviso" class="aviso"></div>
+          <div id="covClaveNueva" class="cov-clave oculto"></div>
+        </div>
+
+        <div class="card cov-full">
+          <div class="card-header">
+            <div class="card-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 5h14v14H5zM8 9h8M8 13h5" stroke-linecap="round"/></svg></div>
+            <h3>Solicitudes y producción</h3>
+            <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+              <button class="accion mini sec" onclick="imprimirCobertura('comanda')">Comanda</button>
+              <button class="accion mini sec" onclick="imprimirCobertura('etiquetas')">Etiquetas</button>
+            </div>
+          </div>
+          <div class="cov-resumen">
+            <div><strong id="cov-n-sol">0</strong><span>Solicitudes activas</span></div>
+            <div><strong id="cov-n-por">0</strong><span>Alimentos confirmados</span></div>
+            <div><strong id="cov-n-sup">0</strong><span>Supervisores activos</span></div>
+          </div>
+          <div id="covSolicitudes"><div class="vacio">Selecciona una fecha para consultar.</div></div>
+        </div>
+
+        <div class="card cov-full">
+          <div class="card-header"><h3>Autorizaciones vigentes</h3></div>
+          <div id="covSupervisores"><div class="vacio">Cargando autorizaciones…</div></div>
+        </div>
       </div>
     </section>
 
@@ -1014,7 +1135,7 @@
       document.getElementById('gate').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       const hoy = fechaComedor();
-      ['m-fecha','pe-fecha','co-fecha','r-fecha','r-ini','r-fin'].forEach(id => document.getElementById(id).value = hoy);
+      ['m-fecha','pe-fecha','co-fecha','r-fecha','r-ini','r-fin','cov-fecha','cov-vig-desde'].forEach(id => document.getElementById(id).value = hoy);
       // Los impresos casi siempre son del día de servicio (mañana)
       document.getElementById('im-fecha').value = sumarDias(hoy, 1);
       cargarEmpleados();
@@ -1039,6 +1160,7 @@
     // se consultan solo cuando se entra a Reparto y puntos: son configuración
     // ocasional y ya no bloquean ni ensucian la vista de producción.
     if (p === 'cocina') cocinaVista('diaria');
+    if (p === 'coberturas') cargarCobertura();
   }
 
   function cocinaVista(nombre) {
@@ -2523,6 +2645,184 @@
       av.className = 'aviso err';
       av.textContent = ok + ' guardados, ' + errores.length + ' con error: ' + errores.join(' | ');
     }
+  }
+
+  // ── Coberturas del segundo turno ────────────────────────────
+  let SUPERVISORES_COBERTURA = [];
+
+  async function cargarCobertura() {
+    const fecha = document.getElementById('cov-fecha').value || fechaComedor();
+    document.getElementById('cov-fecha').value = fecha;
+    if (!Object.keys(EMPLEADOS).length) await cargarEmpleados();
+    await Promise.all([
+      cargarMenuCobertura(fecha),
+      cargarSupervisoresCobertura(),
+      cargarSolicitudesCobertura(fecha)
+    ]);
+  }
+
+  async function cargarMenuCobertura(fecha) {
+    const av = document.getElementById('covMenuAviso');
+    try {
+      const r = await api('/api/cobertura/menu/' + fecha);
+      const m = r.menu;
+      document.getElementById('cov-op1').value = m?.opcion_1 || '';
+      document.getElementById('cov-op2').value = m?.opcion_2 || '';
+      document.getElementById('cov-op3').value = m?.opcion_3 || '';
+      av.className = m ? 'aviso ok' : 'aviso';
+      av.textContent = m ? 'Menú especial publicado para esta fecha.' : '';
+    } catch (e) {
+      av.className = 'aviso err'; av.textContent = e.message;
+    }
+  }
+
+  async function guardarMenuCobertura() {
+    const fecha = document.getElementById('cov-fecha').value;
+    const body = {
+      fecha,
+      opcion_1: document.getElementById('cov-op1').value.trim(),
+      opcion_2: document.getElementById('cov-op2').value.trim(),
+      opcion_3: document.getElementById('cov-op3').value.trim(),
+      activo: true
+    };
+    const av = document.getElementById('covMenuAviso');
+    if (!fecha || !body.opcion_1 || !body.opcion_2 || !body.opcion_3) {
+      av.className = 'aviso err'; av.textContent = 'Completa la fecha y las tres opciones.'; return;
+    }
+    try {
+      await api('/api/cobertura/menu', { method: 'POST', body: JSON.stringify(body) });
+      av.className = 'aviso ok'; av.textContent = 'Menú especial publicado. Los supervisores ya pueden solicitar.';
+    } catch (e) {
+      av.className = 'aviso err'; av.textContent = e.message;
+    }
+  }
+
+  function llenarSelectorSupervisores() {
+    const select = document.getElementById('cov-supervisor');
+    if (!select) return;
+    const autorizados = new Set(SUPERVISORES_COBERTURA.map(s => s.empleado_telefono));
+    const opciones = Object.values(EMPLEADOS)
+      .filter(e => e.activo && !autorizados.has(e.telefono))
+      .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+    select.innerHTML = '<option value="">— Seleccionar empleado —</option>' + opciones.map(e =>
+      '<option value="' + escaparHtml(e.telefono) + '">' + escaparHtml(e.nombre) + ' · #' + escaparHtml(e.numero_empleado) + '</option>'
+    ).join('');
+  }
+
+  async function cargarSupervisoresCobertura() {
+    const box = document.getElementById('covSupervisores');
+    try {
+      const r = await api('/api/cobertura/supervisores');
+      SUPERVISORES_COBERTURA = r.supervisores || [];
+      document.getElementById('cov-n-sup').textContent = SUPERVISORES_COBERTURA.filter(s => s.activo).length;
+      llenarSelectorSupervisores();
+      if (!SUPERVISORES_COBERTURA.length) {
+        box.innerHTML = '<div class="vacio">Todavía no hay supervisores autorizados.</div>'; return;
+      }
+      box.innerHTML = '<div style="overflow-x:auto"><table><thead><tr><th>Empleado</th><th>Vigencia</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>' +
+        SUPERVISORES_COBERTURA.map(s => {
+          const e = s.empleados || {};
+          const vig = s.vigente_desde + (s.vigente_hasta ? ' → ' + s.vigente_hasta : ' → sin término');
+          return '<tr><td><b>' + escaparHtml(e.nombre || 'Empleado no disponible') + '</b><br><span style="font-size:.74rem;color:var(--gris-text)">#' + escaparHtml(e.numero_empleado || '—') + '</span></td>' +
+            '<td>' + escaparHtml(vig) + '</td><td><span class="badge ' + (s.activo ? 'on' : 'off') + '">' + (s.activo ? 'Autorizado' : 'Inactivo') + '</span></td>' +
+            '<td style="white-space:nowrap"><button class="accion mini sec" onclick="cambiarSupervisorCobertura(' + s.id + ',' + (!s.activo) + ')">' + (s.activo ? 'Desactivar' : 'Activar') + '</button> ' +
+            '<button class="accion mini sec" onclick="restablecerClaveCobertura(' + s.id + ')">Nueva clave</button></td></tr>';
+        }).join('') + '</tbody></table></div>';
+    } catch (e) {
+      box.innerHTML = '<div class="aviso err" style="display:block">' + escaparHtml(e.message) + '</div>';
+    }
+  }
+
+  async function autorizarSupervisorCobertura() {
+    const empleado_telefono = document.getElementById('cov-supervisor').value;
+    const av = document.getElementById('covSupAviso');
+    if (!empleado_telefono) {
+      av.className = 'aviso err'; av.textContent = 'Selecciona un empleado de la plantilla.'; return;
+    }
+    try {
+      const r = await api('/api/cobertura/supervisores', {
+        method: 'POST', body: JSON.stringify({
+          empleado_telefono,
+          vigente_desde: document.getElementById('cov-vig-desde').value,
+          vigente_hasta: document.getElementById('cov-vig-hasta').value || null,
+          clave: document.getElementById('cov-clave').value || undefined
+        })
+      });
+      av.className = 'aviso ok'; av.textContent = 'Supervisor autorizado correctamente.';
+      const clave = document.getElementById('covClaveNueva');
+      clave.innerHTML = 'Anota esta clave ahora: <code>' + escaparHtml(r.clave) + '</code><br><span>Después no podrá consultarse; solo restablecerse.</span>';
+      clave.classList.remove('oculto');
+      document.getElementById('cov-clave').value = '';
+      await cargarSupervisoresCobertura();
+    } catch (e) {
+      av.className = 'aviso err'; av.textContent = e.message;
+    }
+  }
+
+  async function cambiarSupervisorCobertura(id, activo) {
+    try {
+      await api('/api/cobertura/supervisores/' + id, {
+        method: 'PUT', body: JSON.stringify({ activo })
+      });
+      await cargarSupervisoresCobertura();
+    } catch (e) { alert(e.message); }
+  }
+
+  async function restablecerClaveCobertura(id) {
+    const escrita = prompt('Nueva clave (mínimo 6 caracteres). Déjala vacía para generarla automáticamente.', '');
+    if (escrita === null) return;
+    try {
+      const r = await api('/api/cobertura/supervisores/' + id + '/clave', {
+        method: 'POST', body: JSON.stringify({ clave: escrita || undefined })
+      });
+      const clave = document.getElementById('covClaveNueva');
+      clave.innerHTML = 'Nueva clave — anótala ahora: <code>' + escaparHtml(r.clave) + '</code>';
+      clave.classList.remove('oculto');
+      await cargarSupervisoresCobertura();
+    } catch (e) { alert(e.message); }
+  }
+
+  async function cargarSolicitudesCobertura(fecha) {
+    const box = document.getElementById('covSolicitudes');
+    try {
+      const r = await api('/api/cobertura/solicitudes/' + fecha);
+      document.getElementById('cov-n-sol').textContent = r.total_solicitudes || 0;
+      document.getElementById('cov-n-por').textContent = r.total_porciones || 0;
+      const solicitudes = r.solicitudes || [];
+      if (!solicitudes.length) {
+        box.innerHTML = '<div class="vacio">Aún no hay solicitudes para esta fecha.</div>'; return;
+      }
+      box.innerHTML = solicitudes.map(s => {
+        const cancelada = s.estado === 'cancelada';
+        const items = (s.items || []).map(i => {
+          const receptor = i.entregado_en
+            ? ' · Entregado a ' + escaparHtml(i.receptor_nombre || s.responsable_nombre_snapshot) +
+              (i.receptor_discrepante ? (i.receptor_verificado === false ? ' · gafete por revisar' : ' · receptor distinto verificado') : '')
+            : '';
+          return '<span><b>#' + escaparHtml(i.empleado_numero_snapshot) + '</b> · ' + escaparHtml(i.empleado_nombre_snapshot) + ' — ' + escaparHtml(i.opcion_texto) + receptor + '</span>';
+        }).join('');
+        return '<div class="cov-solicitud" style="' + (cancelada ? 'opacity:.55' : '') + '"><div class="cov-solicitud-cab"><div><b>' + escaparHtml(s.folio) + '</b><p>' +
+          escaparHtml(zonaTxt(s.zona)) + ' · Recibe ' + escaparHtml(s.responsable_nombre_snapshot) + ' #' + escaparHtml(s.responsable_numero_snapshot) + '</p></div>' +
+          '<span class="badge ' + (cancelada ? 'off' : 'on') + '">' + escaparHtml(s.estado) + ' · ' + s.total_porciones + '</span></div>' +
+          '<div class="cov-items">' + items + '</div></div>';
+      }).join('');
+    } catch (e) {
+      box.innerHTML = '<div class="aviso err" style="display:block">' + escaparHtml(e.message) + '</div>';
+    }
+  }
+
+  function imprimirCobertura(tipo) {
+    const fecha = document.getElementById('cov-fecha').value;
+    if (!fecha) return;
+    let url = tipo === 'comanda'
+      ? API_BASE + '/comanda-cobertura/' + fecha + '?key=' + encodeURIComponent(ADMIN_KEY)
+      : API_BASE + '/etiquetas-cobertura/' + fecha + '?key=' + encodeURIComponent(ADMIN_KEY);
+    if (tipo === 'etiquetas') {
+      const tamano = document.getElementById('im-tamano')?.value || '57x32';
+      const [ancho, alto] = tamano.split('x');
+      url += '&ancho=' + encodeURIComponent(ancho) + '&alto=' + encodeURIComponent(alto);
+    }
+    window.open(url, '_blank');
   }
 
   // Permitir Enter en la puerta

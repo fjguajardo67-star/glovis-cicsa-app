@@ -16,6 +16,7 @@ import {
   TURNO_HORA, TOLERANCIA_TARDIA_MIN,
   ZONAS_VALIDAS, TURNOS_VALIDOS, hoy
 } from '../services/menu.js';
+import { validarReceptorEscaneado } from '../services/cobertura.js';
 
 export const entregaRouter = express.Router();
 
@@ -229,8 +230,49 @@ entregaRouter.get('/:fecha', async (req, res) => {
     }
 
     const fecha = fechaPedida(req.params.fecha);
-    const todos = await db.getPedidosPorFecha(fecha);
-    const pedidos = zona ? todos.filter(p => p.zona === zona) : todos;
+    const regulares = await db.getPedidosPorFecha(fecha);
+    // Si la migración de coberturas todavía no se ha ejecutado, el reparto
+    // regular no se cae: simplemente no aparecen extraordinarios ese día.
+    let coberturas = [];
+    try { coberturas = await db.getCoberturasParaEntrega(fecha); } catch (err) {
+      if (err?.code !== '42P01') console.error('[Entrega] No se pudieron cargar coberturas:', err.message);
+    }
+    const regularesZona = zona ? regulares.filter(p => p.zona === zona) : regulares;
+    const coberturasZona = zona ? coberturas.filter(p => p.zona === zona) : coberturas;
+
+    const pedidos = [
+      ...regularesZona.map(p => ({
+        tipo: 'regular',
+        codigo_entrega: p.empleados?.numero_empleado || null,
+        numero_empleado: p.empleados?.numero_empleado || null,
+        nombre: p.empleados?.nombre || null,
+        platillo: p.opcion_texto,
+        zona: p.zona,
+        turno: p.turno,
+        entregado_en: p.entregado_en || null,
+        motivo_tardia: p.motivo_tardia || null,
+        entregado_a: p.entregado_a || null,
+        recibido_por: p.recibido_por || null
+      })),
+      ...coberturasZona.map(item => ({
+        tipo: 'cobertura',
+        codigo_entrega: String(item.codigo_entrega),
+        numero_empleado: item.empleado_numero_snapshot,
+        nombre: item.empleado_nombre_snapshot,
+        platillo: item.opcion_texto,
+        zona: item.zona,
+        turno: item.turno || 'turno_b',
+        entregado_en: item.entregado_en || null,
+        motivo_tardia: item.motivo_tardia || null,
+        entregado_a: 'responsable',
+        recibido_por: item.receptor_nombre || item.responsable_nombre,
+        folio: item.folio,
+        responsable_numero: item.responsable_numero,
+        responsable_nombre: item.responsable_nombre,
+        receptor_discrepante: item.receptor_discrepante || false,
+        receptor_verificado: item.receptor_verificado
+      }))
+    ];
 
     // Llegadas ya registradas y punto de referencia del contrato. La app los
     // necesita para no volver a pedir una llegada que ya existe y para avisar
@@ -245,9 +287,12 @@ entregaRouter.get('/:fecha', async (req, res) => {
     // que el equipo distinga "este número no existe" de "este pedido es de la
     // otra ruta" estando sin señal. Solo número y zona — ningún dato personal.
     const indice_zonas = {};
-    for (const p of todos) {
+    for (const p of regulares) {
       const n = p.empleados?.numero_empleado;
       if (n) indice_zonas[n] = p.zona || null;
+    }
+    for (const item of coberturas) {
+      indice_zonas['EX|' + item.codigo_entrega] = item.zona || null;
     }
 
     res.json({
@@ -263,20 +308,7 @@ entregaRouter.get('/:fecha', async (req, res) => {
       turno_hora: TURNO_HORA,
       tolerancia_min: TOLERANCIA_TARDIA_MIN,
       motivos_tardia: MOTIVOS_TARDIA,
-      pedidos: pedidos.map(p => ({
-        numero_empleado: p.empleados?.numero_empleado || null,
-        nombre:          p.empleados?.nombre || null,
-        platillo:        p.opcion_texto,
-        zona:            p.zona,
-        turno:           p.turno,
-        entregado_en:    p.entregado_en || null,
-        motivo_tardia:   p.motivo_tardia || null,
-        // Sin esto, al volver a sincronizar la app perdía de vista que una
-        // comida se había dejado con el supervisor y la mostraba como una
-        // entrega normal. El repartidor debe poder distinguirlas en su lista.
-        entregado_a:     p.entregado_a || null,
-        recibido_por:    p.recibido_por || null
-      }))
+      pedidos
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -399,20 +431,25 @@ entregaRouter.post('/', async (req, res) => {
     const resultados = [];
     for (const e of entregas) {
       const numero = e?.numero_empleado;
-      if (!numero) { resultados.push({ numero_empleado: null, ok: false, motivo: 'sin_numero' }); continue; }
+      const tipo = e?.tipo === 'cobertura' ? 'cobertura' : 'regular';
+      const codigoEntrega = tipo === 'cobertura' ? String(e?.codigo_entrega || '') : String(numero || '');
+      if (!codigoEntrega || !numero) {
+        resultados.push({ tipo, codigo_entrega: codigoEntrega || null, numero_empleado: numero || null, ok: false, motivo: 'sin_numero' });
+        continue;
+      }
 
       // Una cola formada por un repartidor no se sincroniza como si fuera de
       // otro. Cambiar de usuario ya está bloqueado con cola pendiente, así que
       // esto es la red de seguridad: ante la duda NO se atribuye mal, se
       // rechaza y el elemento se queda para que lo suba quien lo escaneó.
       if (req.repartidor && e?.repartidor_id != null && Number(e.repartidor_id) !== Number(req.repartidor.id)) {
-        resultados.push({ numero_empleado: numero, ok: false, motivo: 'otro_repartidor' });
+        resultados.push({ tipo, codigo_entrega: codigoEntrega, numero_empleado: numero, ok: false, motivo: 'otro_repartidor' });
         continue;
       }
       // La zona del elemento también se comprueba contra la sesión: un lote sin
       // zona podría traer elementos de una ruta ajena.
       if (e?.zona && !puedeConZona(req, e.zona)) {
-        resultados.push({ numero_empleado: numero, ok: false, motivo: 'zona_no_autorizada' });
+        resultados.push({ tipo, codigo_entrega: codigoEntrega, numero_empleado: numero, ok: false, motivo: 'zona_no_autorizada' });
         continue;
       }
       // Un motivo inventado no se guarda: solo los del catálogo
@@ -430,22 +467,47 @@ entregaRouter.post('/', async (req, res) => {
           console.warn('[Entrega] Hora del equipo descartada (' + reloj.motivo + ') para',
                        numero, 'del', fecha, '— declarada:', reloj.declarada || '(ninguna)');
         }
-        const r = await db.marcarEntregado(
-          fecha, numero, reloj.hora, motivo, zonaItem || null,
-          {
-            lat: util ? e?.lat : null,
-            lon: util ? e?.lon : null,
-            precision_m: e?.precision_m,
-            entregado_a: ENTREGADO_A_VALIDOS.includes(e?.entregado_a) ? e.entregado_a : 'empleado',
-            recibido_por: typeof e?.recibido_por === 'string' ? e.recibido_por.slice(0, 120) : null,
-            // De la SESIÓN, no del cuerpo. Si el equipo pudiera declararse a sí
-            // mismo, la atribución no probaría nada. Con la clave compartida
-            // queda en nulo: no se sabe quién fue y no se inventa.
-            repartidor_id: req.repartidor?.id ?? null,
-            repartidor_nombre: req.repartidor?.nombre ?? (req.esLegado ? 'Reparto general' : null)
+        const datosComunes = {
+          lat: util ? e?.lat : null,
+          lon: util ? e?.lon : null,
+          precision_m: e?.precision_m,
+          repartidor_id: req.repartidor?.id ?? null,
+          repartidor_nombre: req.repartidor?.nombre ?? (req.esLegado ? 'Reparto general' : null)
+        };
+
+        let r;
+        if (tipo === 'cobertura') {
+          let receptorVerificado = null;
+          if (e?.receptor_discrepante === true) {
+            // El QR del gafete trae número y nombre. Se registra incluso si la
+            // plantilla quedó vieja, pero la coincidencia queda explícita para
+            // que administración pueda revisarla y no se presente como válida.
+            const receptor = await db.getEmpleadoPorNumeroIncluyendoBajas(e?.receptor_numero);
+            receptorVerificado = validarReceptorEscaneado(receptor, e?.receptor_numero, e?.receptor_nombre);
           }
-        );
+          r = await db.marcarCoberturaEntregada(
+            fecha, codigoEntrega, reloj.hora, motivo, zonaItem || null,
+            {
+              ...datosComunes,
+              receptor_numero: e?.receptor_numero,
+              receptor_nombre: typeof e?.receptor_nombre === 'string' ? e.receptor_nombre.slice(0, 120) : null,
+              receptor_discrepante: e?.receptor_discrepante === true,
+              receptor_verificado: receptorVerificado
+            }
+          );
+        } else {
+          r = await db.marcarEntregado(
+            fecha, numero, reloj.hora, motivo, zonaItem || null,
+            {
+              ...datosComunes,
+              entregado_a: ENTREGADO_A_VALIDOS.includes(e?.entregado_a) ? e.entregado_a : 'empleado',
+              recibido_por: typeof e?.recibido_por === 'string' ? e.recibido_por.slice(0, 120) : null
+            }
+          );
+        }
         resultados.push({
+          tipo,
+          codigo_entrega: codigoEntrega,
           numero_empleado: numero,
           ok: r.ok,
           // Viaja para que el equipo pueda decir "este pedido es de la otra
@@ -456,8 +518,8 @@ entregaRouter.post('/', async (req, res) => {
           // guardada es la de la primera confirmación, no la de este reintento.
           ya_entregado: r.ya_entregado || false,
           motivo: r.motivo || null,
-          nombre: r.pedido?.empleados?.nombre || null,
-          entregado_en: r.pedido?.entregado_en || null,
+          nombre: r.pedido?.empleados?.nombre || r.item?.empleado_nombre_snapshot || null,
+          entregado_en: r.pedido?.entregado_en || r.item?.entregado_en || null,
           // Avisa que la hora guardada NO es la del escaneo sino la del
           // servidor, porque la del equipo no era creíble. La entrega vale
           // igual; lo que no vale es presentar esa hora como exacta ante el
@@ -465,7 +527,7 @@ entregaRouter.post('/', async (req, res) => {
           hora_estimada: reloj.estimada || false
         });
       } catch (err) {
-        resultados.push({ numero_empleado: numero, ok: false, motivo: 'error_servidor', detalle: err.message });
+        resultados.push({ tipo, codigo_entrega: codigoEntrega, numero_empleado: numero, ok: false, motivo: 'error_servidor', detalle: err.message });
       }
     }
 

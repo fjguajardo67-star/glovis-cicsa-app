@@ -8,7 +8,7 @@ web
 
 ## Users
 
-El usuario principal es el empleado de Hyundai Glovis que abre la aplicación desde el QR físico del comedor y necesita elegir rápidamente su comida para el siguiente día de servicio. Administración publica menús y mantiene la plantilla; cocina y reparto consumen los pedidos ya organizados.
+El usuario principal es el empleado de Hyundai Glovis que abre la aplicación desde el QR físico del comedor y necesita elegir rápidamente su comida para el siguiente día de servicio. También existen supervisores autorizados que solicitan coberturas del segundo turno, administración que publica menús y mantiene permisos, y cocina y reparto que consumen las solicitudes organizadas.
 
 ## Product Purpose
 
@@ -16,7 +16,7 @@ Go Lunch conecta la publicación del menú con la elección del empleado, la pre
 
 ## Positioning
 
-El acceso web no requiere cuenta ni contraseña: localiza al empleado con su número de gafete, recupera su asignación operativa y le permite ajustar turno o zona para ese pedido sin modificar su registro de Recursos Humanos.
+El pedido personal no requiere cuenta ni contraseña: localiza al empleado con su número de gafete, recupera su asignación operativa y le permite ajustar turno o zona para ese pedido sin modificar su registro de Recursos Humanos. La cobertura es una facultad distinta y sí exige número de empleado + clave personal de supervisor.
 
 ## Operating Context
 
@@ -26,6 +26,7 @@ El acceso web no requiere cuenta ni contraseña: localiza al empleado con su nú
 - Turno y zona son variables operativas; pueden venir de RRHH, de un pedido previo o elegirse para el pedido actual.
 - La aplicación web es el canal principal mientras Meta/WhatsApp permanece sin verificar.
 - El panel, la página del empleado, cocina y reparto forman un solo flujo operativo.
+- Las coberturas se solicitan el mismo día hasta las 3:00 PM, salen a las 4:30 PM y se entregan con el Turno B a las 5:00 PM.
 
 ## Capabilities and Constraints
 
@@ -37,6 +38,9 @@ El acceso web no requiere cuenta ni contraseña: localiza al empleado con su nú
 - La aplicación debe conservar historial y evitar mezclar sesiones entre empleados.
 - El frontend se sirve desde Railway y usa Supabase como base de datos.
 - El QR y las URLs existentes deben seguir funcionando después de los rediseños.
+- Un pedido regular y una cobertura del mismo empleado deben coexistir sin sobrescribirse.
+- La autorización de supervisor siempre parte de un empleado existente en la plantilla oficial.
+- La app del supervisor no muestra precios ni condiciones financieras.
 
 ## Brand Commitments
 
