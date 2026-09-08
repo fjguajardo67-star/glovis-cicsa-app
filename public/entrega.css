@@ -217,12 +217,12 @@ summary:focus-visible {
 }
 
 .brand-lockup img:first-child {
-  width: 76px;
+  width: 38px;
   height: auto;
 }
 
 .brand-lockup img:last-child {
-  width: 48px;
+  width: 58px;
   height: auto;
 }
 
@@ -1427,11 +1427,11 @@ main {
   }
 
   .brand-lockup img:first-child {
-    width: 52px;
+    width: 34px;
   }
 
   .brand-lockup img:last-child {
-    width: 31px;
+    width: 42px;
   }
 
   .brand-lockup span {
@@ -2287,7 +2287,7 @@ main {
   }
 
   .app-header > .brand-lockup {
-    flex: 0 0 92px;
+    flex: 0 0 112px;
     order: 1;
   }
 
@@ -2494,7 +2494,7 @@ main {
 
 @media (max-width: 350px) {
   .app-header > .brand-lockup {
-    flex-basis: 86px;
+    flex-basis: 104px;
   }
 
   .conexion {
@@ -2506,11 +2506,11 @@ main {
   }
 
   .brand-lockup img:first-child {
-    width: 48px;
+    width: 32px;
   }
 
   .brand-lockup img:last-child {
-    width: 28px;
+    width: 38px;
   }
 
 }

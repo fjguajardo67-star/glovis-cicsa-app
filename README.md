@@ -48,7 +48,7 @@ pide un motivo del catálogo (`acceso_puerto`, `trafico`, `cliente_ausente`,
 Turnos: **turno A 10:00**, **turno B 17:00**.
 
 **Cobertura del segundo turno.** Un supervisor autorizado entra con número de
-empleado y clave personal, y antes de las **15:00** arma una solicitud consolidada
+empleado y clave personal, y antes de las **14:45** arma una solicitud consolidada
 para personal que extenderá su jornada. Selecciona una de tres opciones rápidas
 por empleado, zona y responsable. Cocina produce hasta las 16:30 y entrega a las
 17:00. Las etiquetas usan `EX|uuid|fecha`, por lo que no chocan con un pedido
@@ -156,7 +156,7 @@ no las necesita.
 - **Corte de pedidos:** 20:00 hrs — se pide para el día siguiente
 - **Comanda automática:** 20:05 hrs
 - **Turnos de entrega:** A 10:00 · B 17:00, con 15 min de tolerancia
-- **Cobertura:** solicitud hasta 15:00 · salida 16:30 · entrega 17:00
+- **Cobertura:** solicitud hasta 14:45 · alarma e impresión de comanda al cierre · salida 16:30 · entrega 17:00
 - **Zona horaria:** `America/Mexico_City` (Lázaro Cárdenas, Michoacán)
 - **Escala actual:** ~125 empleados
 

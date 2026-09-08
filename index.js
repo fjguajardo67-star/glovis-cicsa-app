@@ -210,7 +210,10 @@ app.get('/comanda-cobertura/:fecha', async (req, res) => {
   const fecha = req.params.fecha;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).send('Fecha inválida');
   try {
-    res.type('html').send(htmlComandaCobertura(await resumenCobertura(fecha)));
+    res.type('html').send(htmlComandaCobertura(
+      await resumenCobertura(fecha),
+      { autoPrint: req.query.autoprint === '1' }
+    ));
   } catch (err) {
     console.error('[Comanda cobertura] Error:', err);
     res.status(500).send('Error generando la comanda de cobertura');

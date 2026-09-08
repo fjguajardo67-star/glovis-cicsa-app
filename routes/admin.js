@@ -8,6 +8,7 @@ import { diezDigitos } from '../services/telefono.js';
 import { resumenCocina } from '../services/cocina.js';
 import { fechaServicio } from '../services/pedidos.js';
 import { hashClave, generarClave } from '../services/sesion.js';
+import { horarioCobertura } from '../services/cobertura.js';
 
 export const adminRouter = express.Router();
 
@@ -326,11 +327,15 @@ adminRouter.get('/cobertura/solicitudes/:fecha', async (req, res) => {
       return res.status(400).json({ error: 'Fecha inválida.' });
     }
     const solicitudes = await db.listSolicitudesCobertura(req.params.fecha);
+    const horario = horarioCobertura();
     res.json({
       solicitudes,
       total_solicitudes: solicitudes.filter(s => s.estado !== 'cancelada').length,
       total_porciones: solicitudes.filter(s => s.estado !== 'cancelada')
-        .reduce((s, x) => s + (x.total_porciones || 0), 0)
+        .reduce((s, x) => s + (x.total_porciones || 0), 0),
+      // El panel usa la hora del servidor, no la del equipo, para decidir
+      // cuándo cerrar, sonar y presentar la comanda final.
+      horario: horario.fecha === req.params.fecha ? horario : null
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

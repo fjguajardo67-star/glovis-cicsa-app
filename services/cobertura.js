@@ -9,7 +9,8 @@ import { DateTime } from 'luxon';
 import * as db from './supabase.js';
 import { ZONA, ZONAS_VALIDAS } from './menu.js';
 
-export const HORA_CORTE_COBERTURA = 15;
+export const HORA_CORTE_COBERTURA = 14;
+export const MINUTO_CORTE_COBERTURA = 45;
 export const HORA_ENTREGA_COBERTURA = '17:00';
 export const OPCIONES_COBERTURA = ['especial_1', 'especial_2', 'especial_3'];
 
@@ -23,12 +24,17 @@ export function fechaCobertura() {
 
 export function horarioCobertura() {
   const ahora = ahoraCobertura();
-  const corte = ahora.startOf('day').set({ hour: HORA_CORTE_COBERTURA });
+  const corte = ahora.startOf('day').set({
+    hour: HORA_CORTE_COBERTURA,
+    minute: MINUTO_CORTE_COBERTURA,
+    second: 0,
+    millisecond: 0
+  });
   return {
     fecha: ahora.toISODate(),
     abierto: ahora < corte,
     corte_iso: corte.toISO(),
-    corte_texto: '3:00 PM',
+    corte_texto: '2:45 PM',
     entrega_texto: '5:00 PM',
     minutos_restantes: Math.max(0, Math.ceil(corte.diff(ahora, 'minutes').minutes))
   };
@@ -82,7 +88,7 @@ export function validarSolicitudEntrada({ responsable_numero, zona, items }) {
 export async function guardarSolicitud(supervisorId, entrada) {
   const horario = horarioCobertura();
   if (!horario.abierto) {
-    const e = new Error('Las solicitudes de cobertura cerraron a las 3:00 PM.');
+    const e = new Error('Las solicitudes de cobertura cerraron a las 2:45 PM.');
     e.status = 409; e.motivo = 'fuera_de_horario'; throw e;
   }
   const valida = validarSolicitudEntrada(entrada);
@@ -144,7 +150,7 @@ export function validarReceptorEscaneado(empleado, numero, nombre) {
 function traducirErrorBD(err) {
   const bruto = String(err?.message || err || '');
   const casos = [
-    ['cobertura_cerrada', 409, 'fuera_de_horario', 'Las solicitudes cerraron a las 3:00 PM.'],
+    ['cobertura_cerrada', 409, 'fuera_de_horario', 'Las solicitudes cerraron a las 2:45 PM.'],
     ['fecha_cobertura_invalida', 409, 'fecha_invalida', 'La cobertura solo puede solicitarse para hoy.'],
     ['supervisor_no_autorizado', 403, 'no_autorizado', 'Tu autorización de supervisor no está activa.'],
     ['responsable_no_encontrado', 404, 'responsable_no_encontrado', 'No encontramos al responsable en la plantilla activa.'],

@@ -16,7 +16,7 @@ No es un tercer turno ni un pedido personal adicional del supervisor. La cobertu
 - Solo pueden solicitar supervisores incluidos en la lista oficial de Glovis.
 - CICSA selecciona al supervisor desde la plantilla de empleados ya existente y le asigna una clave personal.
 - El supervisor entra con número de empleado + clave personal.
-- Las solicitudes son para el mismo día y cierran a las **3:00 PM**, según la hora del servidor.
+- Las solicitudes son para el mismo día y cierran a las **2:45 PM**, según la hora del servidor.
 - Cocina produce de 3:00 a 4:30 PM; la unidad sale a las **4:30 PM** y entrega a las **5:00 PM**.
 - El menú especial tiene exactamente tres opciones rápidas, publicadas por CICSA para esa fecha.
 - No hay modificaciones de preparación.
@@ -55,7 +55,7 @@ El UUID es obligatorio: la etiqueta regular usa `numero|fecha`; la de cobertura 
 
 Función transaccional que valida en la base:
 
-- fecha de hoy y corte de las 3:00 PM;
+- fecha de hoy y corte de las 2:45 PM;
 - supervisor vigente;
 - menú activo;
 - zona válida;

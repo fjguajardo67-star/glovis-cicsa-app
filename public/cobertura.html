@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Cobertura · Go Lunch</title>
 <link rel="manifest" href="/app-pedido.webmanifest">
-<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/icono-32.png">
 <link rel="apple-touch-icon" href="/icono-180.png">
 <style>
   :root{--navy:#061b44;--blue:#0d47d7;--bright:#2563eb;--mist:#eef5ff;--line:#d8e2f0;--ink:#0d1b3e;--muted:#64748b;--white:#fff;--green:#18733b;--green-bg:#e9f7ef;--red:#b42318;--red-bg:#fff0ee;--gold:#9a6814;--gold-bg:#fff6df}
@@ -16,7 +16,7 @@
   button,input,select{font:inherit}button{cursor:pointer}.oculto{display:none!important}
   .app{min-height:100vh;max-width:560px;margin:0 auto;background:rgba(255,255,255,.76);box-shadow:0 18px 48px rgba(15,23,42,.1)}
   .brand{background:var(--navy);padding:max(18px,env(safe-area-inset-top)) 20px 18px;color:#fff}
-  .brand-lockup{display:flex;align-items:center;justify-content:space-between;gap:14px}.logos{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:9px 12px;min-height:52px}.logos img:first-child{width:auto;height:34px}.logos .divider{width:1px;height:29px;background:#dbe4f1}.logos img:last-child{width:auto;height:27px}.brand-copy{text-align:right}.brand-copy b,.brand-copy span{display:block}.brand-copy b{font-size:.85rem}.brand-copy span{font-size:.68rem;color:#a9c3ef;margin-top:2px}
+  .brand-lockup{display:flex;align-items:center;justify-content:space-between;gap:14px}.logos{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:9px 12px;min-height:62px}.logos img:first-child{width:auto;height:44px}.logos .divider{width:1px;height:34px;background:#dbe4f1}.logos img:last-child{width:auto;height:22px}.brand-copy{text-align:right}.brand-copy b,.brand-copy span{display:block}.brand-copy b{font-size:.85rem}.brand-copy span{font-size:.68rem;color:#a9c3ef;margin-top:2px}
   main{padding:22px 18px 40px}.lead{padding:4px 2px 20px}.lead h1{font-size:1.8rem;line-height:1.08;letter-spacing:-.035em;margin:0;max-width:13ch}.lead p{color:var(--muted);font-size:.9rem;line-height:1.55;margin:10px 0 0;max-width:48ch}
   .timing{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;margin-bottom:18px}.timing div{padding:12px 10px;text-align:center;border-left:1px solid var(--line)}.timing div:first-child{border-left:0}.timing b,.timing span{display:block}.timing b{font-size:.82rem;color:var(--navy)}.timing span{font-size:.65rem;color:var(--muted);margin-top:2px}
   .panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(6,27,68,.06);margin-bottom:14px}.panel h2{font-size:1.05rem;margin:0 0 5px;letter-spacing:-.015em}.panel>p{font-size:.8rem;color:var(--muted);line-height:1.5;margin:0 0 17px}
@@ -48,7 +48,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <header class="brand">
     <div class="brand-lockup">
       <div class="logos">
-        <img src="/golunch-lateral.png" alt="CICSA GoLunch" width="372" height="195">
+        <img src="/golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch" width="1254" height="627">
         <span class="divider" aria-hidden="true"></span>
         <img src="/glovis-logo.png" alt="Hyundai Glovis" width="220" height="56">
       </div>
@@ -59,7 +59,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
   <main>
     <section id="login">
       <div class="lead"><h1>Alimentos para quienes extienden su jornada.</h1><p>Acceso exclusivo para supervisores autorizados por Glovis.</p></div>
-      <div class="timing" aria-label="Horario del servicio"><div><b>3:00 PM</b><span>Cierre</span></div><div><b>4:30 PM</b><span>Salida</span></div><div><b>5:00 PM</b><span>Entrega</span></div></div>
+      <div class="timing" aria-label="Horario del servicio"><div><b>2:45 PM</b><span>Cierre</span></div><div><b>4:30 PM</b><span>Salida</span></div><div><b>5:00 PM</b><span>Entrega</span></div></div>
       <form class="panel" onsubmit="event.preventDefault();entrar()">
         <h2>Acceso de supervisor</h2><p>Usa el número de tu gafete y la clave que te entregó CICSA.</p>
         <label for="numero">Número de empleado</label>
@@ -95,12 +95,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           <button class="add" type="button" onclick="agregarPersona()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar empleado</button>
           <div id="solicitud-error" class="error oculto" role="alert"></div>
         </section>
-        <div class="summary"><div class="summary-row"><div><b id="total">0 alimentos</b><span id="cuenta-regresiva">Cierra a las 3:00 PM</span></div><span>Entrega 5:00 PM</span></div><button id="btn-guardar" class="btn" onclick="guardarSolicitud()">Confirmar solicitud</button></div>
+        <div class="summary"><div class="summary-row"><div><b id="total">0 alimentos</b><span id="cuenta-regresiva">Cierra a las 2:45 PM</span></div><span>Entrega 5:00 PM</span></div><button id="btn-guardar" class="btn" onclick="guardarSolicitud()">Confirmar solicitud</button></div>
       </div>
 
       <section id="recibo" class="panel receipt oculto">
         <div class="receipt-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m6 12 4 4 8-9"/></svg></div>
-        <h2>Solicitud confirmada</h2><p>El conteo ya está visible para CICSA. Puedes modificarlo hasta las 3:00 PM.</p>
+        <h2>Solicitud confirmada</h2><p>El conteo ya está visible para CICSA. Puedes modificarlo hasta las 2:45 PM.</p>
         <div class="receipt-grid"><div><span>Folio</span><b id="rec-folio">—</b></div><div><span>Alimentos</span><b id="rec-total">—</b></div><div><span>Zona</span><b id="rec-zona">—</b></div><div><span>Responsable</span><b id="rec-responsable">—</b></div></div>
         <div id="rec-acciones" class="receipt-actions"><button class="btn sec" onclick="editarSolicitud()">Modificar</button><button class="btn sec danger" onclick="cancelarSolicitud()">Cancelar</button></div>
       </section>
@@ -146,7 +146,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     const s=ESTADO.solicitud;
     if(s&&s.estado!=='cancelada')cargarSolicitud(s);else iniciarNueva();
     if(!ESTADO.menu){mostrarCerrado('Menú especial pendiente','CICSA todavía no publica las opciones de cobertura para hoy.');return}
-    if(!ESTADO.abierto){mostrarCerrado('El conteo cerró a las 3:00 PM','La solicitud queda visible para producción y se entregará a las 5:00 PM.');if(s&&s.estado!=='cancelada')mostrarRecibo(s,false);return}
+    if(!ESTADO.abierto){mostrarCerrado('El conteo cerró a las 2:45 PM','La solicitud queda visible para producción y se entregará a las 5:00 PM.');if(s&&s.estado!=='cancelada')mostrarRecibo(s,false);return}
     $('estado-cerrado').classList.add('oculto');
     if(s&&s.estado!=='cancelada')mostrarRecibo(s,true);else mostrarEditor();
     pintarMenu();pintarFilas();actualizarTotal();actualizarReloj();

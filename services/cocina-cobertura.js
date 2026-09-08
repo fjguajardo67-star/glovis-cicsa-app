@@ -29,7 +29,7 @@ export async function resumenCobertura(fecha) {
   };
 }
 
-export function htmlComandaCobertura({ fecha, total, solicitudes, resumen, detalle }) {
+export function htmlComandaCobertura({ fecha, total, solicitudes, resumen, detalle }, { autoPrint = false } = {}) {
   const generado = DateTime.now().setZone(ZONA_TZ).toFormat("dd/MM/yyyy HH:mm 'hrs'");
   const porZona = new Map();
   for (const r of resumen) {
@@ -61,6 +61,7 @@ ${secciones || '<p>Sin solicitudes confirmadas.</p>'}
 <hr><div class="total"><span>TOTAL</span><span>${total}</span></div><p>${solicitudes} solicitud(es)</p>
 ${folios ? `<hr><h2>FOLIOS Y RECEPCIÓN</h2>${folios}` : ''}
 <hr><p>Generada: ${esc(generado)}</p><div class="no-print"><button onclick="window.print()">Imprimir</button></div>
+${autoPrint ? '<script>window.addEventListener("load",function(){window.setTimeout(function(){window.print()},250)})</script>' : ''}
 </body></html>`;
 }
 

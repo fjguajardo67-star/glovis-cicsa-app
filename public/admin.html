@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Go Lunch — Panel</title>
-  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="/icono-32.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/icono-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/icono-16.png">
   <link rel="apple-touch-icon" href="/icono-180.png">
@@ -477,6 +477,56 @@
   .cov-solicitud-cab p, .cov-items { color: var(--gris-text); font-size: .76rem; margin-top: 3px; }
   .cov-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 12px; margin-top: 10px; }
   .cov-items span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tab-coberturas { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cov-tab-badge {
+    min-width: 24px; padding: 2px 7px; border-radius: 999px;
+    background: var(--dorado-light); color: #7a5511;
+    font-size: .68rem; font-weight: 900; text-align: center;
+  }
+  .tab.activo .cov-tab-badge { background: rgba(255,255,255,.18); color: #fff; }
+
+  /* El cierre de cobertura sí justifica interrumpir al operador: si la
+     comanda no se imprime, cocina nunca ve el pedido. */
+  .cov-alerta-backdrop {
+    position: fixed; inset: 0; z-index: 1000; padding: 24px;
+    display: grid; place-items: center;
+    background: rgba(4, 18, 48, .72); backdrop-filter: blur(5px);
+  }
+  .cov-alerta-dialog {
+    width: min(100%, 520px); padding: 30px;
+    border: 1px solid #f0d596; border-radius: 18px;
+    background: #fff; box-shadow: 0 30px 90px rgba(0, 18, 55, .34);
+  }
+  .cov-alerta-senal {
+    width: 58px; height: 58px; display: grid; place-items: center;
+    border-radius: 17px; background: var(--dorado-light); color: #8a5f0b;
+    animation: cov-pulso 1.4s ease-in-out infinite;
+  }
+  .cov-alerta-senal svg { width: 28px; height: 28px; }
+  .cov-alerta-kicker {
+    margin: 20px 0 6px; color: #8a5f0b; font-size: .72rem;
+    font-weight: 900; letter-spacing: .09em; text-transform: uppercase;
+  }
+  .cov-alerta-dialog h2 { color: var(--azul); font-size: 1.55rem; letter-spacing: -.03em; }
+  .cov-alerta-dialog > p:not(.cov-alerta-kicker) { margin-top: 8px; color: var(--gris-text); font-size: .9rem; line-height: 1.55; }
+  .cov-alerta-resumen {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px; margin: 20px 0;
+  }
+  .cov-alerta-resumen div { padding: 13px 14px; border-radius: 11px; background: var(--gris-bg); }
+  .cov-alerta-resumen dt { color: var(--gris-text); font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+  .cov-alerta-resumen dd { margin-top: 3px; color: var(--azul); font-size: 1.2rem; font-weight: 900; }
+  .cov-alerta-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cov-alerta-acciones .accion { width: 100%; min-height: 46px; margin: 0; }
+  .cov-alerta-nota { margin-top: 14px !important; font-size: .75rem !important; }
+  .cov-print-frame {
+    position: fixed; right: 0; bottom: 0; width: 1px; height: 1px;
+    border: 0; opacity: 0; pointer-events: none;
+  }
+  @keyframes cov-pulso {
+    0%,100% { box-shadow: 0 0 0 0 rgba(191, 133, 25, .24); }
+    50% { box-shadow: 0 0 0 12px rgba(191, 133, 25, 0); }
+  }
   
   @media (max-width: 640px) {
     .grid2, .grid3 { grid-template-columns: 1fr; }
@@ -493,7 +543,11 @@
     .cov-full { grid-column: auto; }
     .cov-resumen { grid-template-columns: 1fr; }
     .cov-items { grid-template-columns: 1fr; }
+    .cov-alerta-backdrop { padding: 14px; }
+    .cov-alerta-dialog { padding: 22px; }
+    .cov-alerta-acciones { grid-template-columns: 1fr; }
   }
+  @media (prefers-reduced-motion: reduce) { .cov-alerta-senal { animation: none; } }
 </style>
 </head>
 <body>
@@ -502,7 +556,7 @@
 <div id="gate" class="gate-wrap">
   <div class="gate">
     <div style="text-align:center;margin-bottom:24px">
-      <img src="golunch-gate.png" alt="CICSA GoLunch" width="448" height="305" style="width:auto;height:auto;max-height:150px;max-width:300px">
+      <img src="golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch" width="1254" height="627" style="width:auto;height:auto;max-height:150px;max-width:300px">
     </div>
     <h2 style="font-size:1.2rem;font-weight:700;color:var(--azul);margin-bottom:20px;text-align:left">Iniciar Sesión</h2>
     <div style="position:relative;margin-bottom:14px">
@@ -557,10 +611,7 @@
   <div class="shell">
     <aside class="lateral">
       <div class="marca">
-        <!-- Versión web del logotipo: el grande (golunch-compacto) se queda
-             para el cartel de qr.html, que se imprime y sí necesita esos
-             píxeles. Aquí se pinta a 186 px. -->
-        <img src="golunch-lateral.png" alt="CICSA GoLunch" width="372" height="195"
+        <img src="golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch" width="1254" height="627"
              onerror="this.style.display='none'">
       </div>
       <nav class="tabs">
@@ -568,7 +619,7 @@
       <button class="tab"        data-p="dashboard" onclick="tab('dashboard')">Dashboard</button>
       <button class="tab"        data-p="pedidos"   onclick="tab('pedidos')">Pedidos</button>
       <button class="tab"        data-p="empleados" onclick="tab('empleados')">Empleados</button>
-      <button class="tab"        data-p="coberturas" onclick="tab('coberturas')">Coberturas</button>
+      <button class="tab tab-coberturas" data-p="coberturas" onclick="tab('coberturas')"><span>Coberturas</span><span id="cov-tab-badge" class="cov-tab-badge oculto">0</span></button>
       <button class="tab"        data-p="cocina"    onclick="tab('cocina')">Cocina</button>
       <button class="tab"        data-p="reportes"  onclick="tab('reportes')">Reportes</button>
       </nav>
@@ -759,10 +810,10 @@
       <div class="cov-hero">
         <div>
           <h2>Cobertura del segundo turno</h2>
-          <p>Solicitudes del mismo día para personal que extiende su jornada. Los supervisores autorizados capturan hasta las 3:00 PM y la producción sale a las 4:30 PM para entregar a las 5:00 PM.</p>
+          <p>Solicitudes del mismo día para personal que extiende su jornada. Los supervisores autorizados capturan hasta las 2:45 PM; al cierre, este panel activa la alarma y presenta la comanda final.</p>
         </div>
         <div class="cov-reloj" aria-label="Horario de cobertura">
-          <b>Cierre 3:00 PM</b>
+          <b>Cierre 2:45 PM</b>
           <span>Salida 4:30 PM · Entrega 5:00 PM</span>
         </div>
       </div>
@@ -1084,8 +1135,29 @@
       </div>
     </section>
 
-  </div><!-- /wrap -->
+</div><!-- /wrap -->
 </div></div></div><!-- /app -->
+
+<div id="cov-alarma-comanda" class="cov-alerta-backdrop oculto">
+  <section class="cov-alerta-dialog" role="alertdialog" aria-modal="true" aria-labelledby="cov-alarma-titulo" aria-describedby="cov-alarma-texto">
+    <div class="cov-alerta-senal" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+    </div>
+    <p class="cov-alerta-kicker">Corte de cobertura · 2:45 PM</p>
+    <h2 id="cov-alarma-titulo">La comanda final está lista</h2>
+    <p id="cov-alarma-texto">Cocina necesita este consolidado para iniciar la producción del servicio de las 5:00 PM.</p>
+    <dl class="cov-alerta-resumen">
+      <div><dt>Solicitudes</dt><dd id="cov-alarma-solicitudes">0</dd></div>
+      <div><dt>Alimentos</dt><dd id="cov-alarma-porciones">0</dd></div>
+    </dl>
+    <div class="cov-alerta-acciones">
+      <button id="cov-btn-imprimir" class="accion" type="button" onclick="imprimirComandaFinalCobertura()">Imprimir comanda</button>
+      <button class="accion verde" type="button" onclick="confirmarComandaCobertura()">Comanda impresa</button>
+    </div>
+    <p class="cov-alerta-nota">La alarma seguirá activa hasta confirmar la impresión. Si el navegador bloqueó el diálogo automático, usa “Imprimir comanda”.</p>
+  </section>
+</div>
+<iframe id="cov-print-frame" class="cov-print-frame" title="Impresión automática de comanda de cobertura"></iframe>
 
 <script>
 
@@ -1125,10 +1197,18 @@
   const etiquetaZona  = z => z === 'sin_zona'  ? 'Sin zona'  : zonaTxt(z);
 
   let ADMIN_KEY = '';
+  const COBERTURA_MONITOR_MS = 30000;
+  const COBERTURA_ACK_PREFIX = 'golunch_cobertura_comanda_impresa_';
+  let temporizadorCobertura = null;
+  let temporizadorSonidoCobertura = null;
+  let audioCobertura = null;
+  let coberturaAlarma = null;
+  let coberturaImpresionIntentada = '';
 
   function entrar() {
     const k = document.getElementById('adminKey').value.trim();
     if (!k) return;
+    prepararAudioCobertura();
     ADMIN_KEY = k;
     // Prueba la clave con una petición simple
     api('/api/empleados').then(() => {
@@ -1140,13 +1220,19 @@
       document.getElementById('im-fecha').value = sumarDias(hoy, 1);
       cargarEmpleados();
       cargarSemana();
+      iniciarMonitorCobertura();
     }).catch(() => {
       const e = document.getElementById('gateErr');
       e.className = 'aviso err'; e.textContent = 'Clave incorrecta o servidor no disponible.';
     });
   }
 
-  function salir() { ADMIN_KEY=''; location.reload(); }
+  function salir() {
+    ADMIN_KEY = '';
+    clearInterval(temporizadorCobertura);
+    detenerAlarmaCobertura();
+    location.reload();
+  }
 
   function tab(p) {
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('activo', t.dataset.p === p));
@@ -2650,6 +2736,146 @@
   // ── Coberturas del segundo turno ────────────────────────────
   let SUPERVISORES_COBERTURA = [];
 
+  function prepararAudioCobertura() {
+    try {
+      const AudioContexto = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContexto) return;
+      if (!audioCobertura) audioCobertura = new AudioContexto();
+      if (audioCobertura.state === 'suspended') audioCobertura.resume().catch(() => {});
+    } catch { /* La alerta visual y la impresión siguen funcionando. */ }
+  }
+
+  function tocarAlarmaCobertura() {
+    prepararAudioCobertura();
+    if (!audioCobertura || audioCobertura.state !== 'running') return;
+    const inicio = audioCobertura.currentTime;
+    [0, .22, .44].forEach((desfase, i) => {
+      const oscilador = audioCobertura.createOscillator();
+      const volumen = audioCobertura.createGain();
+      oscilador.type = 'sine';
+      oscilador.frequency.value = i === 1 ? 880 : 740;
+      volumen.gain.setValueAtTime(.0001, inicio + desfase);
+      volumen.gain.exponentialRampToValueAtTime(.18, inicio + desfase + .025);
+      volumen.gain.exponentialRampToValueAtTime(.0001, inicio + desfase + .18);
+      oscilador.connect(volumen);
+      volumen.connect(audioCobertura.destination);
+      oscilador.start(inicio + desfase);
+      oscilador.stop(inicio + desfase + .2);
+    });
+  }
+
+  function detenerAlarmaCobertura() {
+    clearInterval(temporizadorSonidoCobertura);
+    temporizadorSonidoCobertura = null;
+    document.getElementById('cov-alarma-comanda')?.classList.add('oculto');
+    coberturaAlarma = null;
+  }
+
+  function ackCobertura(fecha) {
+    try { return localStorage.getItem(COBERTURA_ACK_PREFIX + fecha); }
+    catch { return null; }
+  }
+
+  function actualizarBadgeCobertura(datos) {
+    const badge = document.getElementById('cov-tab-badge');
+    if (!badge) return;
+    const total = Number(datos?.total_porciones || 0);
+    badge.textContent = String(total);
+    badge.classList.toggle('oculto', total === 0);
+    badge.title = total ? total + ' alimento(s) de cobertura para hoy' : '';
+  }
+
+  function urlImpresoCobertura(tipo, fecha, autoPrint = false) {
+    let url = tipo === 'comanda'
+      ? API_BASE + '/comanda-cobertura/' + fecha + '?key=' + encodeURIComponent(ADMIN_KEY)
+      : API_BASE + '/etiquetas-cobertura/' + fecha + '?key=' + encodeURIComponent(ADMIN_KEY);
+    if (tipo === 'etiquetas') {
+      const tamano = document.getElementById('im-tamano')?.value || '57x32';
+      const [ancho, alto] = tamano.split('x');
+      url += '&ancho=' + encodeURIComponent(ancho) + '&alto=' + encodeURIComponent(alto);
+    }
+    if (autoPrint) url += '&autoprint=1';
+    return url;
+  }
+
+  function intentarImpresionAutomaticaCobertura() {
+    if (!coberturaAlarma) return;
+    const intento = coberturaAlarma.fecha + '|' + coberturaAlarma.total_porciones;
+    if (coberturaImpresionIntentada === intento) return;
+    coberturaImpresionIntentada = intento;
+    const frame = document.getElementById('cov-print-frame');
+    if (frame) frame.src = urlImpresoCobertura('comanda', coberturaAlarma.fecha, true) + '&alarma=' + Date.now();
+  }
+
+  function activarAlarmaCobertura(datos, fecha) {
+    const total = Number(datos.total_porciones || 0);
+    const clave = fecha + '|' + total;
+    const yaVisible = coberturaAlarma &&
+      (coberturaAlarma.fecha + '|' + coberturaAlarma.total_porciones) === clave &&
+      !document.getElementById('cov-alarma-comanda').classList.contains('oculto');
+    coberturaAlarma = {
+      fecha,
+      total_solicitudes: Number(datos.total_solicitudes || 0),
+      total_porciones: total
+    };
+    document.getElementById('cov-alarma-solicitudes').textContent = coberturaAlarma.total_solicitudes;
+    document.getElementById('cov-alarma-porciones').textContent = coberturaAlarma.total_porciones;
+    document.getElementById('cov-alarma-comanda').classList.remove('oculto');
+    if (yaVisible) return;
+    tocarAlarmaCobertura();
+    clearInterval(temporizadorSonidoCobertura);
+    temporizadorSonidoCobertura = setInterval(tocarAlarmaCobertura, 9000);
+    intentarImpresionAutomaticaCobertura();
+    requestAnimationFrame(() => document.getElementById('cov-btn-imprimir')?.focus());
+  }
+
+  function evaluarCorteCobertura(datos, fecha) {
+    if (fecha !== fechaComedor()) return;
+    actualizarBadgeCobertura(datos);
+    const total = Number(datos.total_porciones || 0);
+    const cerrado = datos.horario && datos.horario.abierto === false;
+    if (!cerrado || total === 0 || ackCobertura(fecha) === String(total)) {
+      if (coberturaAlarma?.fecha === fecha) detenerAlarmaCobertura();
+      return;
+    }
+    activarAlarmaCobertura(datos, fecha);
+  }
+
+  async function revisarCorteCobertura() {
+    if (!ADMIN_KEY) return;
+    const fecha = fechaComedor();
+    try {
+      const datos = await api('/api/cobertura/solicitudes/' + fecha);
+      evaluarCorteCobertura(datos, fecha);
+    } catch { /* Un fallo de red no interrumpe el resto del panel. */ }
+  }
+
+  function iniciarMonitorCobertura() {
+    clearInterval(temporizadorCobertura);
+    revisarCorteCobertura();
+    temporizadorCobertura = setInterval(revisarCorteCobertura, COBERTURA_MONITOR_MS);
+  }
+
+  function imprimirComandaFinalCobertura() {
+    if (!coberturaAlarma) return;
+    window.open(urlImpresoCobertura('comanda', coberturaAlarma.fecha, true), '_blank');
+  }
+
+  function confirmarComandaCobertura() {
+    if (!coberturaAlarma) return;
+    try {
+      localStorage.setItem(
+        COBERTURA_ACK_PREFIX + coberturaAlarma.fecha,
+        String(coberturaAlarma.total_porciones)
+      );
+    } catch { /* La confirmación dura al menos durante esta sesión. */ }
+    detenerAlarmaCobertura();
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && ADMIN_KEY) revisarCorteCobertura();
+  });
+
   async function cargarCobertura() {
     const fecha = document.getElementById('cov-fecha').value || fechaComedor();
     document.getElementById('cov-fecha').value = fecha;
@@ -2788,6 +3014,7 @@
       const r = await api('/api/cobertura/solicitudes/' + fecha);
       document.getElementById('cov-n-sol').textContent = r.total_solicitudes || 0;
       document.getElementById('cov-n-por').textContent = r.total_porciones || 0;
+      evaluarCorteCobertura(r, fecha);
       const solicitudes = r.solicitudes || [];
       if (!solicitudes.length) {
         box.innerHTML = '<div class="vacio">Aún no hay solicitudes para esta fecha.</div>'; return;
@@ -2814,15 +3041,7 @@
   function imprimirCobertura(tipo) {
     const fecha = document.getElementById('cov-fecha').value;
     if (!fecha) return;
-    let url = tipo === 'comanda'
-      ? API_BASE + '/comanda-cobertura/' + fecha + '?key=' + encodeURIComponent(ADMIN_KEY)
-      : API_BASE + '/etiquetas-cobertura/' + fecha + '?key=' + encodeURIComponent(ADMIN_KEY);
-    if (tipo === 'etiquetas') {
-      const tamano = document.getElementById('im-tamano')?.value || '57x32';
-      const [ancho, alto] = tamano.split('x');
-      url += '&ancho=' + encodeURIComponent(ancho) + '&alto=' + encodeURIComponent(alto);
-    }
-    window.open(url, '_blank');
+    window.open(urlImpresoCobertura(tipo, fecha), '_blank');
   }
 
   // Permitir Enter en la puerta

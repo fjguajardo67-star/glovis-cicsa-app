@@ -26,7 +26,7 @@ El pedido personal no requiere cuenta ni contraseña: localiza al empleado con s
 - Turno y zona son variables operativas; pueden venir de RRHH, de un pedido previo o elegirse para el pedido actual.
 - La aplicación web es el canal principal mientras Meta/WhatsApp permanece sin verificar.
 - El panel, la página del empleado, cocina y reparto forman un solo flujo operativo.
-- Las coberturas se solicitan el mismo día hasta las 3:00 PM, salen a las 4:30 PM y se entregan con el Turno B a las 5:00 PM.
+- Las coberturas se solicitan el mismo día hasta las 2:45 PM. Al cierre, el panel de CICSA activa una alarma y presenta la comanda final para impresión; la producción sale a las 4:30 PM y se entrega con el Turno B a las 5:00 PM.
 
 ## Capabilities and Constraints
 
@@ -44,7 +44,7 @@ El pedido personal no requiere cuenta ni contraseña: localiza al empleado con s
 
 ## Brand Commitments
 
-- Nombre: CICSA GoLunch.
+- Nombre: CICSA Go Lunch.
 - Cliente: Hyundai Glovis.
 - Usar los logotipos corporativos reales, sin sustituirlos por iconos genéricos.
 - Voz en español, directa, amable y profesional; sin tono infantil ni promesas no verificadas.
@@ -52,8 +52,9 @@ El pedido personal no requiere cuenta ni contraseña: localiza al empleado con s
 
 ## Evidence on Hand
 
-- Logotipo Go Lunch: `public/golunch-compacto.png`.
-- Marca compacta: `public/golunch-mark.png`.
+- Logotipo aprobado: `public/golunch-aprobado-horizontal.jpg`.
+- Marca compacta: `public/golunch-aprobado-mark.png`.
+- Originales autorizados de color y línea: `assets/brand/`.
 - Logotipo Hyundai Glovis: `public/glovis-logo.png`.
 - Flujo real de empleado: `public/pedido.html` y `routes/pedido.js`.
 - Reglas de menú, corte, zonas y turnos: `services/menu.js` y `services/pedidos.js`.

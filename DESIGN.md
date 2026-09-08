@@ -6,6 +6,10 @@ Go Lunch es una herramienta operativa corporativa: debe sentirse clara,
 confiable y rápida, no decorativa. La identidad se construye con azul marino,
 azul Glovis, superficies blancas y fondos fríos. Los logotipos siempre viven
 juntos sobre una placa blanca para conservar contraste en temas claro y oscuro.
+La firma aprobada es `public/golunch-aprobado-horizontal.jpg`; para favicons y
+espacios reducidos se usa el recorte fiel `public/golunch-aprobado-mark.png`.
+Los originales autorizados, incluido el trazo monocromático, viven en
+`assets/brand/` y no deben redibujarse desde CSS.
 
 ## Principios
 
@@ -31,6 +35,11 @@ El panel administrativo mantiene cuatro bloques: menú especial, supervisores
 autorizados, solicitudes/producción y autorizaciones vigentes. En reparto, las
 coberturas se distinguen visualmente, pero comparten el mismo patrón de escaneo
 de las entregas regulares.
+
+El conteo cierra a las 2:45 PM según la hora del servidor. Si hay solicitudes,
+el panel interrumpe la operación con una alerta sonora y visual, intenta abrir
+la impresión de la comanda y conserva una acción manual de respaldo. La alarma
+solo se apaga cuando el operador confirma que la comanda quedó impresa.
 
 ## PWA y caché
 

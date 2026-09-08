@@ -263,7 +263,7 @@ CREATE INDEX IF NOT EXISTS idx_envios_msgid ON envios (message_id);
 -- COBERTURAS DEL SEGUNDO TURNO
 --
 -- Solicitudes grupales que hacen supervisores autorizados cuando personal
--- del primer turno cubre el segundo. Se piden el MISMO día hasta las 15:00,
+-- del primer turno cubre el segundo. Se piden el MISMO día hasta las 14:45,
 -- se producen entre las 15:00 y las 16:30 y viajan con la ruta de las 17:00.
 -- Viven aparte de `pedidos`: una persona puede tener su comida regular y una
 -- cobertura el mismo día sin que el UNIQUE de pedidos reemplace ninguna.
@@ -416,7 +416,7 @@ BEGIN
   IF v_ahora::DATE <> p_fecha THEN
     RAISE EXCEPTION 'fecha_cobertura_invalida';
   END IF;
-  IF v_ahora::TIME >= TIME '15:00' THEN
+  IF v_ahora::TIME >= TIME '14:45' THEN
     RAISE EXCEPTION 'cobertura_cerrada';
   END IF;
   IF p_zona NOT IN ('zona_vdc','zona_refris') THEN

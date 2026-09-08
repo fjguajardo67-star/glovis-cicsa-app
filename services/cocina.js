@@ -83,7 +83,7 @@ export function htmlComanda({ fecha, total, resumen }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Comanda ${esc(fecha)}</title>
-<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/icono-32.png">
 <link rel="apple-touch-icon" href="/icono-180.png">
 
 <style>
@@ -192,7 +192,7 @@ export function htmlEtiquetas({ fecha, ancho, alto, modo, qr = true, pedidos }) 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Etiquetas ${esc(fecha)}</title>
-<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/icono-32.png">
 <link rel="apple-touch-icon" href="/icono-180.png">
 
 <style>
