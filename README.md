@@ -173,7 +173,16 @@ Sin `.env` el servidor arranca pero cualquier ruta que toque la base falla.
 ## Cómo se trabaja este repo
 
 **Push a `main` = deploy inmediato a Railway.** Nunca commitear directo a `main`:
-rama → PR → lo mergea el dueño → verificar en `/health`.
+rama → PR → merge → verificar en `/health`.
+
+El agente **sí crea y mergea PRs**, pero **solo cuando el dueño lo pide** — nunca
+por iniciativa propia. La condición viene del incidente del 23/ago/2026 en
+`~/grill-express` (ver su `HANDOFF.md` §3.0): al mergear se desplegó trabajo que
+el dueño no había decidido soltar. El punto no es quién puede mergear, es que el
+dueño decida **qué sale y cuándo**.
+
+Antes de mergear: revisar qué lleva la rama de verdad y ensayar el merge. Después:
+comprobar que `/health` responda desde el dominio, no dar el deploy por hecho.
 
 El SQL nuevo va a `schema.sql` y lo pega el dueño en Supabase. Y como el proyecto
 es compartido, jamás tocar las tablas de Grill Express.
