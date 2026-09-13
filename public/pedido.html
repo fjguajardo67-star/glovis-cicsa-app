@@ -60,27 +60,20 @@
     gap: 12px;
     box-shadow: 0 2px 12px rgba(0,48,135,.18);
   }
-  /* La marca va en una placa blanca: el logotipo nace sobre blanco y sobre el
-     azul del encabezado necesita su propio lienzo para no ensuciarse. El
-     redondeo recorta las esquinas del ícono original. */
+  /* La placa recorta el sector del isotipo dentro del SVG maestro; así la marca
+     compacta también permanece vectorial sin mantener un PNG separado. */
   header .marca {
     width: 38px; height: 38px; flex-shrink: 0;
     border-radius: 11px; background: #fff; overflow: hidden;
     box-shadow: 0 1px 3px rgba(0,0,0,.22);
   }
-  header .marca img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  header .marca img { width: 76px; max-width: none; height: 38px; display: block; }
   header .t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   header .t b {
     font-size: 1.06rem; font-weight: 800; color: #fff;
     letter-spacing: -.015em; line-height: 1.15;
   }
-  /* Tintado del propio azul y no gris ni blanco translúcido: así el crédito
-     al cliente se lee de verdad (5.5:1) en vez de desaparecer. */
-  header .t span {
-    font-size: .64rem; letter-spacing: .13em; text-transform: uppercase;
-    color: #9db2dd; font-weight: 700; line-height: 1.2;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
+  header .t img { width: 78px; max-width: 100%; height: auto; display: block; }
   header .paso {
     margin-left: auto; font-size: .72rem; color: #a9bee4; font-weight: 600;
     font-variant-numeric: tabular-nums; flex-shrink: 0;
@@ -98,7 +91,7 @@
      de los márgenes y del interletrado, no del texto. */
   @media (max-width: 360px) {
     header { padding: 12px 12px; gap: 10px; }
-    header .t span { letter-spacing: .08em; }
+    header .t img { width: 72px; }
   }
 
   main { flex: 1; width: 100%; max-width: 520px; margin: 0 auto; padding: 16px 18px 24px; }
@@ -1928,13 +1921,11 @@
 <header>
   <!-- alt vacío: la marca ya se nombra en el texto de al lado, repetirla solo
        hace que el lector de pantalla la diga dos veces. -->
-  <div class="marca"><img src="golunch-aprobado-mark.png" alt="" width="600" height="600"
+  <div class="marca"><img src="/go-lunch.svg" alt="" width="1254" height="627"
        onerror="this.closest('.marca').style.display='none'"></div>
-  <!-- "Glovis" y no "Hyundai Glovis": con el indicador de paso y el botón de
-       salir, la cadena larga se cortaba a media palabra en un teléfono de
-       375 px. Es además como se nombra la planta aquí y en las zonas de
-       entrega ("Glovis VDC"). -->
-  <div class="t"><span>Comedor · Glovis</span><b>Go Lunch</b></div>
+  <!-- El SVG blanco recortado reemplaza el crédito textual: conserva la firma
+       completa sin que "Hyundai Glovis" se corte en teléfonos estrechos. -->
+  <div class="t"><img src="/glovis-white.svg" alt="Hyundai Glovis" width="560" height="143"><b>Go Lunch</b></div>
   <span class="paso" id="paso"></span>
   <!-- Aparece solo al identificarse: sin esto, quien tecleaba mal su número
        quedaba dentro de la sesión de otro y podía cambiarle el pedido. -->
@@ -1963,12 +1954,12 @@
     <!-- 1. Identificarse -->
     <section class="vista activa login-view" id="v-id">
       <div class="login-brand">
-        <img class="login-golunch" src="golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch"
-             width="1328" height="698">
+        <img class="login-golunch" src="/go-lunch.svg" alt="CICSA Go Lunch"
+             width="1254" height="627">
         <div class="login-service">
           <div class="login-service-label"><span>Servicio para</span></div>
-          <img class="login-glovis" src="glovis-logo.png" alt="Hyundai Glovis"
-               width="220" height="56">
+          <img class="login-glovis" src="/glovis.svg" alt="Hyundai Glovis"
+               width="560" height="143">
         </div>
       </div>
 
@@ -2035,11 +2026,11 @@
     <!-- 1b. Calificar el último pedido entregado (solo si quedó sin calificar) -->
     <section class="vista rating-view" id="v-rating">
       <div class="menu-brandbar rating-brandbar">
-        <img class="menu-golunch" src="golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch"
-             width="1328" height="698">
+        <img class="menu-golunch" src="/go-lunch.svg" alt="CICSA Go Lunch"
+             width="1254" height="627">
         <div class="menu-client">
           <span>Servicio para</span>
-          <img src="glovis-logo.png" alt="Hyundai Glovis" width="220" height="56">
+          <img src="/glovis.svg" alt="Hyundai Glovis" width="560" height="143">
         </div>
         <button class="menu-exit" type="button" onclick="salir()">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4M14 8l4 4-4 4M9 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2104,11 +2095,11 @@
     <!-- 2. Elegir platillo -->
     <section class="vista menu-view" id="v-menu">
       <div class="menu-brandbar">
-        <img class="menu-golunch" src="golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch"
-             width="1328" height="698">
+        <img class="menu-golunch" src="/go-lunch.svg" alt="CICSA Go Lunch"
+             width="1254" height="627">
         <div class="menu-client">
           <span>Servicio para</span>
-          <img src="glovis-logo.png" alt="Hyundai Glovis" width="220" height="56">
+          <img src="/glovis.svg" alt="Hyundai Glovis" width="560" height="143">
         </div>
         <button class="menu-exit" type="button" onclick="salir()">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4M14 8l4 4-4 4M9 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2199,11 +2190,11 @@
     <!-- 4. Confirmación -->
     <section class="vista confirm-view" id="v-listo">
       <div class="menu-brandbar confirm-brandbar">
-        <img class="menu-golunch" src="golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch"
-             width="1328" height="698">
+        <img class="menu-golunch" src="/go-lunch.svg" alt="CICSA Go Lunch"
+             width="1254" height="627">
         <div class="menu-client">
           <span>Servicio para</span>
-          <img src="glovis-logo.png" alt="Hyundai Glovis" width="220" height="56">
+          <img src="/glovis.svg" alt="Hyundai Glovis" width="560" height="143">
         </div>
         <button class="menu-exit" type="button" onclick="salir()">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4M14 8l4 4-4 4M9 12h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2273,13 +2264,13 @@
     <!-- Cerrado / sin menú -->
     <section class="vista empty-view" id="v-cerrado">
       <div class="empty-brandbar">
-        <img class="empty-golunch" src="golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch"
-             width="1328" height="698">
+        <img class="empty-golunch" src="/go-lunch.svg" alt="CICSA Go Lunch"
+             width="1254" height="627">
         <span class="empty-brand-divider" aria-hidden="true"></span>
         <div class="empty-client">
           <span>Servicio para</span>
-          <img class="empty-glovis" src="glovis-logo.png" alt="Hyundai Glovis"
-               width="220" height="56">
+          <img class="empty-glovis" src="/glovis.svg" alt="Hyundai Glovis"
+               width="560" height="143">
         </div>
       </div>
 

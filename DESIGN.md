@@ -4,10 +4,12 @@
 
 Go Lunch es una herramienta operativa corporativa: debe sentirse clara,
 confiable y rápida, no decorativa. La identidad se construye con azul marino,
-azul Glovis, superficies blancas y fondos fríos. Los logotipos siempre viven
-juntos sobre una placa blanca para conservar contraste en temas claro y oscuro.
-La firma aprobada es `public/golunch-aprobado-horizontal.jpg`; para favicons y
-espacios reducidos se usa el recorte fiel `public/golunch-aprobado-mark.png`.
+azul Glovis, superficies blancas y fondos fríos. La firma aprobada es
+`public/go-lunch.svg`; la interfaz recorta su isotipo cuando el espacio es
+compacto. Glovis usa `public/glovis.svg` sobre superficies claras y
+`public/glovis-white.svg` directamente sobre azul, sin placa ni padding.
+Los PNG se conservan únicamente para favicons e íconos de instalación, donde
+la compatibilidad del sistema operativo importa más que la escalabilidad.
 Los originales autorizados, incluido el trazo monocromático, viven en
 `assets/brand/` y no deben redibujarse desde CSS.
 
