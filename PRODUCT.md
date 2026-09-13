@@ -52,10 +52,11 @@ El pedido personal no requiere cuenta ni contraseña: localiza al empleado con s
 
 ## Evidence on Hand
 
-- Logotipo aprobado: `public/golunch-aprobado-horizontal.jpg`.
-- Marca compacta: `public/golunch-aprobado-mark.png`.
+- Logotipo aprobado: `public/go-lunch.svg`.
+- La marca compacta se recorta del mismo SVG maestro dentro de la interfaz.
+- Favicons, accesos instalados y Dock usan el arte 3D aprobado de `assets/brand/go-lunch-3d.png`, derivado en las familias PNG `public/icono-*` y `public/panel-*`.
 - Originales autorizados de color y línea: `assets/brand/`.
-- Logotipo Hyundai Glovis: `public/glovis-logo.png`.
+- Logotipo Hyundai Glovis: `public/glovis.svg` sobre superficies claras y `public/glovis-white.svg` directamente sobre azul.
 - Flujo real de empleado: `public/pedido.html` y `routes/pedido.js`.
 - Reglas de menú, corte, zonas y turnos: `services/menu.js` y `services/pedidos.js`.
 - No hay fotografías verificadas de platillos; el producto no debe inventarlas.

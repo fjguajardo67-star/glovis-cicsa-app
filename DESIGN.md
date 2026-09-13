@@ -4,17 +4,21 @@
 
 Go Lunch es una herramienta operativa corporativa: debe sentirse clara,
 confiable y rápida, no decorativa. La identidad se construye con azul marino,
-azul Glovis, superficies blancas y fondos fríos. Los logotipos siempre viven
-juntos sobre una placa blanca para conservar contraste en temas claro y oscuro.
-La firma aprobada es `public/golunch-aprobado-horizontal.jpg`; para favicons y
-espacios reducidos se usa el recorte fiel `public/golunch-aprobado-mark.png`.
-Los originales autorizados, incluido el trazo monocromático, viven en
-`assets/brand/` y no deben redibujarse desde CSS.
+azul Glovis, superficies blancas y fondos fríos. La firma aprobada es
+`public/go-lunch.svg`; la interfaz recorta su isotipo cuando el espacio es
+compacto. Glovis usa `public/glovis.svg` sobre superficies claras y
+`public/glovis-white.svg` directamente sobre azul, sin placa ni padding.
+Los PNG se conservan únicamente para favicons e íconos de instalación, donde
+la compatibilidad del sistema operativo importa más que la escalabilidad. Esa
+familia deriva sin redibujo de `assets/brand/go-lunch-3d.png`: el arte 3D
+aprobado se conserva cuadrado, opaco y con su fondo blanco original.
 
-El panel usa una familia propia de íconos `public/panel-*`: favicon compacto
-para pestañas y una placa azul corporativa, opaca y de borde a borde para el
-Dock de macOS. La versión maestra del Dock es de 1024 px; el isotipo aprobado
-se conserva intacto dentro de una placa blanca con margen de seguridad.
+La app usa la familia `public/icono-*` y el panel la familia `public/panel-*`.
+Ambas muestran el mismo símbolo 3D para mantener continuidad entre pestañas,
+accesos instalados y el Dock de macOS. La versión maestra del Dock es de
+1024 px; las variantes de 16 a 512 px son reducciones directas del original.
+Los demás originales autorizados, incluido el trazo monocromático, viven en
+`assets/brand/` y no deben redibujarse desde CSS.
 
 ## Principios
 

@@ -130,12 +130,10 @@
   @media (max-width: 780px)  { .header-title { display: none; } }
   .header-left { display: flex; align-items: center; gap: 20px; }
   .header-logos { display: flex; align-items: center; gap: 12px; }
-  /* Más grande y con aire: a 22 px y 3 px de padding se perdía */
-  /* width:auto para que la placa blanca abrace al logotipo: con el ancho
-     que traía el atributo, object-fit lo dejaba flotando entre bandas. */
+  /* La versión blanca y recortada vive directamente sobre el azul: no necesita
+     placa ni padding, y conserva una silueta limpia en el encabezado. */
   .header-logos img.logo-g {
-    width: auto; height: 38px; background: #fff;
-    border-radius: 7px; padding: 7px 12px;
+    width: auto; height: 28px; display: block;
   }
   .header-title {
     display: flex; flex-direction: column;
@@ -160,6 +158,13 @@
     font-family: inherit; transition: background .15s;
   }
   .btn-salir:hover { background: rgba(255,255,255,.22); }
+
+  .gate-client-logo {
+    width: 148px;
+    height: auto;
+    display: block;
+    margin: 28px auto 0;
+  }
 
   /* ── Layout: barra lateral + contenido ──
      El logo vivía en un recuadro blanco de 3 px de padding sobre el header
@@ -561,7 +566,7 @@
 <div id="gate" class="gate-wrap">
   <div class="gate">
     <div style="text-align:center;margin-bottom:24px">
-      <img src="golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch" width="1254" height="627" style="width:auto;height:auto;max-height:150px;max-width:300px">
+      <img src="/go-lunch.svg" alt="CICSA Go Lunch" width="1254" height="627" style="width:auto;height:auto;max-height:150px;max-width:300px">
     </div>
     <h2 style="font-size:1.2rem;font-weight:700;color:var(--azul);margin-bottom:20px;text-align:left">Iniciar Sesión</h2>
     <div style="position:relative;margin-bottom:14px">
@@ -583,23 +588,17 @@
     <button class="btn-entrar" onclick="entrar()" style="width:100%;padding:14px;font-size:1rem;border-radius:10px">Ingresar</button>
     <div id="gateErr" class="gate-err"></div>
   </div>
-  <!-- El logotipo del cliente sobre placa blanca, igual que en el encabezado
-       de la app: nace sobre blanco y sobre el azul necesita su propio lienzo.
-       Antes se servía un PNG de 1536×1024 (2 MB) con el logotipo en su franja
-       central, así que a 80 px de alto el texto quedaba de unos 12 px. -->
-  <div style="text-align:center;margin-top:28px">
-    <span style="display:inline-block;background:#fff;padding:11px 18px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.16);line-height:0">
-      <img src="glovis-logo.png" alt="Hyundai Glovis" width="220" height="56"
-           style="width:auto;height:30px;display:block">
-    </span>
-  </div>
+  <!-- La firma blanca recortada conserva únicamente el dibujo: sin lienzo,
+       sin padding del archivo y directamente sobre el azul corporativo. -->
+  <img class="gate-client-logo" src="/glovis-white.svg" alt="Hyundai Glovis"
+       width="560" height="143">
 </div>
 <!-- ── Aplicación ── -->
 <div id="app" style="display:none">
   <header>
     <div class="header-left">
       <div class="header-logos">
-        <img class="logo-g" src="glovis-logo.png" width="220" height="56" alt="Hyundai Glovis">
+        <img class="logo-g" src="/glovis-white.svg" width="560" height="143" alt="Hyundai Glovis">
       </div>
       <div class="header-title">
         <span>Servicio de Alimentación</span>
@@ -616,7 +615,7 @@
   <div class="shell">
     <aside class="lateral">
       <div class="marca">
-        <img src="golunch-aprobado-horizontal.jpg" alt="CICSA Go Lunch" width="1254" height="627"
+        <img src="/go-lunch.svg" alt="CICSA Go Lunch" width="1254" height="627"
              onerror="this.style.display='none'">
       </div>
       <nav class="tabs">
