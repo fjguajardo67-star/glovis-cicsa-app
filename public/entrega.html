@@ -266,7 +266,7 @@
       </button>
       <button class="btn zona-opcion" type="button" data-zona="zona_refris" onclick="elegirZona('zona_refris')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
-        <span><b>Glovis REFRIS</b><small>Asignar esta ruta al equipo</small></span>
+        <span><b>Glovis REFIS</b><small>Asignar esta ruta al equipo</small></span>
         <svg class="zona-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
       </button>
     </div>
@@ -481,7 +481,7 @@
   // dirección nunca se escribe a mano. Cambiar de dominio es solo DNS.
   const API_BASE = '';
 
-  const ZONA_TXT  = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
+  const ZONA_TXT  = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFIS' };
   const TURNO_TXT = { turno_a: 'Turno A', turno_b: 'Turno B' };
 
   // Debe coincidir exactamente con el que genera qr.html?prueba=entrega.
@@ -514,7 +514,7 @@
     // para no preguntarlo en cada uno de los recipientes del mismo lote.
     receptores: 'cicsa_entrega_receptores_cobertura'
   };
-  // Una caché por zona: cambiar de VDC a REFRIS no debe mezclar listas ni
+  // Una caché por zona: cambiar de VDC a REFIS no debe mezclar listas ni
   // contadores, y volver a la anterior no debe obligar a descargar de nuevo.
   const claveDatos = z => LS.datos + '_' + z;
 
@@ -525,7 +525,7 @@
   // es de la otra ruta" en vez de "no existe" cuando no hay señal.
   let INDICE_ZONAS = {};
   // Cada cambio de zona invalida las respuestas en vuelo de la anterior: sin
-  // esto, una descarga lenta de VDC podía pintarse encima de REFRIS.
+  // esto, una descarga lenta de VDC podía pintarse encima de REFIS.
   let EPOCA_ZONA = 0;
   let COLA = [];
   let CLAVE = '';

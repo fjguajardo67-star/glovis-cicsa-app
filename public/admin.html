@@ -763,7 +763,7 @@
             <select id="e-zona">
               <option value="">— Sin asignar —</option>
               <option value="zona_vdc">Glovis VDC</option>
-              <option value="zona_refris">Glovis REFRIS</option>
+              <option value="zona_refris">Glovis REFIS</option>
             </select>
           </div>
           <div>
@@ -1000,7 +1000,7 @@
                 <label style="display:flex;gap:6px;align-items:center;font-weight:600;font-size:.88rem">
                   <input type="checkbox" id="rp-vdc" style="width:18px;height:18px"> Glovis VDC</label>
                 <label style="display:flex;gap:6px;align-items:center;font-weight:600;font-size:.88rem">
-                  <input type="checkbox" id="rp-refris" style="width:18px;height:18px"> Glovis REFRIS</label>
+                  <input type="checkbox" id="rp-refris" style="width:18px;height:18px"> Glovis REFIS</label>
               </div>
             </div>
             <div><label>Clave (opcional)</label><input type="text" id="rp-clave" placeholder="Se genera sola"></div>
@@ -1021,7 +1021,7 @@
             <div class="cocina-icono" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
             </div>
-            <div><h3>Puntos de entrega</h3><p>Coordenadas y radio permitido para VDC y REFRIS.</p></div>
+            <div><h3>Puntos de entrega</h3><p>Coordenadas y radio permitido para VDC y REFIS.</p></div>
           </div>
           <p style="font-size:.85rem;color:var(--gris-text);margin:-4px 0 14px;line-height:1.55">
             La referencia contra la que se mide cada entrega. El contrato nombra
@@ -1059,7 +1059,7 @@
             <div class="cocina-herramienta">
               <div class="cocina-herramienta-info">
                 <div class="cocina-icono" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM19 14h2v2M19 19h2v2M14 19h2v2"/></svg></div>
-                <div><h4>Prueba del escáner</h4><p>QR permanente para cámara, permisos, VDC, REFRIS y ambos turnos.</p></div>
+                <div><h4>Prueba del escáner</h4><p>QR permanente para cámara, permisos, VDC, REFIS y ambos turnos.</p></div>
               </div>
               <button class="accion mini sec" onclick="window.open('qr.html?prueba=entrega','_blank')">Ver QR</button>
             </div>
@@ -1171,7 +1171,7 @@
   const API_BASE = '';
 
   // Texto legible de zonas y turnos (deben coincidir con services/menu.js)
-  const ZONA_TXT = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
+  const ZONA_TXT = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFIS' };
   const TURNO_TXT = { turno_a: 'Turno A (10:00 am)', turno_b: 'Turno B (5:00 pm)' };
   const zonaTxt  = z => ZONA_TXT[z]  || z || '—';
   const turnoTxt = t => TURNO_TXT[t] || t || '—';
@@ -2003,7 +2003,7 @@
     const filas = [
       ['Nombre completo', 'No. empleado', 'Telefono', 'Zona', 'Turno'],
       ['Juan Pérez López',   'EMP001', '6361037574', 'Glovis VDC',    'Turno A'],
-      ['María García Ruiz',  'EMP002', '6361037575', 'Glovis REFRIS', 'Turno B'],
+      ['María García Ruiz',  'EMP002', '6361037575', 'Glovis REFIS', 'Turno B'],
       ['Pedro Sánchez Díaz', 'EMP003', '6361037576', 'Glovis VDC',    'Turno B']
     ];
     const wb = XLSX.utils.book_new();
@@ -2158,7 +2158,7 @@
   // La clave se asigna aquí y se muestra UNA vez. En la base solo queda su
   // resguardo cifrado, así que no existe "ver la clave actual": si se pierde,
   // se restablece — y eso además cierra la sesión que estuviera abierta.
-  const ZONAS_RP = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFRIS' };
+  const ZONAS_RP = { zona_vdc: 'Glovis VDC', zona_refris: 'Glovis REFIS' };
 
   function mostrarClaveNueva(clave, quien) {
     document.getElementById('rpClaveTexto').textContent = clave;

@@ -23,7 +23,7 @@ export const OPCIONES_VALIDAS = Object.keys(OPCION_LABELS);
 // Zonas de entrega
 export const ZONAS = {
   zona_vdc:    'Glovis VDC',
-  zona_refris: 'Glovis REFRIS'
+  zona_refris: 'Glovis REFIS'
 };
 export const ZONAS_VALIDAS = Object.keys(ZONAS);
 
@@ -186,7 +186,7 @@ export function construirListZona(telefono, opcionTexto) {
           title: 'ZONAS DISPONIBLES',
           rows: [
             { id: 'zona_vdc',    title: 'Glovis VDC',    description: 'Zona 1' },
-            { id: 'zona_refris', title: 'Glovis REFRIS',  description: 'Zona 2' }
+            { id: 'zona_refris', title: 'Glovis REFIS',  description: 'Zona 2' }
           ]
         }]
       }

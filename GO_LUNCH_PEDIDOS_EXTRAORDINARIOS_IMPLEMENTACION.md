@@ -127,7 +127,7 @@ Antes de publicar:
 4. Autorizar un supervisor de prueba y anotar su clave.
 5. Crear una solicitud con empleados que también tengan pedido regular y comprobar que ambos permanecen.
 6. Imprimir comanda y etiquetas.
-7. Probar entrega en VDC y REFRIS, con receptor esperado y receptor distinto.
+7. Probar entrega en VDC y REFIS, con receptor esperado y receptor distinto.
 8. Probar sin señal y confirmar que “Por subir” vuelve a cero al recuperar conexión.
 9. Verificar que el cierre masivo solo afecte pedidos regulares.
 10. Publicar el commit únicamente después de completar estas pruebas.

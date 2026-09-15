@@ -86,7 +86,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
         </section>
         <section class="panel">
           <h2>Entrega del lote</h2><p>El responsable puede ser el propio supervisor u otro empleado activo.</p>
-          <label for="zona">Zona</label><select id="zona"><option value="">Seleccionar zona</option><option value="zona_vdc">Glovis VDC</option><option value="zona_refris">Glovis REFRIS</option></select>
+          <label for="zona">Zona</label><select id="zona"><option value="">Seleccionar zona</option><option value="zona_vdc">Glovis VDC</option><option value="zona_refris">Glovis REFIS</option></select>
           <label for="responsable">Número del responsable</label><input id="responsable" inputmode="numeric" onblur="buscarResponsable()"><div id="responsable-nombre" class="responsable-ok"></div>
         </section>
         <section class="panel">
@@ -112,7 +112,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 <script>
   const API='';
   const LS='golunch_cobertura_sesion';
-  const ZONAS={zona_vdc:'Glovis VDC',zona_refris:'Glovis REFRIS'};
+  const ZONAS={zona_vdc:'Glovis VDC',zona_refris:'Glovis REFIS'};
   const $=id=>document.getElementById(id);
   let SESION=null,ESTADO=null,FILAS=[],RESPONSABLE=null;
 

@@ -76,7 +76,7 @@ function limpiarItems(items) {
 export function validarSolicitudEntrada({ responsable_numero, zona, items }) {
   const limpios = limpiarItems(items);
   if (!String(responsable_numero || '').trim()) return { error: 'Indica el número de empleado responsable de recibir.' };
-  if (!ZONAS_VALIDAS.includes(zona)) return { error: 'Selecciona VDC o REFRIS como zona de entrega.' };
+  if (!ZONAS_VALIDAS.includes(zona)) return { error: 'Selecciona VDC o REFIS como zona de entrega.' };
   if (!limpios.length) return { error: 'Agrega al menos una persona y su alimento.' };
   if (limpios.some(x => !x.numero_empleado)) return { error: 'Todos los alimentos necesitan número de empleado.' };
   if (limpios.some(x => !OPCIONES_COBERTURA.includes(x.opcion_id))) return { error: 'Selecciona un platillo para cada empleado.' };
